@@ -1,0 +1,23 @@
+version: "3"
+
+tasks:
+  default:
+    cmds:
+      - task --list
+
+  test:
+    desc: "Validate the homepage and deploy script."
+    cmds:
+      - python3 scripts/check_homepage.py
+      - bash -n scripts/deploy_homepage.sh
+
+  test:live:
+    desc: "Validate homepage files and live legacy redirects."
+    cmds:
+      - python3 scripts/check_homepage.py --live-redirects
+      - bash -n scripts/deploy_homepage.sh
+
+  deploy:
+    desc: "Deploy the root homepage to the VPS."
+    cmds:
+      - bash scripts/deploy_homepage.sh {{.CLI_ARGS}}

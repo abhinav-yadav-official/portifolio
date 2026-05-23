@@ -1,0 +1,1083 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Abhinav Yadav, Instahyre SDE III, Fullstack Backend Developer</title>
+    <meta
+      name="description"
+      content="Abhinav Yadav is SDE III at Instahyre and a fullstack developer focused on backend production systems, Redis, Celery, MySQL, search, AWS, portfolio, resume, and LeetDrill."
+    >
+    <meta name="author" content="Abhinav">
+    <meta name="robots" content="index,follow,max-image-preview:large">
+    <meta name="theme-color" content="#020617">
+    <meta name="color-scheme" content="dark light">
+    <link rel="canonical" href="https://abhiyadav.in/">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="alternate" type="application/pdf" href="/resume" title="Abhinav resume (PDF)">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Abhinav">
+    <meta property="og:title" content="Abhinav Yadav, Instahyre SDE III">
+    <meta property="og:description" content="Fullstack developer and senior backend engineer focused on production systems, Redis, Celery, MySQL, search, AWS, and LeetDrill.">
+    <meta property="og:url" content="https://abhiyadav.in/">
+    <meta property="og:image" content="https://abhiyadav.in/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Abhinav Yadav, SDE III at Instahyre">
+    <meta property="og:locale" content="en_US">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Abhinav Yadav, Instahyre SDE III">
+    <meta name="twitter:description" content="Fullstack developer and senior backend engineer focused on production systems, Redis, Celery, MySQL, search, AWS, and LeetDrill.">
+    <meta name="twitter:image" content="https://abhiyadav.in/og-image.png">
+    <meta name="twitter:image:alt" content="Abhinav Yadav, SDE III at Instahyre">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Person",
+      "name": "Abhinav Yadav",
+      "alternateName": ["Abhinav", "abhiyd"],
+      "url": "https://abhiyadav.in/",
+      "image": "https://abhiyadav.in/og-image.png",
+      "jobTitle": "Senior Software Engineer (SDE III)",
+      "worksFor": {
+        "@type": "Organization",
+        "name": "Instahyre",
+        "url": "https://www.instahyre.com"
+      },
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Noida",
+        "addressCountry": "IN"
+      },
+      "alumniOf": {
+        "@type": "CollegeOrUniversity",
+        "name": "Dr. A.P.J. Abdul Kalam Technical University (AKTU)"
+      },
+      "sameAs": [
+        "https://github.com/abhinav-yadav-official",
+        "https://linkedin.com/in/abhiyd",
+        "https://leetcode.com/u/abhinav-yadav-official/"
+      ],
+      "knowsAbout": [
+        "Distributed Systems",
+        "Fullstack Development",
+        "Backend Engineering",
+        "Elasticsearch",
+        "OpenSearch",
+        "Redis caching",
+        "Celery",
+        "RabbitMQ",
+        "MySQL",
+        "Django",
+        "AWS",
+        "Performance tuning"
+      ]
+    }
+    </script>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+        color: #f8fafc;
+        background: #020617;
+        --accent: #60a5fa;
+        --accent-strong: #3b82f6;
+        --accent-soft: rgba(96, 165, 250, 0.14);
+        --accent-wash: rgba(96, 165, 250, 0.24);
+        --ink: #f8fafc;
+        --muted: #cbd5e1;
+        --soft-muted: #94a3b8;
+        --subtle: #111827;
+        --line: rgba(148, 163, 184, 0.3);
+        --card: #0f172a;
+        scroll-behavior: smooth;
+        scroll-padding-top: 86px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: #020617;
+        overflow-x: hidden;
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+        overflow-wrap: anywhere;
+      }
+
+      .devportfolio-inspired {
+        min-height: 100vh;
+      }
+
+      .site-nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 20;
+        display: flex;
+        justify-content: center;
+        padding: 18px 24px 28px;
+        background: linear-gradient(to bottom, rgba(2, 6, 23, 0.76) 0%, rgba(2, 6, 23, 0.56) 58%, rgba(2, 6, 23, 0) 100%);
+        backdrop-filter: blur(4.5px);
+        -webkit-backdrop-filter: blur(4.5px);
+        transition: background 220ms ease, border-color 220ms ease;
+      }
+
+      .site-nav ul {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 28px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .site-nav a {
+        color: var(--muted);
+        font-size: 15px;
+        font-weight: 600;
+        transition: color 180ms ease;
+      }
+
+      .site-nav a:hover {
+        color: var(--accent);
+      }
+
+      .hero {
+        position: relative;
+        isolation: isolate;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        overflow: hidden;
+        background: #020617;
+      }
+
+      .hero::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: -3;
+        background:
+          radial-gradient(ellipse 900px 1200px at 0% 0%, var(--accent-wash) 0%, var(--accent-soft) 34%, rgba(15, 23, 42, 0.68) 72%, #020617 100%);
+      }
+
+      .hero-pattern {
+        position: absolute;
+        inset: 0;
+        z-index: -2;
+        width: 100%;
+        height: 100%;
+        stroke: rgba(148, 163, 184, 0.24);
+        opacity: 0.86;
+        mask-image: radial-gradient(100% 100% at top right, #ffffff, transparent);
+        pointer-events: none;
+      }
+
+      .programming-symbols {
+        fill: var(--accent);
+        opacity: 0.18;
+      }
+
+      .hero-inner {
+        width: min(1220px, calc(100% - 48px));
+        margin: 0 auto;
+        padding: 96px 0 110px;
+      }
+
+      .hero-copy {
+        max-width: 920px;
+      }
+
+      .hello {
+        margin: 0;
+        color: var(--muted);
+        font-size: clamp(24px, 4vw, 56px);
+        font-weight: 800;
+        letter-spacing: 0;
+      }
+
+      h1 {
+        margin: 34px 0 0;
+        color: var(--ink);
+        font-size: clamp(44px, 9vw, 104px);
+        line-height: 1.02;
+        font-weight: 800;
+        letter-spacing: 0;
+      }
+
+      h1 span {
+        color: var(--accent);
+      }
+
+      .title {
+        max-width: 760px;
+        margin: 30px 0 0;
+        color: var(--muted);
+        font-size: clamp(18px, 2vw, 25px);
+        line-height: 1.65;
+        font-weight: 600;
+      }
+
+      .typing-line {
+        display: block;
+      }
+
+      .typing-cursor::after {
+        content: "";
+        display: inline-block;
+        width: 0.56em;
+        height: 0.12em;
+        margin-left: 0.12em;
+        vertical-align: baseline;
+        background: currentColor;
+        animation: cursorBlink 850ms steps(2, start) infinite;
+      }
+
+      .hero-actions {
+        position: absolute;
+        left: max(24px, calc((100vw - 1220px) / 2));
+        right: max(24px, calc((100vw - 1220px) / 2));
+        bottom: 42px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 18px;
+        color: #e2e8f0;
+        animation: fadeIn 820ms ease 450ms both;
+      }
+
+      .hero-actions a,
+      .card-link,
+      .footer a {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 700;
+        transition: color 180ms ease, transform 180ms ease;
+      }
+
+      .hero-actions a:hover,
+      .card-link:hover,
+      .footer a:hover {
+        color: var(--accent);
+        transform: translateY(-1px);
+      }
+
+      .share {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .share a {
+        font-weight: 600;
+        color: var(--muted);
+      }
+      .share a:hover {
+        color: var(--accent);
+      }
+
+      .section {
+        padding: 84px 24px;
+      }
+
+      .section-grid {
+        width: min(1220px, 100%);
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: minmax(220px, 330px) minmax(0, 1fr);
+        gap: clamp(88px, 9vw, 132px);
+        align-items: start;
+      }
+
+      .section-heading h2 {
+        margin: 0;
+        color: var(--ink);
+        font-size: clamp(34px, 4.8vw, 64px);
+        line-height: 1.04;
+        font-weight: 800;
+        letter-spacing: 0;
+      }
+
+      .heading-rule {
+        width: 75px;
+        height: 5px;
+        margin-top: 16px;
+        border-radius: 999px;
+        background: var(--accent);
+      }
+
+      .content-stack {
+        display: grid;
+        gap: 28px;
+      }
+
+      .lead {
+        margin: 0;
+        color: var(--muted);
+        font-size: clamp(18px, 1.7vw, 24px);
+        line-height: 1.62;
+        font-weight: 500;
+      }
+
+      .skills,
+      .repo-skills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .skill,
+      .repo-skill {
+        border-radius: 999px;
+        background: rgba(148, 163, 184, 0.16);
+        color: #e2e8f0;
+        padding: 8px 13px;
+        font-size: 15px;
+        font-weight: 700;
+        transition: background 180ms ease;
+      }
+
+      .skill:hover {
+        background: rgba(148, 163, 184, 0.25);
+      }
+
+      .project-card,
+      .archive-card,
+      .system-card,
+      .experience-card,
+      .education-card {
+        display: block;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: var(--subtle);
+        padding: 30px;
+        transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease, background 220ms ease;
+      }
+
+      .project-card:hover,
+      .archive-card:hover,
+      .system-card:hover,
+      .experience-card:hover,
+      .education-card:hover {
+        transform: translateY(-4px);
+        border-color: rgba(96, 165, 250, 0.72);
+        background: #1e293b;
+        box-shadow: 0 24px 54px rgba(0, 0, 0, 0.34);
+      }
+
+      .card-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 18px;
+      }
+
+      .index {
+        color: var(--accent);
+        font-size: 15px;
+        font-weight: 700;
+      }
+
+      .project-card h3,
+      .archive-card h3,
+      .archive-card .card-title,
+      .system-card h3,
+      .system-card .card-title,
+      .experience-card h3,
+      .education-card h3 {
+        display: block;
+        margin: 8px 0 0;
+        color: var(--ink);
+        font-size: 28px;
+        line-height: 1.22;
+        font-weight: 700;
+      }
+
+      .project-card p,
+      .archive-card p,
+      .system-card p,
+      .experience-card p,
+      .education-card p {
+        margin: 18px 0 0;
+        color: var(--muted);
+        font-size: 18px;
+        line-height: 1.7;
+      }
+
+      .arrow {
+        width: 44px;
+        height: 44px;
+        flex: 0 0 auto;
+        display: grid;
+        place-items: center;
+        border-radius: 999px;
+        background: var(--accent-strong);
+        color: #eff6ff;
+        font-size: 23px;
+        line-height: 1;
+      }
+
+      .repo-skills {
+        margin-top: 22px;
+      }
+
+      .repo-skill {
+        border-radius: 8px;
+        background: rgba(37, 99, 235, 0.88);
+        color: #eff6ff;
+        font-size: 14px;
+      }
+
+      .archive-grid,
+      .systems-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+      }
+
+      .archive-card,
+      .system-card {
+        padding: 24px;
+        position: relative;
+      }
+
+      .archive-card-link,
+      .project-card-link {
+        color: inherit;
+      }
+
+      .archive-card-link::after,
+      .project-card-link::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+      }
+
+      .project-card {
+        position: relative;
+      }
+
+      .archive-card h3,
+      .archive-card .card-title,
+      .system-card h3,
+      .system-card .card-title {
+        font-size: 21px;
+      }
+
+      .archive-card p,
+      .system-card p {
+        font-size: 15px;
+      }
+
+      .timeline {
+        position: relative;
+        display: grid;
+        gap: 34px;
+      }
+
+      .experience-card {
+        position: relative;
+        background: var(--card);
+      }
+
+      .experience-meta {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        color: var(--soft-muted);
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .experience-card h3 {
+        margin-top: 14px;
+      }
+
+      .company {
+        color: var(--accent);
+      }
+
+      .experience-card ul {
+        display: grid;
+        gap: 10px;
+        margin: 20px 0 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .experience-card li {
+        position: relative;
+        padding-left: 20px;
+        color: var(--muted);
+        font-size: 16px;
+        line-height: 1.65;
+      }
+
+      .experience-card li::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 11px;
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+        background: var(--accent);
+      }
+
+      .footer {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        width: min(1220px, calc(100% - 48px));
+        margin: 0 auto;
+        padding: 42px 0 56px;
+        color: var(--soft-muted);
+        font-size: 14px;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes cursorBlink {
+        50% {
+          opacity: 0;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation: none !important;
+          scroll-behavior: auto !important;
+          transition: none !important;
+        }
+      }
+
+      @media (max-width: 900px) {
+        :root {
+          scroll-padding-top: 112px;
+        }
+
+        .site-nav {
+          justify-content: flex-start;
+          background: rgba(2, 6, 23, 0.96);
+        }
+
+        .site-nav ul {
+          justify-content: flex-start;
+          flex-wrap: wrap;
+          gap: 14px 20px;
+        }
+
+        .hero {
+          min-height: auto;
+          display: block;
+        }
+
+        .hero-inner {
+          width: min(100% - 40px, 1220px);
+          padding: 118px 0 44px;
+        }
+
+        .hero-actions {
+          position: static;
+          width: min(100% - 40px, 1220px);
+          margin: 0 auto;
+          padding: 0 0 46px;
+        }
+
+        .section-grid {
+          grid-template-columns: 1fr;
+          gap: 30px;
+        }
+
+        .section {
+          padding: 58px 20px;
+        }
+      }
+
+      @media (max-width: 620px) {
+        :root {
+          scroll-padding-top: 0;
+        }
+
+        .site-nav {
+          display: none;
+          padding: 15px 16px;
+        }
+
+        .site-nav ul {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          width: 100%;
+          gap: 12px;
+        }
+
+        .site-nav a {
+          font-size: 13px;
+          line-height: 1.35;
+        }
+
+        .hero-inner,
+        .hero-actions,
+        .footer {
+          width: min(100% - 28px, 1220px);
+        }
+
+        .hero-inner {
+          padding-top: 56px;
+        }
+
+        h1 {
+          font-size: clamp(40px, 13vw, 64px);
+        }
+
+        .hero-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 12px 18px;
+        }
+
+        .hero-actions a {
+          white-space: nowrap;
+        }
+
+        .section-heading h2 {
+          font-size: clamp(34px, 12vw, 54px);
+        }
+
+        .project-card,
+        .archive-card,
+        .system-card,
+        .experience-card,
+        .education-card {
+          border-radius: 14px;
+          padding: 20px;
+        }
+
+        .archive-grid,
+        .systems-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .card-top {
+          align-items: center;
+        }
+
+        .arrow {
+          width: 38px;
+          height: 38px;
+        }
+
+        .experience-meta,
+        .footer {
+          flex-direction: column;
+        }
+      }
+
+      @media (max-width: 420px) {
+        .site-nav ul {
+          grid-template-columns: 1fr 1fr;
+        }
+
+        .hello {
+          font-size: 24px;
+        }
+
+        .lead,
+        .title {
+          font-size: 17px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="devportfolio-inspired">
+      <nav class="site-nav" aria-label="Primary">
+        <ul>
+          <li><a href="#about">About</a></li>
+          <li><a href="#projects">Projects</a></li>
+          <li><a href="#archive">Archive</a></li>
+          <li><a href="#experience">Experience</a></li>
+          <li><a href="#education">Education</a></li>
+        </ul>
+      </nav>
+
+      <main>
+        <section class="hero" id="hero" aria-labelledby="intro-title">
+          <svg class="hero-pattern" aria-hidden="true">
+            <defs>
+              <pattern id="hero-grid" x="50%" y="-1" width="200" height="200" patternUnits="userSpaceOnUse">
+                <path d="M.5 200V.5H200" fill="none"></path>
+              </pattern>
+              <pattern id="programming-symbols" x="0" y="0" width="400" height="400" patternUnits="userSpaceOnUse">
+                <text class="programming-symbols" x="50" y="50" font-family="monospace" font-size="24" transform="rotate(-15)">&lt;/&gt;</text>
+                <text class="programming-symbols" x="150" y="100" font-family="monospace" font-size="20" transform="rotate(10)">{}</text>
+                <text class="programming-symbols" x="250" y="80" font-family="monospace" font-size="18" transform="rotate(-5)">=&gt;</text>
+                <text class="programming-symbols" x="100" y="200" font-family="monospace" font-size="22" transform="rotate(15)">[]</text>
+                <text class="programming-symbols" x="300" y="180" font-family="monospace" font-size="20" transform="rotate(-10)">&lt;&gt;</text>
+                <text class="programming-symbols" x="200" y="250" font-family="monospace" font-size="24" transform="rotate(5)">()</text>
+                <text class="programming-symbols" x="50" y="320" font-family="monospace" font-size="18" transform="rotate(-8)">::</text>
+                <text class="programming-symbols" x="350" y="300" font-family="monospace" font-size="22" transform="rotate(12)">==</text>
+              </pattern>
+            </defs>
+            <rect fill="url(#programming-symbols)" width="100%" height="100%"></rect>
+            <rect fill="url(#hero-grid)" width="100%" height="100%" stroke-width="0"></rect>
+          </svg>
+          <div class="hero-inner">
+            <div class="hero-copy">
+              <p class="hello typing-line typing-cursor" data-text="Hello!">Hello!</p>
+              <h1 id="intro-title" class="typing-line" data-text="I am Abhinav Yadav, SDE III at Instahyre.">I am <span>Abhinav Yadav</span>, SDE III at Instahyre.</h1>
+              <p class="title">
+                <span
+                  class="typing-line"
+                  data-text="Fullstack developer and senior backend engineer building reliable production systems, async workflows, search, caching layers, and practical tools."
+                >Fullstack developer and senior backend engineer building reliable production systems, async workflows, search, caching layers, and practical tools.</span>
+              </p>
+            </div>
+          </div>
+          <div class="hero-actions" aria-label="Profile links">
+            <a href="/resume">Resume</a>
+            <a href="#" data-email-local="me" data-email-domain="abhiyadav.in" data-email-label="Email">Email</a>
+            <a href="/linkedin">LinkedIn</a>
+            <a href="/github">GitHub</a>
+            <a href="https://leetcode.com/u/abhinav-yadav-official/">LeetCode</a>
+            <a href="https://abhiyadav.in/leetdrill">Practice tracker</a>
+          </div>
+        </section>
+
+        <section class="section" id="about" aria-labelledby="about-title">
+          <div class="section-grid">
+            <div class="section-heading">
+              <h2 id="about-title">Instahyre backend and fullstack work</h2>
+              <div class="heading-rule"></div>
+            </div>
+            <div class="content-stack">
+              <p class="lead">
+                Abhinav Yadav is a fullstack developer and senior backend engineer focused on correctness, performance, and production safety.
+                Owns high-traffic backend domains handling 50M+ monthly API requests across
+                opportunity scoring, candidate ranking, recruiter workflows, notifications, and
+                background jobs. P0/P1 escalation owner and reviewer for performance-sensitive,
+                security-critical, and data-integrity changes.
+              </p>
+              <div class="skills" aria-label="Technical skills">
+                <span class="skill">Python</span>
+                <span class="skill">Go</span>
+                <span class="skill">Java</span>
+                <span class="skill">C/C++</span>
+                <span class="skill">JavaScript</span>
+                <span class="skill">SQL</span>
+                <span class="skill">Django</span>
+                <span class="skill">FastAPI</span>
+                <span class="skill">Spring Boot</span>
+                <span class="skill">Celery</span>
+                <span class="skill">RabbitMQ</span>
+                <span class="skill">Node.js</span>
+                <span class="skill">uWSGI</span>
+                <span class="skill">NGINX</span>
+                <span class="skill">MySQL (InnoDB)</span>
+                <span class="skill">Redis</span>
+                <span class="skill">Elasticsearch</span>
+                <span class="skill">OpenSearch</span>
+                <span class="skill">AWS (EC2, RDS, S3, Lambda, SNS, SQS, ElastiCache, CloudFront, IAM)</span>
+                <span class="skill">Datadog</span>
+                <span class="skill">CloudWatch</span>
+                <span class="skill">Sentry</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="projects" aria-labelledby="projects-title">
+          <div class="section-grid">
+            <div class="section-heading">
+              <h2 id="projects-title">Projects</h2>
+              <div class="heading-rule"></div>
+            </div>
+            <div class="content-stack">
+              <article class="project-card">
+                <div class="card-top">
+                  <div>
+                    <span class="index">01</span>
+                    <h3><a class="project-card-link" href="https://abhiyadav.in/leetdrill">LeetDrill</a></h3>
+                  </div>
+                  <span class="arrow" aria-hidden="true">&gt;</span>
+                </div>
+                <p>
+                  Self-hosted LeetCode practice tracker with catalog import, browser-extension
+                  submission capture, and a daily queue for due, unsolved, and learning problems.
+                </p>
+                <div class="repo-skills">
+                  <span class="repo-skill">Go</span>
+                  <span class="repo-skill">Postgres</span>
+                  <span class="repo-skill">Browser Extension</span>
+                </div>
+              </article>
+              <a class="card-link" href="https://github.com/abhinav-yadav-official/leetdrill">View LeetDrill source</a>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="systems" aria-labelledby="systems-title">
+          <div class="section-grid">
+            <div class="section-heading">
+              <h2 id="systems-title">Production systems: Redis, Celery, MySQL</h2>
+              <div class="heading-rule"></div>
+            </div>
+            <div class="systems-grid">
+              <article class="system-card">
+                <h3>Ranking and search</h3>
+                <p>Opportunity calculation, Elasticsearch/OpenSearch alignment, and consistency checks.</p>
+              </article>
+              <article class="system-card">
+                <h3>Celery async workflows</h3>
+                <p>Celery and RabbitMQ pipelines, retry behavior, queue isolation, and long-running tasks.</p>
+              </article>
+              <article class="system-card">
+                <h3>Redis caching</h3>
+                <p>Redis hot paths, TTL design, invalidation boundaries, and connection reuse.</p>
+              </article>
+              <article class="system-card">
+                <h3>MySQL migrations</h3>
+                <p>Schema changes, index rebuilds, backfills, feature flags, and zero-downtime cutovers.</p>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="archive" aria-labelledby="archive-title">
+          <div class="section-grid">
+            <div class="section-heading">
+              <h2 id="archive-title">Project archive</h2>
+              <div class="heading-rule"></div>
+            </div>
+            <div class="archive-grid">
+              <article class="archive-card">
+                <a class="archive-card-link" href="https://github.com/abhinav-yadav-official/manager.ai">manager.ai</a>
+                <p>Generates quarterly developer evaluations from Phabricator data.</p>
+              </article>
+              <article class="archive-card">
+                <a class="archive-card-link" href="https://github.com/abhinav-yadav-official/legacy-mac-wheels">legacy-mac-wheels</a>
+                <p>Static package index for Python wheels on older macOS development machines.</p>
+              </article>
+              <article class="archive-card">
+                <a class="archive-card-link" href="https://github.com/abhinav-yadav-official/homebrew-legacy">homebrew-legacy</a>
+                <p>Homebrew tap for bootstrapping and maintaining legacy environments.</p>
+              </article>
+              <article class="archive-card">
+                <a class="archive-card-link" href="https://github.com/abhinav-yadav-official/dotfiles">dotfiles</a>
+                <p>Shell-based local setup and development environment configuration.</p>
+              </article>
+              <article class="archive-card">
+                <a class="archive-card-link" href="https://github.com/abhinav-yadav-official/register-page">register-page</a>
+                <p>PHP and MySQL login/register pages, an older public repo with auth basics.</p>
+              </article>
+              <article class="archive-card">
+                <a class="archive-card-link" href="https://github.com/abhinav-yadav-official/object-detect">object-detect</a>
+                <p>JavaScript object-detection experiment.</p>
+              </article>
+              <article class="archive-card">
+                <a class="archive-card-link" href="https://github.com/abhinav-yadav-official/doc-scan">doc-scan</a>
+                <p>React and Express app that converts images to text using Tesseract.</p>
+              </article>
+              <article class="archive-card">
+                <a class="archive-card-link" href="https://github.com/abhinav-yadav-official/mern-user-authentication">mern-user-authentication</a>
+                <p>User authentication single-page app using the MERN stack.</p>
+              </article>
+              <article class="archive-card">
+                <a class="archive-card-link" href="https://github.com/abhinav-yadav-official/angular-freehand-drawing-app">angular-freehand-drawing-app</a>
+                <p>Angular drawing app for freehand canvas input.</p>
+              </article>
+              <article class="archive-card">
+                <a class="archive-card-link" href="https://github.com/abhinav-yadav-official/keras-flask-app">keras-flask-app</a>
+                <p>Flask app that classifies digits drawn on a web canvas using a Keras model.</p>
+              </article>
+              <article class="archive-card">
+                <a class="archive-card-link" href="https://github.com/abhinav-yadav-official/react-clock-app">react-clock-app</a>
+                <p>Small analog clock interface built with React.</p>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="experience" aria-labelledby="experience-title">
+          <div class="section-grid">
+            <div class="section-heading">
+              <h2 id="experience-title">Experience</h2>
+              <div class="heading-rule"></div>
+            </div>
+            <div class="timeline">
+              <article class="experience-card">
+                <div class="experience-meta">
+                  <span class="company">Instahyre</span>
+                  <span>2024 - Present</span>
+                </div>
+                <h3>SDE III</h3>
+                <ul>
+                  <li>Own technical direction across 5+ high-traffic backend domains handling 50M+ monthly API requests: opportunity scoring, candidate ranking, recruiter workflows, notification pipelines, and background job orchestration.</li>
+                  <li>Drove a system-wide latency reduction initiative via query refactoring, multi-layer caching, and targeted N+1 elimination, 30-45% p95 improvement across high-traffic production endpoints.</li>
+                  <li>Architected a zero-downtime Elasticsearch index versioning and live schema migration strategy across a 10M+ document corpus using alias hot-swap, parallel reindex, and automated rollback.</li>
+                  <li>Led AWS OpenSearch cluster migration: full alias lifecycle, cross-version query compatibility, blue-green reindex pipelines, custom shard routing, and CloudWatch alerting.</li>
+                  <li>Established org-wide engineering standards for sync/async execution boundaries, cache invalidation contracts, and data ownership, formally adopted as backend guidelines across the org.</li>
+                  <li>Designated P0/P1 on-call escalation owner; resolved systemic failures across Celery, RabbitMQ, Elasticsearch, and MySQL, ~40% reduction in production incident frequency over 18 months.</li>
+                  <li>Primary review authority for performance-sensitive, security-critical, and data-integrity-impacting backend changes.</li>
+                  <li>Mentored 10+ engineers on production debugging, race condition analysis, migration design, and async system patterns; multiple mentees advanced to senior roles.</li>
+                </ul>
+              </article>
+              <article class="experience-card">
+                <div class="experience-meta">
+                  <span class="company">Instahyre</span>
+                  <span>2022 - 2024</span>
+                </div>
+                <h3>Senior Software Engineer (SDE II)</h3>
+                <ul>
+                  <li>Optimized high-traffic systems across Search, Candidates, Jobs, and Opportunities supporting 10K+ DAU at peak concurrent load with sub-200ms p95 targets.</li>
+                  <li>Benchmarked Redis, ElastiCache, and Memcached under production-equivalent load; migrated DatabaseCache to Redis with zero downtime, cutting steady-state DB query load ~35%.</li>
+                  <li>Designed Redis caching with per-key TTLs, safe invalidation, and connection pooling, 25-40% p95 latency improvement on the hottest API paths.</li>
+                  <li>Designed and deployed a horizontally scalable multi-server topology cleanly separating uWSGI/NGINX web tier, dedicated Celery worker pools, and outbound processing.</li>
+                  <li>Resolved systemic Celery reliability failures: retry storms, queue misconfigurations, and long-running tasks exceeding SLA budgets.</li>
+                  <li>Debugged production incidents involving RDS replica lag, InnoDB deadlocks, CPU saturation, and MySQL lock contention on multi-million-row tables.</li>
+                  <li>Hardened production access controls with restricted SSH key policy, Unix user isolation, VPN-enforced internal routing, and AWS Secrets Manager rotation.</li>
+                </ul>
+              </article>
+              <article class="experience-card">
+                <div class="experience-meta">
+                  <span class="company">Instahyre</span>
+                  <span>2019 - 2022</span>
+                </div>
+                <h3>Software Engineer (SDE I)</h3>
+                <ul>
+                  <li>Shipped Employer Team Management with Admin/Member RBAC, audit trail, and impersonation safeguards, adopted by 1,000+ employer companies.</li>
+                  <li>Identified and patched authorization bypass vulnerabilities across backend API and frontend UI exposing premium features to unauthorized users.</li>
+                  <li>Resolved race conditions and non-atomic state transitions across Django ORM and Celery async workflows, eliminating a class of silent data corruption bugs.</li>
+                  <li>Instrumented Datadog APM and Sentry across API and async tiers, cutting MTTD on production incidents ~50%.</li>
+                  <li>Tuned MySQL query plans via composite and covering indexes and EXPLAIN-driven restructuring, removing full-table scans on performance-critical paths.</li>
+                </ul>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="education" aria-labelledby="education-title">
+          <div class="section-grid">
+            <div class="section-heading">
+              <h2 id="education-title">Education</h2>
+              <div class="heading-rule"></div>
+            </div>
+            <article class="education-card">
+              <div class="experience-meta">
+                <span class="company">AKTU</span>
+                <span>2015 - 2019</span>
+              </div>
+              <h3>B.Tech, Computer Science</h3>
+              <p>
+                Dr. A.P.J. Abdul Kalam Technical University (AKTU). Undergraduate computer
+                science foundation before moving into backend product engineering, production
+                systems, and infrastructure-adjacent reliability work.
+              </p>
+            </article>
+          </div>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <span>Abhinav, Backend engineer</span>
+        <a href="#" data-email-local="me" data-email-domain="abhiyadav.in" data-email-label="me [at] abhiyadav [dot] in">me [at] abhiyadav [dot] in</a>
+        <nav class="share" aria-label="Share this page">
+          <span>Share:</span>
+          <a href="https://twitter.com/intent/tweet?text=Abhinav%2C%20SDE%20III%20at%20Instahyre&amp;url=https%3A%2F%2Fabhiyadav.in%2F" target="_blank" rel="noopener noreferrer">X</a>
+          <a href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fabhiyadav.in%2F" target="_blank" rel="noopener noreferrer">Share on LinkedIn</a>
+          <a href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fabhiyadav.in%2F" target="_blank" rel="noopener noreferrer">Facebook</a>
+          <a href="https://www.reddit.com/submit?url=https%3A%2F%2Fabhiyadav.in%2F&amp;title=Abhinav%2C%20SDE%20III%20at%20Instahyre" target="_blank" rel="noopener noreferrer">Reddit</a>
+          <a href="https://api.whatsapp.com/send?text=Abhinav%2C%20SDE%20III%20at%20Instahyre%20https%3A%2F%2Fabhiyadav.in%2F" target="_blank" rel="noopener noreferrer">WhatsApp</a>
+          <a href="mailto:?subject=Abhinav%2C%20SDE%20III%20at%20Instahyre&amp;body=https%3A%2F%2Fabhiyadav.in%2F">Share by email</a>
+        </nav>
+      </footer>
+    </div>
+    <script>
+      (() => {
+        document.querySelectorAll("[data-email-local][data-email-domain]").forEach((link) => {
+          const address = `${link.dataset.emailLocal}@${link.dataset.emailDomain}`;
+          link.href = `mailto:${address}`;
+          if (link.dataset.emailLabel) {
+            link.textContent = link.dataset.emailLabel;
+          }
+        });
+
+        const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        if (prefersReducedMotion) {
+          return;
+        }
+
+        const lines = Array.from(document.querySelectorAll(".typing-line[data-text]"));
+        if (!lines.length) {
+          return;
+        }
+
+        const clearLine = (line) => {
+          if (line.id === "intro-title") {
+            line.textContent = "";
+          } else {
+            line.textContent = "";
+          }
+          line.classList.remove("typing-cursor");
+        };
+
+        const typeHeroLine = (line, text, speed) => new Promise((resolve) => {
+          let index = 0;
+          line.classList.add("typing-cursor");
+          const tick = () => {
+            line.textContent = text.slice(0, index);
+            index += 1;
+            if (index <= text.length) {
+              window.setTimeout(tick, speed);
+              return;
+            }
+            window.setTimeout(() => {
+              if (line.id === "intro-title") {
+                line.innerHTML = "I am <span>Abhinav Yadav</span>, SDE III at Instahyre.";
+              }
+              line.classList.remove("typing-cursor");
+              resolve();
+            }, 220);
+          };
+          tick();
+        });
+
+        const runTyping = async () => {
+          lines.forEach(clearLine);
+          for (const line of lines) {
+            const text = line.dataset.text || "";
+            const speed = text.length > 60 ? 16 : 34;
+            await typeHeroLine(line, text, speed);
+          }
+          lines[lines.length - 1].classList.add("typing-cursor");
+        };
+
+        runTyping();
+      })();
+    </script>
+  </body>
+</html>
