@@ -1323,6 +1323,17 @@
         const galaxy = new THREE.Group();
         scene.add(galaxy);
 
+        const initialTiltX = -0.42;
+        const initialTiltZ = -0.18;
+        let targetTiltX = initialTiltX;
+        let targetYawY = 0;
+        let currentZoom = 1;
+        let zoomIndex = 0;
+        const zoomLevels = [1, 2, 5, 10];
+        const baseCameraDistance = window.innerWidth < 720 ? 9.2 : 8.4;
+        galaxy.rotation.x = initialTiltX;
+        galaxy.rotation.z = initialTiltZ;
+
         const topFacingGalaxy = true;
         const starCount = window.innerWidth < 720 ? 5200 : 9000;
         const positions = new Float32Array(starCount * 3);
@@ -1387,6 +1398,26 @@
         const stars = new THREE.Points(geometry, material);
         galaxy.add(stars);
 
+        const blackHole = new THREE.Mesh(
+          new THREE.CircleGeometry(0.19, 64),
+          new THREE.MeshBasicMaterial({ color: "#000000", transparent: true, opacity: 0.96, depthWrite: false })
+        );
+        blackHole.position.set(0, 0, 0.035);
+        galaxy.add(blackHole);
+
+        const ringMaterial = new THREE.LineBasicMaterial({ color: "#fde68a", transparent: true, opacity: 0.88, blending: THREE.AdditiveBlending });
+        const accretionRing = new THREE.Group();
+        for (const radius of [0.31, 0.46, 0.64]) {
+          const ringGeometry = new THREE.BufferGeometry();
+          const ringPoints = [];
+          for (let i = 0; i <= 160; i += 1) {
+            const angle = (i / 160) * Math.PI * 2;
+            ringPoints.push(new THREE.Vector3(Math.cos(angle) * radius, Math.sin(angle) * radius * 0.82, 0.045 + radius * 0.01));
+          }
+          accretionRing.add(new THREE.Line(ringGeometry.setFromPoints(ringPoints), ringMaterial));
+        }
+        galaxy.add(accretionRing);
+
         const haloGeometry = new THREE.BufferGeometry();
         const haloPositions = new Float32Array(900 * 3);
         for (let i = 0; i < 900; i += 1) {
@@ -1410,17 +1441,20 @@
         const nebulaColors = new Float32Array(nebulaCount * 3);
         const nebulaA = new THREE.Color("#22d3ee");
         const nebulaB = new THREE.Color("#f59e0b");
-        const nebulaC = new THREE.Color("#60a5fa");
+        const nebulaC = new THREE.Color("#a78bfa");
+        const nebulaD = new THREE.Color("#fb7185");
+        const nebulaE = new THREE.Color("#34d399");
+        const nebulaPalette = [nebulaA, nebulaB, nebulaC, nebulaD, nebulaE];
         for (let i = 0; i < nebulaCount; i += 1) {
           const i3 = i * 3;
-          const cloud = i % 3;
-          const cloudAngle = cloud * 2.12 + Math.random() * 0.9;
+          const cloud = i % nebulaPalette.length;
+          const cloudAngle = cloud * 1.27 + Math.random() * 0.9;
           const radius = 1.2 + Math.pow(Math.random(), 0.62) * 4.1;
           const spread = (Math.random() - 0.5) * 0.78;
           nebulaPositions[i3] = Math.cos(cloudAngle + spread) * radius;
           nebulaPositions[i3 + 1] = Math.sin(cloudAngle + spread) * radius;
           nebulaPositions[i3 + 2] = -0.08 + (Math.random() - 0.5) * 0.2;
-          const color = cloud === 0 ? nebulaA : cloud === 1 ? nebulaB : nebulaC;
+          const color = nebulaPalette[cloud];
           nebulaColors[i3] = color.r;
           nebulaColors[i3 + 1] = color.g;
           nebulaColors[i3 + 2] = color.b;
@@ -1444,7 +1478,6 @@
           const height = Math.max(1, rect.height);
           renderer.setSize(width, height, false);
           camera.aspect = width / height;
-          camera.position.z = width < 720 ? 9.2 : 8.4;
           camera.updateProjectionMatrix();
         };
 
@@ -1452,10 +1485,15 @@
           const rect = hero.getBoundingClientRect();
           pointer.x = ((event.clientX - rect.left) / rect.width - 0.5) * 2;
           pointer.y = ((event.clientY - rect.top) / rect.height - 0.5) * 2;
+          targetYawY = pointer.x * 0.34;
+          targetTiltX = initialTiltX + pointer.y * 0.28;
         };
 
         const createStarburst = () => {
           burst = 1;
+          zoomIndex = (zoomIndex + 1) % zoomLevels.length;
+          currentZoom = zoomLevels[zoomIndex];
+          hero.dataset.galaxyZoom = `${currentZoom}x`;
           hero.dataset.galaxyBurst = String(Date.now());
           hero.classList.add("galaxy-click-pulse");
           window.setTimeout(() => hero.classList.remove("galaxy-click-pulse"), 620);
@@ -1471,11 +1509,14 @@
 
         const render = () => {
           clock += 1;
-          const targetX = prefersReducedMotion ? 0 : pointer.y * 0.045;
-          const targetY = prefersReducedMotion ? 0 : pointer.x * 0.06;
-          galaxy.rotation.x += (targetX - galaxy.rotation.x) * 0.045;
-          galaxy.rotation.y += (targetY - galaxy.rotation.y) * 0.045;
-          galaxy.rotation.z = prefersReducedMotion ? 0 : scrollRotation + clock * 0.0011;
+          const finalTiltX = prefersReducedMotion ? initialTiltX : targetTiltX;
+          const finalYawY = prefersReducedMotion ? 0 : targetYawY;
+          galaxy.rotation.x += (finalTiltX - galaxy.rotation.x) * 0.05;
+          galaxy.rotation.y += (finalYawY - galaxy.rotation.y) * 0.05;
+          galaxy.rotation.z = prefersReducedMotion ? initialTiltZ : initialTiltZ + scrollRotation + clock * 0.0011;
+          const targetCameraDistance = baseCameraDistance / currentZoom;
+          camera.position.z += (targetCameraDistance - camera.position.z) * 0.055;
+          camera.lookAt(0, 0, 0); // Sgr A* remains centered while zooming.
 
           const attr = geometry.getAttribute("position");
           for (let i = 0; i < starCount; i += 1) {
