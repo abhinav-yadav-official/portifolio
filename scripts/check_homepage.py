@@ -16,6 +16,7 @@ SERVER_ERROR = ROOT / "50x.html"
 ADS = ROOT / "ads.txt"
 RESUME = ROOT / "resume.pdf"
 ICON_DIR = ROOT / "assets" / "icons"
+VENDOR_DIR = ROOT / "assets" / "vendor"
 DEPLOY = ROOT / "scripts" / "deploy_homepage.sh"
 GITHUB_DEPLOY = ROOT / ".github" / "workflows" / "deploy.yml"
 REPORT_KEYWORDS = ["backend", "production", "celery", "mysql", "redis"]
@@ -203,6 +204,16 @@ def main():
     for metric in ["2M+ users", "50M+ monthly requests", "2B+ row tables", "4.8s", "85ms", "200+ weekly deploys"]:
         require(metric in body, f"homepage must include resume metric: {metric}")
     require("prefers-reduced-motion: reduce" in body, "homepage typing must respect reduced motion")
+    require("typing-line" in body, "homepage must mark hero typing lines")
+    require("typing-cursor" in body, "homepage must include typing cursor")
+    require("typeHeroLine" in body, "homepage must include hero typing script")
+    require("galaxy-canvas" in body, "homepage must include 3D galaxy canvas")
+    require("initGalaxy" in body, "homepage must initialize galaxy animation")
+    require("createStarburst" in body, "homepage click must trigger galaxy starburst animation")
+    require("galaxyPulse" in body, "homepage must render visible galaxy click pulse")
+    require("three.module.min.js" in body, "homepage must load vendored Three.js module")
+    require((VENDOR_DIR / "three.module.min.js").exists(), "homepage must vendor Three.js locally")
+    require((VENDOR_DIR / "three.core.min.js").exists(), "homepage must vendor Three.js core module locally")
     require("Platform architecture and search systems" in body, "homepage must include platform section")
     require("Education" in body, "homepage must include Education section")
     require("platform engineer" in body.lower(), "homepage must include platform engineer summary")

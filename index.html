@@ -185,11 +185,36 @@
         content: "";
         position: absolute;
         inset: 0;
-        z-index: -2;
+        z-index: -3;
         background:
-          linear-gradient(120deg, rgba(2, 6, 23, 0.52), rgba(2, 6, 23, 0.12)),
+          linear-gradient(120deg, rgba(2, 6, 23, 0.72), rgba(2, 6, 23, 0.18)),
           repeating-linear-gradient(0deg, rgba(248, 250, 252, 0.04) 0 1px, transparent 1px 6px);
         animation: scanShift 8s linear infinite;
+      }
+
+      .hero::after {
+        content: "";
+        position: absolute;
+        inset: 16% 10% 12%;
+        z-index: -1;
+        border: 1px solid rgba(96, 165, 250, 0);
+        border-radius: 999px;
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .hero.galaxy-click-pulse::after {
+        animation: galaxyPulse 620ms ease-out both;
+      }
+
+      .galaxy-canvas {
+        position: absolute;
+        inset: 0;
+        z-index: -2;
+        width: 100%;
+        height: 100%;
+        opacity: 0.88;
+        pointer-events: auto;
       }
 
       .console-grid {
@@ -210,6 +235,8 @@
       }
 
       .hero-inner {
+        position: relative;
+        z-index: 1;
         width: min(1220px, 100%);
         margin: 0 auto;
         display: grid;
@@ -259,6 +286,21 @@
         font-size: clamp(18px, 2vw, 24px);
         line-height: 1.65;
         font-weight: 700;
+      }
+
+      .typing-line {
+        display: block;
+      }
+
+      .typing-cursor::after {
+        content: "";
+        display: inline-block;
+        width: 0.56em;
+        height: 0.12em;
+        margin-left: 0.12em;
+        vertical-align: baseline;
+        background: currentColor;
+        animation: cursorBlink 850ms steps(2, start) infinite;
       }
 
       .hero-actions {
@@ -623,6 +665,27 @@
         }
       }
 
+      @keyframes cursorBlink {
+        50% {
+          opacity: 0;
+        }
+      }
+
+      @keyframes galaxyPulse {
+        0% {
+          opacity: 0.72;
+          transform: scale(0.62) rotate(-8deg);
+          border-color: rgba(34, 211, 238, 0.7);
+          box-shadow: 0 0 32px rgba(34, 211, 238, 0.3), inset 0 0 44px rgba(34, 197, 94, 0.13);
+        }
+        100% {
+          opacity: 0;
+          transform: scale(1.2) rotate(5deg);
+          border-color: rgba(34, 197, 94, 0);
+          box-shadow: 0 0 120px rgba(96, 165, 250, 0), inset 0 0 90px rgba(34, 197, 94, 0);
+        }
+      }
+
       @keyframes panelIn {
         from {
           opacity: 0;
@@ -677,10 +740,6 @@
         .hero-inner,
         .section-grid {
           grid-template-columns: 1fr;
-        }
-
-        .console-grid {
-          display: none;
         }
 
         .section-grid {
@@ -799,15 +858,16 @@
 
       <main>
         <section class="hero" id="hero" aria-labelledby="intro-title">
+          <canvas class="galaxy-canvas" id="galaxy-canvas" aria-hidden="true"></canvas>
           <div class="console-grid" aria-hidden="true"></div>
           <div class="hero-inner">
             <div>
-              <p class="eyebrow">Instahyre SDE III / Platform Engineer</p>
-              <h1 id="intro-title">I build the backend systems that keep product teams moving.</h1>
-              <p class="title">
-                Abhinav Yadav is a fullstack backend platform engineer working across deploy safety,
-                search migrations, ranking latency, Redis caching, Celery workflows, MySQL scale, and AWS operations.
-              </p>
+              <p class="eyebrow typing-line typing-cursor" data-text="Instahyre SDE III / Platform Engineer">Instahyre SDE III / Platform Engineer</p>
+              <h1 id="intro-title" class="typing-line" data-text="I'm Abhinav Yadav. I build backend platforms that keep product teams moving.">I'm <span>Abhinav Yadav</span>. I build backend platforms that keep product teams moving.</h1>
+              <p
+                class="title typing-line"
+                data-text="I work across deploy safety, search migrations, ranking latency, Redis caching, Celery workflows, MySQL scale, and AWS operations. I focus on production paths where correctness, latency, and rollback design matter."
+              >I work across deploy safety, search migrations, ranking latency, Redis caching, Celery workflows, MySQL scale, and AWS operations. I focus on production paths where correctness, latency, and rollback design matter.</p>
               <div class="hero-actions" aria-label="Profile links">
                 <a href="/resume">Resume</a>
                 <a href="#" data-email-local="me" data-email-domain="abhiyadav.in" data-email-label="Email">Email</a>
@@ -1181,6 +1241,47 @@
           return;
         }
 
+        const lines = Array.from(document.querySelectorAll(".typing-line[data-text]"));
+        const finalIntro = "I'm <span>Abhinav Yadav</span>. I build backend platforms that keep product teams moving.";
+
+        const clearLine = (line) => {
+          line.textContent = "";
+          line.classList.remove("typing-cursor");
+        };
+
+        const typeHeroLine = (line, text, speed) => new Promise((resolve) => {
+          let index = 0;
+          line.classList.add("typing-cursor");
+          const tick = () => {
+            line.textContent = text.slice(0, index);
+            index += 1;
+            if (index <= text.length) {
+              window.setTimeout(tick, speed);
+              return;
+            }
+            window.setTimeout(() => {
+              if (line.id === "intro-title") {
+                line.innerHTML = finalIntro;
+              }
+              line.classList.remove("typing-cursor");
+              resolve();
+            }, 160);
+          };
+          tick();
+        });
+
+        const runTyping = async () => {
+          lines.forEach(clearLine);
+          for (const line of lines) {
+            const text = line.dataset.text || "";
+            const speed = text.length > 90 ? 10 : 24;
+            await typeHeroLine(line, text, speed);
+          }
+          lines[lines.length - 1]?.classList.add("typing-cursor");
+        };
+
+        runTyping();
+
         const cards = document.querySelectorAll(".metric-card, .system-card, .project-card, .archive-card, .experience-card, .education-card");
         const observer = new IntersectionObserver((entries) => {
           entries.forEach((entry) => {
@@ -1199,6 +1300,160 @@
 
         cards.forEach((card) => observer.observe(card));
       })();
+    </script>
+    <script type="module">
+      import * as THREE from "/assets/vendor/three.module.min.js";
+
+      const initGalaxy = () => {
+        const canvas = document.getElementById("galaxy-canvas");
+        const hero = document.querySelector(".hero");
+        if (!canvas || !hero) {
+          return;
+        }
+
+        const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, powerPreference: "high-performance" });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.7));
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(58, 1, 0.1, 100);
+        camera.position.set(0, 1.15, 7.8);
+
+        const galaxy = new THREE.Group();
+        scene.add(galaxy);
+
+        const starCount = window.innerWidth < 720 ? 5200 : 9000;
+        const positions = new Float32Array(starCount * 3);
+        const base = new Float32Array(starCount * 3);
+        const colors = new Float32Array(starCount * 3);
+        const colorA = new THREE.Color("#dbeafe");
+        const colorB = new THREE.Color("#67e8f9");
+        const colorC = new THREE.Color("#fef3c7");
+        const arms = 5;
+
+        for (let i = 0; i < starCount; i += 1) {
+          const i3 = i * 3;
+          const radius = Math.pow(Math.random(), 0.72) * 5.2;
+          const arm = i % arms;
+          const spin = radius * 1.36;
+          const branch = (arm / arms) * Math.PI * 2;
+          const noise = Math.pow(Math.random(), 2.2) * (Math.random() < 0.5 ? -1 : 1);
+          const angle = branch + spin + noise * 0.55;
+          const dust = (Math.random() - 0.5) * Math.max(0.08, 0.52 - radius * 0.055);
+
+          const x = Math.cos(angle) * radius + noise * 0.22;
+          const y = dust;
+          const z = Math.sin(angle) * radius * 0.58 + (Math.random() - 0.5) * 0.42;
+
+          positions[i3] = base[i3] = x;
+          positions[i3 + 1] = base[i3 + 1] = y;
+          positions[i3 + 2] = base[i3 + 2] = z;
+
+          const mix = radius / 5.2;
+          const color = mix < 0.28 ? colorC.clone().lerp(colorA, mix * 2.4) : colorA.clone().lerp(colorB, Math.min(1, mix));
+          colors[i3] = color.r;
+          colors[i3 + 1] = color.g;
+          colors[i3 + 2] = color.b;
+        }
+
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+        geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+
+        const material = new THREE.PointsMaterial({
+          size: window.innerWidth < 720 ? 0.026 : 0.034,
+          sizeAttenuation: true,
+          vertexColors: true,
+          transparent: true,
+          opacity: 0.88,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending
+        });
+
+        const stars = new THREE.Points(geometry, material);
+        galaxy.add(stars);
+
+        const haloGeometry = new THREE.BufferGeometry();
+        const haloPositions = new Float32Array(900 * 3);
+        for (let i = 0; i < 900; i += 1) {
+          const i3 = i * 3;
+          const angle = Math.random() * Math.PI * 2;
+          const radius = 2.4 + Math.random() * 4.6;
+          haloPositions[i3] = Math.cos(angle) * radius;
+          haloPositions[i3 + 1] = (Math.random() - 0.5) * 1.4;
+          haloPositions[i3 + 2] = Math.sin(angle) * radius;
+        }
+        haloGeometry.setAttribute("position", new THREE.BufferAttribute(haloPositions, 3));
+        const halo = new THREE.Points(
+          haloGeometry,
+          new THREE.PointsMaterial({ color: "#60a5fa", size: 0.012, transparent: true, opacity: 0.32, depthWrite: false, blending: THREE.AdditiveBlending })
+        );
+        galaxy.add(halo);
+
+        const pointer = { x: 0, y: 0 };
+        let burst = 0;
+        let clock = 0;
+
+        const resize = () => {
+          const rect = hero.getBoundingClientRect();
+          const width = Math.max(1, rect.width);
+          const height = Math.max(1, rect.height);
+          renderer.setSize(width, height, false);
+          camera.aspect = width / height;
+          camera.updateProjectionMatrix();
+        };
+
+        const updatePointer = (event) => {
+          const rect = hero.getBoundingClientRect();
+          pointer.x = ((event.clientX - rect.left) / rect.width - 0.5) * 2;
+          pointer.y = ((event.clientY - rect.top) / rect.height - 0.5) * 2;
+        };
+
+        const createStarburst = () => {
+          burst = 1;
+          hero.dataset.galaxyBurst = String(Date.now());
+          hero.classList.add("galaxy-click-pulse");
+          window.setTimeout(() => hero.classList.remove("galaxy-click-pulse"), 620);
+        };
+
+        hero.addEventListener("pointermove", updatePointer, { passive: true });
+        hero.addEventListener("click", createStarburst);
+        window.addEventListener("resize", resize);
+        resize();
+
+        const render = () => {
+          clock += 0.01;
+          const targetX = prefersReducedMotion ? -0.22 : -0.22 + pointer.y * 0.18;
+          const targetY = prefersReducedMotion ? -0.42 : -0.42 + pointer.x * 0.28;
+          galaxy.rotation.x += (targetX - galaxy.rotation.x) * 0.045;
+          galaxy.rotation.y += (targetY - galaxy.rotation.y) * 0.045;
+          galaxy.rotation.z += prefersReducedMotion ? 0 : 0.0018;
+
+          if (burst > 0.002 && !prefersReducedMotion) {
+            const attr = geometry.getAttribute("position");
+            for (let i = 0; i < starCount; i += 1) {
+              const i3 = i * 3;
+              const x = base[i3];
+              const y = base[i3 + 1];
+              const z = base[i3 + 2];
+              const distance = Math.sqrt(x * x + z * z);
+              const wave = Math.sin(distance * 4.1 - burst * 8.0 + clock * 2.0) * burst * 0.16;
+              attr.array[i3] = x + Math.sign(x || 1) * wave;
+              attr.array[i3 + 1] = y + wave * 0.34;
+              attr.array[i3 + 2] = z + Math.sign(z || 1) * wave;
+            }
+            attr.needsUpdate = true;
+            burst *= 0.93;
+          }
+
+          renderer.render(scene, camera);
+          window.requestAnimationFrame(render);
+        };
+
+        render();
+      };
+
+      initGalaxy();
     </script>
   </body>
 </html>
