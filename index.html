@@ -1316,41 +1316,55 @@
         renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.7));
 
         const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(58, 1, 0.1, 100);
-        camera.position.set(0, 1.15, 7.8);
+        const camera = new THREE.PerspectiveCamera(56, 1, 0.1, 100);
+        camera.position.set(0, 0, 8.4);
+        camera.lookAt(0, 0, 0);
 
         const galaxy = new THREE.Group();
         scene.add(galaxy);
 
+        const topFacingGalaxy = true;
         const starCount = window.innerWidth < 720 ? 5200 : 9000;
         const positions = new Float32Array(starCount * 3);
         const base = new Float32Array(starCount * 3);
+        const radii = new Float32Array(starCount);
+        const angles = new Float32Array(starCount);
+        const armOffsets = new Float32Array(starCount);
+        const orbitalSpeeds = new Float32Array(starCount);
+        const thickness = new Float32Array(starCount);
         const colors = new Float32Array(starCount * 3);
         const colorA = new THREE.Color("#dbeafe");
         const colorB = new THREE.Color("#67e8f9");
         const colorC = new THREE.Color("#fef3c7");
+        const dustColor = new THREE.Color("#f7d6a8");
         const arms = 5;
 
         for (let i = 0; i < starCount; i += 1) {
           const i3 = i * 3;
-          const radius = Math.pow(Math.random(), 0.72) * 5.2;
+          const coreBias = Math.random() < 0.18;
+          const radius = coreBias ? Math.pow(Math.random(), 2.1) * 1.35 : 0.55 + Math.pow(Math.random(), 0.82) * 4.95;
           const arm = i % arms;
-          const spin = radius * 1.36;
+          const spin = radius * 1.08;
           const branch = (arm / arms) * Math.PI * 2;
-          const noise = Math.pow(Math.random(), 2.2) * (Math.random() < 0.5 ? -1 : 1);
-          const angle = branch + spin + noise * 0.55;
-          const dust = (Math.random() - 0.5) * Math.max(0.08, 0.52 - radius * 0.055);
+          const spiralArmJitter = Math.pow(Math.random(), 2.4) * (Math.random() < 0.5 ? -1 : 1);
+          const angle = branch + spin + spiralArmJitter * (coreBias ? 1.6 : 0.42);
+          const diskThickness = (Math.random() - 0.5) * Math.max(0.018, 0.16 - radius * 0.018);
 
-          const x = Math.cos(angle) * radius + noise * 0.22;
-          const y = dust;
-          const z = Math.sin(angle) * radius * 0.58 + (Math.random() - 0.5) * 0.42;
+          const x = Math.cos(angle) * radius + spiralArmJitter * 0.12;
+          const y = Math.sin(angle) * radius + spiralArmJitter * 0.12;
+          const z = diskThickness;
 
           positions[i3] = base[i3] = x;
           positions[i3 + 1] = base[i3 + 1] = y;
           positions[i3 + 2] = base[i3 + 2] = z;
+          radii[i] = radius;
+          angles[i] = angle;
+          armOffsets[i] = spiralArmJitter;
+          orbitalSpeeds[i] = 0.0009 + radius * 0.00062;
+          thickness[i] = diskThickness;
 
           const mix = radius / 5.2;
-          const color = mix < 0.28 ? colorC.clone().lerp(colorA, mix * 2.4) : colorA.clone().lerp(colorB, Math.min(1, mix));
+          const color = coreBias ? colorC.clone().lerp(dustColor, Math.random() * 0.35) : colorA.clone().lerp(colorB, Math.min(1, mix));
           colors[i3] = color.r;
           colors[i3 + 1] = color.g;
           colors[i3 + 2] = color.b;
@@ -1380,8 +1394,8 @@
           const angle = Math.random() * Math.PI * 2;
           const radius = 2.4 + Math.random() * 4.6;
           haloPositions[i3] = Math.cos(angle) * radius;
-          haloPositions[i3 + 1] = (Math.random() - 0.5) * 1.4;
-          haloPositions[i3 + 2] = Math.sin(angle) * radius;
+          haloPositions[i3 + 1] = Math.sin(angle) * radius;
+          haloPositions[i3 + 2] = (Math.random() - 0.5) * 0.24;
         }
         haloGeometry.setAttribute("position", new THREE.BufferAttribute(haloPositions, 3));
         const halo = new THREE.Points(
@@ -1390,9 +1404,39 @@
         );
         galaxy.add(halo);
 
+        const nebulaCount = window.innerWidth < 720 ? 900 : 1500;
+        const nebulaGeometry = new THREE.BufferGeometry();
+        const nebulaPositions = new Float32Array(nebulaCount * 3);
+        const nebulaColors = new Float32Array(nebulaCount * 3);
+        const nebulaA = new THREE.Color("#22d3ee");
+        const nebulaB = new THREE.Color("#f59e0b");
+        const nebulaC = new THREE.Color("#60a5fa");
+        for (let i = 0; i < nebulaCount; i += 1) {
+          const i3 = i * 3;
+          const cloud = i % 3;
+          const cloudAngle = cloud * 2.12 + Math.random() * 0.9;
+          const radius = 1.2 + Math.pow(Math.random(), 0.62) * 4.1;
+          const spread = (Math.random() - 0.5) * 0.78;
+          nebulaPositions[i3] = Math.cos(cloudAngle + spread) * radius;
+          nebulaPositions[i3 + 1] = Math.sin(cloudAngle + spread) * radius;
+          nebulaPositions[i3 + 2] = -0.08 + (Math.random() - 0.5) * 0.2;
+          const color = cloud === 0 ? nebulaA : cloud === 1 ? nebulaB : nebulaC;
+          nebulaColors[i3] = color.r;
+          nebulaColors[i3 + 1] = color.g;
+          nebulaColors[i3 + 2] = color.b;
+        }
+        nebulaGeometry.setAttribute("position", new THREE.BufferAttribute(nebulaPositions, 3));
+        nebulaGeometry.setAttribute("color", new THREE.BufferAttribute(nebulaColors, 3));
+        const nebula = new THREE.Points(
+          nebulaGeometry,
+          new THREE.PointsMaterial({ size: window.innerWidth < 720 ? 0.04 : 0.055, sizeAttenuation: true, vertexColors: true, transparent: true, opacity: 0.18, depthWrite: false, blending: THREE.AdditiveBlending })
+        );
+        galaxy.add(nebula);
+
         const pointer = { x: 0, y: 0 };
         let burst = 0;
         let clock = 0;
+        let scrollRotation = window.scrollY * 0.00018;
 
         const resize = () => {
           const rect = hero.getBoundingClientRect();
@@ -1400,6 +1444,7 @@
           const height = Math.max(1, rect.height);
           renderer.setSize(width, height, false);
           camera.aspect = width / height;
+          camera.position.z = width < 720 ? 9.2 : 8.4;
           camera.updateProjectionMatrix();
         };
 
@@ -1418,31 +1463,39 @@
 
         hero.addEventListener("pointermove", updatePointer, { passive: true });
         hero.addEventListener("click", createStarburst);
+        window.addEventListener("scroll", () => {
+          scrollRotation = window.scrollY * 0.00018;
+        }, { passive: true });
         window.addEventListener("resize", resize);
         resize();
 
         const render = () => {
-          clock += 0.01;
-          const targetX = prefersReducedMotion ? -0.22 : -0.22 + pointer.y * 0.18;
-          const targetY = prefersReducedMotion ? -0.42 : -0.42 + pointer.x * 0.28;
+          clock += 1;
+          const targetX = prefersReducedMotion ? 0 : pointer.y * 0.045;
+          const targetY = prefersReducedMotion ? 0 : pointer.x * 0.06;
           galaxy.rotation.x += (targetX - galaxy.rotation.x) * 0.045;
           galaxy.rotation.y += (targetY - galaxy.rotation.y) * 0.045;
-          galaxy.rotation.z += prefersReducedMotion ? 0 : 0.0018;
+          galaxy.rotation.z = prefersReducedMotion ? 0 : scrollRotation + clock * 0.0011;
+
+          const attr = geometry.getAttribute("position");
+          for (let i = 0; i < starCount; i += 1) {
+            const i3 = i * 3;
+            const radius = radii[i];
+            const orbit = prefersReducedMotion ? 0 : clock * orbitalSpeeds[i];
+            const angle = angles[i] + orbit;
+            const spiralBreath = Math.sin(clock * 0.006 + radius * 2.4) * 0.018 * radius;
+            const wave = burst > 0.002 && !prefersReducedMotion
+              ? Math.sin(radius * 4.1 - burst * 8.0 + clock * 0.04) * burst * 0.16
+              : 0;
+            const currentRadius = radius + spiralBreath + wave;
+            const jitter = armOffsets[i] * 0.1;
+            attr.array[i3] = Math.cos(angle) * currentRadius + jitter;
+            attr.array[i3 + 1] = Math.sin(angle) * currentRadius + jitter;
+            attr.array[i3 + 2] = thickness[i] + wave * 0.24;
+          }
+          attr.needsUpdate = true;
 
           if (burst > 0.002 && !prefersReducedMotion) {
-            const attr = geometry.getAttribute("position");
-            for (let i = 0; i < starCount; i += 1) {
-              const i3 = i * 3;
-              const x = base[i3];
-              const y = base[i3 + 1];
-              const z = base[i3 + 2];
-              const distance = Math.sqrt(x * x + z * z);
-              const wave = Math.sin(distance * 4.1 - burst * 8.0 + clock * 2.0) * burst * 0.16;
-              attr.array[i3] = x + Math.sign(x || 1) * wave;
-              attr.array[i3 + 1] = y + wave * 0.34;
-              attr.array[i3 + 2] = z + Math.sign(z || 1) * wave;
-            }
-            attr.needsUpdate = true;
             burst *= 0.93;
           }
 
