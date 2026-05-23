@@ -105,20 +105,8 @@
 
       body {
         margin: 0;
-        background:
-          radial-gradient(circle at 12% 8%, rgba(34, 197, 94, 0.15), transparent 24rem),
-          radial-gradient(circle at 88% 14%, rgba(34, 211, 238, 0.14), transparent 26rem),
-          linear-gradient(180deg, #020617 0%, #050816 50%, #070b14 100%);
+        background: linear-gradient(180deg, #020617 0%, #050816 50%, #070b14 100%);
         overflow-x: hidden;
-      }
-
-      body::before {
-        content: "";
-        position: fixed;
-        inset: 0;
-        z-index: -3;
-        background: radial-gradient(circle at 50% 0%, rgba(34, 211, 238, 0.08), transparent 32rem);
-        pointer-events: none;
       }
 
       a {
@@ -1250,27 +1238,32 @@
         mouseIdleDelayMs: 900,
         defaultSpinAxis: "z",
         defaultSpinSpeed: 0.00022,
-        starCountMobile: 8500,
-        starCountDesktop: 14000,
-        haloCountMobile: 1300,
-        haloCountDesktop: 2200,
-        nebulaCountMobile: 1800,
-        nebulaCountDesktop: 3200,
-        farGalaxyCountMobile: 18,
-        farGalaxyCountDesktop: 34,
-        farGalaxySpinSpeed: 0.000035,
-        farGalaxySizeMobile: 0.28,
-        farGalaxySizeDesktop: 0.38,
+        starCountMobile: 17000,
+        starCountDesktop: 28000,
+        haloCountMobile: 2100,
+        haloCountDesktop: 3600,
+        nebulaCountMobile: 2400,
+        nebulaCountDesktop: 4300,
+        farGalaxyCountMobile: 10,
+        farGalaxyCountDesktop: 18,
+        farGalaxyStarsPerCluster: 14,
+        farGalaxySizeMobile: 0.018,
+        farGalaxySizeDesktop: 0.024,
+        universeStarCountMobile: 90,
+        universeStarCountDesktop: 180,
+        universeStarSizeMobile: 0.01,
+        universeStarSizeDesktop: 0.014,
         diskThicknessBase: 0.16,
         diskThicknessFalloff: 0.018,
-        starSizeMobile: 0.034,
-        starSizeDesktop: 0.044,
-        nebulaSizeMobile: 0.06,
-        nebulaSizeDesktop: 0.082,
-        popularStarSizeMobile: 0.14,
-        popularStarSizeDesktop: 0.18,
-        centralGlowScale: 2.2,
-        popularStarGlowScale: 0.42,
+        starSizeMobile: 0.025,
+        starSizeDesktop: 0.034,
+        nebulaSizeMobile: 0.05,
+        nebulaSizeDesktop: 0.07,
+        popularStarSizeMobile: 0.12,
+        popularStarSizeDesktop: 0.16,
+        centralGlowScale: 2.6,
+        centralShadowScale: 0.5,
+        popularStarGlowScale: 0.36,
         nebulaPalette: ["#22d3ee", "#f59e0b", "#a78bfa", "#fb7185", "#34d399", "#f0abfc", "#38bdf8"]
       };
       window.GALAXY_CONFIG = GALAXY_CONFIG;
@@ -1287,36 +1280,6 @@
         gradient.addColorStop(1, `rgba(255, 255, 255, ${outerOpacity})`);
         context.fillStyle = gradient;
         context.fillRect(0, 0, size, size);
-        const texture = new THREE.CanvasTexture(canvas);
-        texture.needsUpdate = true;
-        return texture;
-      };
-
-      const createFarGalaxyTexture = () => {
-        const size = 160;
-        const canvas = document.createElement("canvas");
-        canvas.width = size;
-        canvas.height = size;
-        const context = canvas.getContext("2d");
-        const center = size / 2;
-        context.translate(center, center);
-        context.rotate(-0.28);
-        context.scale(1.45, 0.46);
-        const gradient = context.createRadialGradient(0, 0, 0, 0, 0, center * 0.72);
-        gradient.addColorStop(0, "rgba(255, 249, 220, 0.78)");
-        gradient.addColorStop(0.22, "rgba(147, 197, 253, 0.42)");
-        gradient.addColorStop(0.58, "rgba(167, 139, 250, 0.18)");
-        gradient.addColorStop(1, "rgba(34, 211, 238, 0)");
-        context.fillStyle = gradient;
-        context.beginPath();
-        context.arc(0, 0, center * 0.72, 0, Math.PI * 2);
-        context.fill();
-        context.scale(1 / 1.45, 1 / 0.46);
-        context.rotate(0.28);
-        context.fillStyle = "rgba(255, 255, 255, 0.5)";
-        context.beginPath();
-        context.arc(0, 0, 2.4, 0, Math.PI * 2);
-        context.fill();
         const texture = new THREE.CanvasTexture(canvas);
         texture.needsUpdate = true;
         return texture;
@@ -1342,6 +1305,8 @@
         scene.add(galaxy);
         const farGalaxies = new THREE.Group();
         scene.add(farGalaxies);
+        const universeBackdrop = new THREE.Group();
+        scene.add(universeBackdrop);
 
         let mouseSpinVelocity = 0;
         let mouseSpinOffset = 0;
@@ -1359,8 +1324,8 @@
         const topFacingGalaxy = true;
         const starTexture = createRadialTexture(1, 0);
         const glowTexture = createRadialTexture(0.82, 0);
+        const shadowTexture = createRadialTexture(0.92, 0);
         const nebulaTexture = createRadialTexture(0.5, 0);
-        const farGalaxyTexture = createFarGalaxyTexture();
         const starCount = window.innerWidth < 720 ? GALAXY_CONFIG.starCountMobile : GALAXY_CONFIG.starCountDesktop;
         const positions = new Float32Array(starCount * 3);
         const base = new Float32Array(starCount * 3);
@@ -1433,25 +1398,12 @@
         centralGlow.scale.set(GALAXY_CONFIG.centralGlowScale, GALAXY_CONFIG.centralGlowScale, 1);
         galaxy.add(centralGlow);
 
-        const blackHole = new THREE.Mesh(
-          new THREE.CircleGeometry(0.19, 64),
-          new THREE.MeshBasicMaterial({ color: "#000000", transparent: true, opacity: 0.96, depthWrite: false })
+        const blackHole = new THREE.Sprite(
+          new THREE.SpriteMaterial({ map: shadowTexture, color: "#000000", transparent: true, opacity: 0.9, depthWrite: false })
         );
         blackHole.position.set(0, 0, 0.035);
+        blackHole.scale.set(GALAXY_CONFIG.centralShadowScale, GALAXY_CONFIG.centralShadowScale, 1);
         galaxy.add(blackHole);
-
-        const ringMaterial = new THREE.LineBasicMaterial({ color: "#fde68a", transparent: true, opacity: 0.88, blending: THREE.AdditiveBlending });
-        const accretionRing = new THREE.Group();
-        for (const radius of [0.31, 0.46, 0.64]) {
-          const ringGeometry = new THREE.BufferGeometry();
-          const ringPoints = [];
-          for (let i = 0; i <= 160; i += 1) {
-            const angle = (i / 160) * Math.PI * 2;
-            ringPoints.push(new THREE.Vector3(Math.cos(angle) * radius, Math.sin(angle) * radius * 0.82, 0.045 + radius * 0.01));
-          }
-          accretionRing.add(new THREE.Line(ringGeometry.setFromPoints(ringPoints), ringMaterial));
-        }
-        galaxy.add(accretionRing);
 
         const haloGeometry = new THREE.BufferGeometry();
         const haloCount = window.innerWidth < 720 ? GALAXY_CONFIG.haloCountMobile : GALAXY_CONFIG.haloCountDesktop;
@@ -1543,30 +1495,90 @@
         galaxy.add(nebula);
 
         const farGalaxyCount = window.innerWidth < 720 ? GALAXY_CONFIG.farGalaxyCountMobile : GALAXY_CONFIG.farGalaxyCountDesktop;
-        const farGalaxyBaseSize = window.innerWidth < 720 ? GALAXY_CONFIG.farGalaxySizeMobile : GALAXY_CONFIG.farGalaxySizeDesktop;
-        const farGalaxyColors = ["#bfdbfe", "#c4b5fd", "#fef3c7", "#bae6fd", "#fbcfe8"];
+        const farGalaxyPointCount = farGalaxyCount * GALAXY_CONFIG.farGalaxyStarsPerCluster;
+        const farGalaxyPositions = new Float32Array(farGalaxyPointCount * 3);
+        const farGalaxyColors = new Float32Array(farGalaxyPointCount * 3);
+        const farGalaxyPalette = ["#bfdbfe", "#c4b5fd", "#fef3c7", "#bae6fd", "#fbcfe8"].map((color) => new THREE.Color(color));
+        const farGalaxyCenters = [];
         for (let i = 0; i < farGalaxyCount; i += 1) {
-          const lane = i % 4;
-          const sideBias = Math.random() < 0.5 ? -1 : 1;
-          const angle = (i / farGalaxyCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.42;
-          const radius = 6.2 + Math.random() * 5.6 + lane * 0.45;
-          const material = new THREE.SpriteMaterial({
-            map: farGalaxyTexture,
-            color: farGalaxyColors[i % farGalaxyColors.length],
-            transparent: true,
-            opacity: 0.16 + Math.random() * 0.2,
-            depthWrite: false,
-            depthTest: false,
-            blending: THREE.AdditiveBlending
+          const angle = (i / farGalaxyCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.5;
+          const radius = 6.8 + Math.random() * 6.2;
+          farGalaxyCenters.push({
+            x: Math.cos(angle) * radius + (Math.random() - 0.5) * 1.8,
+            y: Math.sin(angle) * radius * 0.7 + (Math.random() - 0.5) * 1.2,
+            z: -10 - Math.random() * 12,
+            color: farGalaxyPalette[i % farGalaxyPalette.length],
+            spread: 0.12 + Math.random() * 0.18
           });
-          const sprite = new THREE.Sprite(material);
-          sprite.position.set(Math.cos(angle) * radius, Math.sin(angle) * radius * 0.72, -8 - Math.random() * 9);
-          sprite.position.x += sideBias * (Math.random() * 1.2);
-          const scale = farGalaxyBaseSize * (0.55 + Math.random() * 1.2);
-          sprite.scale.set(scale * (1.3 + Math.random() * 1.6), scale * (0.42 + Math.random() * 0.34), 1);
-          sprite.material.rotation = Math.random() * Math.PI;
-          farGalaxies.add(sprite);
         }
+        for (let i = 0; i < farGalaxyPointCount; i += 1) {
+          const i3 = i * 3;
+          const center = farGalaxyCenters[i % farGalaxyCenters.length];
+          const localAngle = Math.random() * Math.PI * 2;
+          const localRadius = Math.pow(Math.random(), 1.9) * center.spread;
+          farGalaxyPositions[i3] = center.x + Math.cos(localAngle) * localRadius * 1.8;
+          farGalaxyPositions[i3 + 1] = center.y + Math.sin(localAngle) * localRadius * 0.62;
+          farGalaxyPositions[i3 + 2] = center.z + (Math.random() - 0.5) * 0.08;
+          const color = center.color;
+          farGalaxyColors[i3] = color.r;
+          farGalaxyColors[i3 + 1] = color.g;
+          farGalaxyColors[i3 + 2] = color.b;
+        }
+        const farGalaxyGeometry = new THREE.BufferGeometry();
+        farGalaxyGeometry.setAttribute("position", new THREE.BufferAttribute(farGalaxyPositions, 3));
+        farGalaxyGeometry.setAttribute("color", new THREE.BufferAttribute(farGalaxyColors, 3));
+        farGalaxies.add(
+          new THREE.Points(
+            farGalaxyGeometry,
+            new THREE.PointsMaterial({
+              size: window.innerWidth < 720 ? GALAXY_CONFIG.farGalaxySizeMobile : GALAXY_CONFIG.farGalaxySizeDesktop,
+              sizeAttenuation: true,
+              map: starTexture,
+              alphaTest: 0.02,
+              vertexColors: true,
+              transparent: true,
+              opacity: 0.34,
+              depthWrite: false,
+              depthTest: false,
+              blending: THREE.AdditiveBlending
+            })
+          )
+        );
+
+        const universeStarCount = window.innerWidth < 720 ? GALAXY_CONFIG.universeStarCountMobile : GALAXY_CONFIG.universeStarCountDesktop;
+        const universeStarPositions = new Float32Array(universeStarCount * 3);
+        const universeStarColors = new Float32Array(universeStarCount * 3);
+        const universePalette = ["#dbeafe", "#bfdbfe", "#fde68a", "#e0f2fe"].map((color) => new THREE.Color(color));
+        for (let i = 0; i < universeStarCount; i += 1) {
+          const i3 = i * 3;
+          universeStarPositions[i3] = (Math.random() - 0.5) * 24;
+          universeStarPositions[i3 + 1] = (Math.random() - 0.5) * 15;
+          universeStarPositions[i3 + 2] = -14 - Math.random() * 13;
+          const color = universePalette[i % universePalette.length];
+          universeStarColors[i3] = color.r;
+          universeStarColors[i3 + 1] = color.g;
+          universeStarColors[i3 + 2] = color.b;
+        }
+        const universeStarGeometry = new THREE.BufferGeometry();
+        universeStarGeometry.setAttribute("position", new THREE.BufferAttribute(universeStarPositions, 3));
+        universeStarGeometry.setAttribute("color", new THREE.BufferAttribute(universeStarColors, 3));
+        universeBackdrop.add(
+          new THREE.Points(
+            universeStarGeometry,
+            new THREE.PointsMaterial({
+              size: window.innerWidth < 720 ? GALAXY_CONFIG.universeStarSizeMobile : GALAXY_CONFIG.universeStarSizeDesktop,
+              sizeAttenuation: true,
+              map: starTexture,
+              alphaTest: 0.02,
+              vertexColors: true,
+              transparent: true,
+              opacity: 0.42,
+              depthWrite: false,
+              depthTest: false,
+              blending: THREE.AdditiveBlending
+            })
+          )
+        );
 
         let clock = 0;
 
@@ -1617,7 +1629,6 @@
             if (pointerIsIdle) {
               defaultSpinOffset += GALAXY_CONFIG.defaultSpinSpeed;
             }
-            farGalaxies.rotation.z += GALAXY_CONFIG.farGalaxySpinSpeed;
           }
           const mouseSpinAxis = getSpinAxis(GALAXY_CONFIG.mouseSpinAxis);
           const defaultSpinAxis = getSpinAxis(GALAXY_CONFIG.defaultSpinAxis);
