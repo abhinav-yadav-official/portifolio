@@ -159,8 +159,19 @@ server {
     }
 
     location = /resume {
-        add_header Cache-Control "public, max-age=86400" always;
-        try_files /Abhinav_Resume.pdf =404;
+        default_type application/pdf;
+        add_header Cache-Control "no-store, no-cache, must-revalidate, max-age=0" always;
+        add_header Pragma "no-cache" always;
+        add_header Expires "0" always;
+        try_files /resume.pdf =404;
+    }
+
+    location = /resume.pdf {
+        default_type application/pdf;
+        add_header Cache-Control "no-store, no-cache, must-revalidate, max-age=0" always;
+        add_header Pragma "no-cache" always;
+        add_header Expires "0" always;
+        try_files /resume.pdf =404;
     }
 
     location = /linkedin {
@@ -194,24 +205,33 @@ NGINX
   sudo ln -sfn "$site" "/etc/nginx/sites-enabled/$DOMAIN"
 fi
 
-sudo nginx -t
-sudo systemctl reload nginx
-
 cert_path="/etc/letsencrypt/live/$DOMAIN/fullchain.pem"
 cert_exists=false
 if sudo test -f "$cert_path"; then
   cert_exists=true
 fi
-if { [ "$ENABLE_TLS" = true ] || { [ "$ENABLE_TLS" = auto ] && [ "$cert_exists" = false ]; }; } && [ "$cert_exists" = false ]; then
-  if [ -z "${LETSENCRYPT_EMAIL:-}" ]; then
-    echo "TLS certificate missing; set LETSENCRYPT_EMAIL to let deploy run certbot" >&2
-    exit 1
+certbot_domains=(-d "$DOMAIN")
+for alias in $DOMAIN_ALIASES; do
+  certbot_domains+=(-d "$alias")
+done
+
+sudo nginx -t
+sudo systemctl reload nginx
+
+if [ "$ENABLE_TLS" != false ]; then
+  if [ "$cert_exists" = true ]; then
+    sudo certbot --nginx --non-interactive --redirect --cert-name "$DOMAIN" "${certbot_domains[@]}"
+    sudo nginx -t
+    sudo systemctl reload nginx
+  elif [ "$ENABLE_TLS" = true ] || [ "$ENABLE_TLS" = auto ]; then
+    if [ -z "${LETSENCRYPT_EMAIL:-}" ]; then
+      echo "TLS certificate missing; set LETSENCRYPT_EMAIL to let deploy run certbot" >&2
+      exit 1
+    fi
+    sudo certbot --nginx --non-interactive --agree-tos --redirect -m "$LETSENCRYPT_EMAIL" --cert-name "$DOMAIN" "${certbot_domains[@]}"
+    sudo nginx -t
+    sudo systemctl reload nginx
   fi
-  certbot_domains=(-d "$DOMAIN")
-  for alias in $DOMAIN_ALIASES; do
-    certbot_domains+=(-d "$alias")
-  done
-  sudo certbot --nginx --non-interactive --agree-tos --redirect -m "$LETSENCRYPT_EMAIL" "${certbot_domains[@]}"
 fi
 REMOTE_NGINX
 fi

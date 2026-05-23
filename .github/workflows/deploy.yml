@@ -1,0 +1,60 @@
+name: Deploy homepage
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: homepage-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy abhiyadav.in
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DOMAIN: abhiyadav.in
+      DOMAIN_ALIASES: www.abhiyadav.in
+      DEPLOY_HOST: ${{ vars.DEPLOY_HOST || 'abhiyadav.in' }}
+      DEPLOY_PORT: ${{ vars.DEPLOY_PORT || '2022' }}
+      DEPLOY_USER: ${{ vars.DEPLOY_USER || 'abhinav' }}
+      FORCE_NGINX_SITE: "true"
+      SETUP_SYSTEM: "false"
+      SETUP_NGINX: "true"
+      ENABLE_TLS: "auto"
+      LETSENCRYPT_EMAIL: ${{ secrets.LETSENCRYPT_EMAIL }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate homepage
+        run: |
+          python3 scripts/check_homepage.py
+          bash -n scripts/deploy_homepage.sh
+
+      - name: Configure SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          test -n "$DEPLOY_SSH_KEY"
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "$DEPLOY_PORT" -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF
+          Host homepage-deploy
+            HostName $DEPLOY_HOST
+            Port $DEPLOY_PORT
+            User $DEPLOY_USER
+            IdentityFile ~/.ssh/deploy_key
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+          EOF
+          chmod 600 ~/.ssh/config
+
+      - name: Deploy homepage
+        run: bash scripts/deploy_homepage.sh homepage-deploy

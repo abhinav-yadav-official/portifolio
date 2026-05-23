@@ -14,8 +14,10 @@ NOT_FOUND = ROOT / "404.html"
 FORBIDDEN = ROOT / "403.html"
 SERVER_ERROR = ROOT / "50x.html"
 ADS = ROOT / "ads.txt"
-RESUME = ROOT / "Abhinav_Resume.pdf"
+RESUME = ROOT / "resume.pdf"
+ICON_DIR = ROOT / "assets" / "icons"
 DEPLOY = ROOT / "scripts" / "deploy_homepage.sh"
+GITHUB_DEPLOY = ROOT / ".github" / "workflows" / "deploy.yml"
 REPORT_KEYWORDS = ["backend", "production", "celery", "mysql", "redis"]
 SEO_SEARCH_PHRASES = [
     "abhinav yadav",
@@ -157,6 +159,7 @@ def main():
     check_live_redirects = "--live-redirects" in sys.argv[1:]
     body = PAGE.read_text()
     deploy = DEPLOY.read_text()
+    github_deploy = GITHUB_DEPLOY.read_text() if GITHUB_DEPLOY.exists() else ""
     require_unique_anchor_text(body)
     require_report_keyword_coverage(body)
     require_no_plaintext_email(body)
@@ -170,6 +173,8 @@ def main():
     require(RESUME.exists(), "homepage resume PDF must exist")
     require(RESUME.stat().st_size > 0, "homepage resume PDF must not be empty")
     require('href="/resume"' in body, "homepage must link resume via /resume")
+    require("Abhinav_Resume.pdf" not in body, "homepage must not reference old resume filename")
+    require("resume.pdf" not in body, "homepage should keep public resume link at /resume")
     require("Abhinav" in body, "homepage must mention Abhinav")
     require("Abhinav Yadav" in body, "homepage must include full name for search")
     require("SDE III" in body, "homepage must mention current role")
@@ -184,17 +189,23 @@ def main():
     require("https://github.com/abhinav-yadav-official/leetdrill" in body, "homepage must link GitHub repo")
     require("https://abhiyadav.in/leetdrill" in body, "homepage must link hosted LeetDrill")
     require("LeetDrill" in body, "homepage must mention LeetDrill")
-    require("devportfolio-inspired" in body, "homepage must identify devportfolio-inspired redesign")
+    require("Ichnos" in body, "homepage must mention Ichnos")
+    require("Kleos" in body, "homepage must mention Kleos")
+    require("ops-console" in body, "homepage must identify Ops Console redesign")
     require("color-scheme: dark" in body, "homepage must use dark color scheme")
     require("IBM Plex Mono" in body, "homepage must use IBM Plex Mono")
-    require("Hello!" in body, "homepage must use devportfolio-style greeting")
-    require("typing-line" in body, "homepage must mark hero typing lines")
-    require("typing-cursor" in body, "homepage must include typing cursor")
-    require("typeHeroLine" in body, "homepage must include hero typing script")
+    require("Forge" in body, "homepage must mention Forge deployment platform")
+    require("ESMultiWrite" in body, "homepage must mention ESMultiWrite")
+    require("Instamatch" in body, "homepage must mention Instamatch")
+    require("BIGINT" in body, "homepage must mention BIGINT migration")
+    require("Painless" in body, "homepage must mention Painless scoring")
+    require("Python 2 to Python 3" in body, "homepage must mention Python migration")
+    for metric in ["2M+ users", "50M+ monthly requests", "2B+ row tables", "4.8s", "85ms", "200+ weekly deploys"]:
+        require(metric in body, f"homepage must include resume metric: {metric}")
     require("prefers-reduced-motion: reduce" in body, "homepage typing must respect reduced motion")
-    require("Instahyre backend and fullstack work" in body, "homepage must include Instahyre fullstack section")
+    require("Platform architecture and search systems" in body, "homepage must include platform section")
     require("Education" in body, "homepage must include Education section")
-    require("senior backend engineer" in body.lower(), "homepage must include backend about summary")
+    require("platform engineer" in body.lower(), "homepage must include platform engineer summary")
     require("backdrop-filter: blur(4.5px)" in body, "homepage desktop navbar must use lighter blur")
     require("-webkit-backdrop-filter: blur(4.5px)" in body, "homepage desktop navbar must use lighter safari blur")
     require("linear-gradient(to bottom" in body, "homepage navbar background must fade out at bottom")
@@ -206,7 +217,10 @@ def main():
     require("#020617" in body, "homepage must define a dark page background")
     require("--ink: #f8fafc" in body, "homepage must define high-contrast foreground text")
     require("--muted: #cbd5e1" in body, "homepage must define readable muted text")
-    require("programming-symbols" in body, "homepage must include code symbol hero background")
+    require("console-grid" in body, "homepage must include console grid visual")
+    for icon in ["python.svg", "go.svg", "django.svg", "redis.svg", "elasticsearch.svg", "aws.svg"]:
+        require((ICON_DIR / icon).exists(), f"homepage must vendor local icon {icon}")
+        require(f"/assets/icons/{icon}" in body, f"homepage must use local icon {icon}")
     require("@media (max-width: 620px)" in body, "homepage must include mobile breakpoint")
     require("@media (max-width: 420px)" in body, "homepage must include narrow mobile breakpoint")
     require("overflow-wrap: anywhere" in body, "homepage must prevent mobile text overflow")
@@ -255,6 +269,15 @@ def main():
         "--exclude=shared/" in deploy,
         "homepage deploy must preserve /var/www/html/shared extension downloads",
     )
+    require("try_files /resume.pdf =404;" in deploy, "nginx deploy must serve renamed resume.pdf")
+    require("Abhinav_Resume.pdf" not in deploy, "nginx deploy must not reference old resume filename")
+    for header in [
+        'add_header Cache-Control "no-store, no-cache, must-revalidate, max-age=0" always;',
+        'add_header Pragma "no-cache" always;',
+        'add_header Expires "0" always;',
+        "default_type application/pdf;",
+    ]:
+        require(header in deploy, f"nginx deploy must include resume header: {header}")
     require("error_page 403 /403.html;" in deploy, "nginx deploy must use custom 403 page")
     require("error_page 404 /404.html;" in deploy, "nginx deploy must use custom 404 page")
     require("error_page 500 502 503 504 /50x.html;" in deploy, "nginx deploy must use custom 50x page")
@@ -262,6 +285,14 @@ def main():
     require("open_file_cache max=1000 inactive=60s;" in deploy, "nginx deploy must enable open file cache")
     require("gzip_static on;" in deploy, "nginx deploy must enable static gzip")
     require("stale-while-revalidate=86400" in deploy, "homepage deploy must cache homepage briefly")
+    require("--cert-name \"$DOMAIN\"" in deploy, "deploy must reinstall existing TLS cert after forced nginx rewrite")
+    require(GITHUB_DEPLOY.exists(), "homepage must include GitHub Actions deploy workflow")
+    require("DEPLOY_SSH_KEY" in github_deploy, "GitHub Actions deploy must use DEPLOY_SSH_KEY secret")
+    require("DEPLOY_PORT" in github_deploy, "GitHub Actions deploy must use configurable SSH port")
+    require('vars.DEPLOY_PORT || \'2022\'' in github_deploy, "GitHub Actions deploy must default to SSH port 2022")
+    require("FORCE_NGINX_SITE: \"true\"" in github_deploy, "GitHub Actions deploy must refresh nginx site config")
+    require("DOMAIN: abhiyadav.in" in github_deploy, "GitHub Actions deploy must target abhiyadav.in")
+    require("scripts/deploy_homepage.sh" in github_deploy, "GitHub Actions deploy must run deploy script")
     if check_live_redirects:
         for url in [
             "http://abhiy.xyz/",
