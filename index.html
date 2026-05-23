@@ -187,21 +187,6 @@
         background: linear-gradient(120deg, rgba(2, 6, 23, 0.72), rgba(2, 6, 23, 0.18));
       }
 
-      .hero::after {
-        content: "";
-        position: absolute;
-        inset: 16% 10% 12%;
-        z-index: -1;
-        border: 1px solid rgba(96, 165, 250, 0);
-        border-radius: 999px;
-        opacity: 0;
-        pointer-events: none;
-      }
-
-      .hero.galaxy-click-pulse::after {
-        animation: galaxyPulse 620ms ease-out both;
-      }
-
       .galaxy-canvas {
         position: absolute;
         inset: 0;
@@ -631,21 +616,6 @@
       @keyframes cursorBlink {
         50% {
           opacity: 0;
-        }
-      }
-
-      @keyframes galaxyPulse {
-        0% {
-          opacity: 0.72;
-          transform: scale(0.62) rotate(-8deg);
-          border-color: rgba(34, 211, 238, 0.7);
-          box-shadow: 0 0 32px rgba(34, 211, 238, 0.3), inset 0 0 44px rgba(34, 197, 94, 0.13);
-        }
-        100% {
-          opacity: 0;
-          transform: scale(1.2) rotate(5deg);
-          border-color: rgba(34, 197, 94, 0);
-          box-shadow: 0 0 120px rgba(96, 165, 250, 0), inset 0 0 90px rgba(34, 197, 94, 0);
         }
       }
 
@@ -1266,6 +1236,54 @@
     <script type="module">
       import * as THREE from "/assets/vendor/three.module.min.js";
 
+      const GALAXY_CONFIG = {
+        initialTiltX: -0.78,
+        initialYawY: 0,
+        initialTiltZ: -0.78,
+        zoomLevels: [1, 2, 5, 10],
+        cameraDistanceDesktop: 8.4,
+        cameraDistanceMobile: 9.2,
+        mouseSpinAxis: "z",
+        mouseSpinScale: 0.0008,
+        maxMouseSpinStep: 0.08,
+        spinDamping: 0.94,
+        starCountMobile: 8500,
+        starCountDesktop: 14000,
+        haloCountMobile: 1300,
+        haloCountDesktop: 2200,
+        nebulaCountMobile: 1800,
+        nebulaCountDesktop: 3200,
+        diskThicknessBase: 0.16,
+        diskThicknessFalloff: 0.018,
+        starSizeMobile: 0.034,
+        starSizeDesktop: 0.044,
+        nebulaSizeMobile: 0.06,
+        nebulaSizeDesktop: 0.082,
+        popularStarSizeMobile: 0.14,
+        popularStarSizeDesktop: 0.18,
+        centralGlowScale: 2.2,
+        popularStarGlowScale: 0.42,
+        nebulaPalette: ["#22d3ee", "#f59e0b", "#a78bfa", "#fb7185", "#34d399", "#f0abfc", "#38bdf8"]
+      };
+      window.GALAXY_CONFIG = GALAXY_CONFIG;
+
+      const createRadialTexture = (innerOpacity = 1, outerOpacity = 0) => {
+        const size = 96;
+        const canvas = document.createElement("canvas");
+        canvas.width = size;
+        canvas.height = size;
+        const context = canvas.getContext("2d");
+        const gradient = context.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+        gradient.addColorStop(0, `rgba(255, 255, 255, ${innerOpacity})`);
+        gradient.addColorStop(0.42, `rgba(255, 255, 255, ${innerOpacity * 0.72})`);
+        gradient.addColorStop(1, `rgba(255, 255, 255, ${outerOpacity})`);
+        context.fillStyle = gradient;
+        context.fillRect(0, 0, size, size);
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.needsUpdate = true;
+        return texture;
+      };
+
       const initGalaxy = () => {
         const canvas = document.getElementById("galaxy-canvas");
         const hero = document.querySelector(".hero");
@@ -1279,25 +1297,28 @@
 
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(56, 1, 0.1, 100);
-        camera.position.set(0, 0, 8.4);
+        camera.position.set(0, 0, GALAXY_CONFIG.cameraDistanceDesktop);
         camera.lookAt(0, 0, 0);
 
         const galaxy = new THREE.Group();
         scene.add(galaxy);
 
-        const initialTiltX = -0.78;
-        const initialTiltZ = -0.78;
         let mouseSpinVelocity = 0;
+        let mouseSpinOffset = 0;
         let lastPointerX = null;
         let currentZoom = 1;
         let zoomIndex = 0;
-        const zoomLevels = [1, 2, 5, 10];
-        const baseCameraDistance = window.innerWidth < 720 ? 9.2 : 8.4;
-        galaxy.rotation.x = initialTiltX;
-        galaxy.rotation.z = initialTiltZ;
+        const zoomLevels = GALAXY_CONFIG.zoomLevels;
+        const baseCameraDistance = window.innerWidth < 720 ? GALAXY_CONFIG.cameraDistanceMobile : GALAXY_CONFIG.cameraDistanceDesktop;
+        galaxy.rotation.x = GALAXY_CONFIG.initialTiltX;
+        galaxy.rotation.y = GALAXY_CONFIG.initialYawY;
+        galaxy.rotation.z = GALAXY_CONFIG.initialTiltZ;
 
         const topFacingGalaxy = true;
-        const starCount = window.innerWidth < 720 ? 8500 : 14000;
+        const starTexture = createRadialTexture(1, 0);
+        const glowTexture = createRadialTexture(0.82, 0);
+        const nebulaTexture = createRadialTexture(0.5, 0);
+        const starCount = window.innerWidth < 720 ? GALAXY_CONFIG.starCountMobile : GALAXY_CONFIG.starCountDesktop;
         const positions = new Float32Array(starCount * 3);
         const base = new Float32Array(starCount * 3);
         const radii = new Float32Array(starCount);
@@ -1320,7 +1341,7 @@
           const branch = (arm / arms) * Math.PI * 2;
           const spiralArmJitter = Math.pow(Math.random(), 2.4) * (Math.random() < 0.5 ? -1 : 1);
           const angle = branch + spin + spiralArmJitter * (coreBias ? 1.6 : 0.42);
-          const diskThickness = (Math.random() - 0.5) * Math.max(0.018, 0.16 - radius * 0.018);
+          const diskThickness = (Math.random() - 0.5) * Math.max(0.018, GALAXY_CONFIG.diskThicknessBase - radius * GALAXY_CONFIG.diskThicknessFalloff);
 
           const x = Math.cos(angle) * radius + spiralArmJitter * 0.12;
           const y = Math.sin(angle) * radius + spiralArmJitter * 0.12;
@@ -1348,8 +1369,10 @@
         geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
 
         const material = new THREE.PointsMaterial({
-          size: window.innerWidth < 720 ? 0.026 : 0.034,
+          size: window.innerWidth < 720 ? GALAXY_CONFIG.starSizeMobile : GALAXY_CONFIG.starSizeDesktop,
           sizeAttenuation: true,
+          map: starTexture,
+          alphaTest: 0.02,
           vertexColors: true,
           transparent: true,
           opacity: 0.88,
@@ -1359,6 +1382,13 @@
 
         const stars = new THREE.Points(geometry, material);
         galaxy.add(stars);
+
+        const centralGlow = new THREE.Sprite(
+          new THREE.SpriteMaterial({ map: glowTexture, color: "#fde68a", transparent: true, opacity: 0.68, depthWrite: false, blending: THREE.AdditiveBlending })
+        );
+        centralGlow.position.set(0, 0, 0.02);
+        centralGlow.scale.set(GALAXY_CONFIG.centralGlowScale, GALAXY_CONFIG.centralGlowScale, 1);
+        galaxy.add(centralGlow);
 
         const blackHole = new THREE.Mesh(
           new THREE.CircleGeometry(0.19, 64),
@@ -1381,7 +1411,7 @@
         galaxy.add(accretionRing);
 
         const haloGeometry = new THREE.BufferGeometry();
-        const haloCount = window.innerWidth < 720 ? 1300 : 2200;
+        const haloCount = window.innerWidth < 720 ? GALAXY_CONFIG.haloCountMobile : GALAXY_CONFIG.haloCountDesktop;
         const haloPositions = new Float32Array(haloCount * 3);
         for (let i = 0; i < haloCount; i += 1) {
           const i3 = i * 3;
@@ -1394,7 +1424,7 @@
         haloGeometry.setAttribute("position", new THREE.BufferAttribute(haloPositions, 3));
         const halo = new THREE.Points(
           haloGeometry,
-          new THREE.PointsMaterial({ color: "#60a5fa", size: 0.012, transparent: true, opacity: 0.32, depthWrite: false, blending: THREE.AdditiveBlending })
+          new THREE.PointsMaterial({ color: "#60a5fa", size: 0.018, map: starTexture, alphaTest: 0.02, transparent: true, opacity: 0.32, depthWrite: false, blending: THREE.AdditiveBlending })
         );
         galaxy.add(halo);
 
@@ -1427,20 +1457,26 @@
         popularStarGeometry.setAttribute("color", new THREE.BufferAttribute(popularStarColors, 3));
         const popularStarPoints = new THREE.Points(
           popularStarGeometry,
-          new THREE.PointsMaterial({ size: window.innerWidth < 720 ? 0.11 : 0.14, sizeAttenuation: true, vertexColors: true, transparent: true, opacity: 0.96, depthWrite: false, blending: THREE.AdditiveBlending })
+          new THREE.PointsMaterial({ size: window.innerWidth < 720 ? GALAXY_CONFIG.popularStarSizeMobile : GALAXY_CONFIG.popularStarSizeDesktop, sizeAttenuation: true, map: starTexture, alphaTest: 0.02, vertexColors: true, transparent: true, opacity: 0.96, depthWrite: false, blending: THREE.AdditiveBlending })
         );
         galaxy.add(popularStarPoints);
 
-        const nebulaCount = window.innerWidth < 720 ? 1800 : 3200;
+        const popularStarGlowSprites = new THREE.Group();
+        popularStars.forEach((star) => {
+          const glow = new THREE.Sprite(
+            new THREE.SpriteMaterial({ map: glowTexture, color: star[4], transparent: true, opacity: 0.34, depthWrite: false, blending: THREE.AdditiveBlending })
+          );
+          glow.position.set(star[1], star[2], star[3] - 0.01);
+          glow.scale.set(GALAXY_CONFIG.popularStarGlowScale, GALAXY_CONFIG.popularStarGlowScale, 1);
+          popularStarGlowSprites.add(glow);
+        });
+        galaxy.add(popularStarGlowSprites);
+
+        const nebulaCount = window.innerWidth < 720 ? GALAXY_CONFIG.nebulaCountMobile : GALAXY_CONFIG.nebulaCountDesktop;
         const nebulaGeometry = new THREE.BufferGeometry();
         const nebulaPositions = new Float32Array(nebulaCount * 3);
         const nebulaColors = new Float32Array(nebulaCount * 3);
-        const nebulaA = new THREE.Color("#22d3ee");
-        const nebulaB = new THREE.Color("#f59e0b");
-        const nebulaC = new THREE.Color("#a78bfa");
-        const nebulaD = new THREE.Color("#fb7185");
-        const nebulaE = new THREE.Color("#34d399");
-        const nebulaPalette = [nebulaA, nebulaB, nebulaC, nebulaD, nebulaE];
+        const nebulaPalette = GALAXY_CONFIG.nebulaPalette.map((color) => new THREE.Color(color));
         for (let i = 0; i < nebulaCount; i += 1) {
           const i3 = i * 3;
           const cloud = i % nebulaPalette.length;
@@ -1459,11 +1495,10 @@
         nebulaGeometry.setAttribute("color", new THREE.BufferAttribute(nebulaColors, 3));
         const nebula = new THREE.Points(
           nebulaGeometry,
-          new THREE.PointsMaterial({ size: window.innerWidth < 720 ? 0.04 : 0.055, sizeAttenuation: true, vertexColors: true, transparent: true, opacity: 0.18, depthWrite: false, blending: THREE.AdditiveBlending })
+          new THREE.PointsMaterial({ size: window.innerWidth < 720 ? GALAXY_CONFIG.nebulaSizeMobile : GALAXY_CONFIG.nebulaSizeDesktop, sizeAttenuation: true, map: nebulaTexture, alphaTest: 0.01, vertexColors: true, transparent: true, opacity: 0.2, depthWrite: false, blending: THREE.AdditiveBlending })
         );
         galaxy.add(nebula);
 
-        let burst = 0;
         let clock = 0;
 
         const resize = () => {
@@ -1482,32 +1517,37 @@
           }
           const deltaX = event.clientX - lastPointerX;
           lastPointerX = event.clientX;
-          mouseSpinVelocity += Math.max(-0.08, Math.min(0.08, deltaX * 0.0008));
+          mouseSpinVelocity += Math.max(-GALAXY_CONFIG.maxMouseSpinStep, Math.min(GALAXY_CONFIG.maxMouseSpinStep, deltaX * GALAXY_CONFIG.mouseSpinScale));
         };
 
-        const createStarburst = () => {
-          burst = 1;
+        const cycleGalaxyZoom = () => {
           zoomIndex = (zoomIndex + 1) % zoomLevels.length;
           currentZoom = zoomLevels[zoomIndex];
           hero.dataset.galaxyZoom = `${currentZoom}x`;
-          hero.dataset.galaxyBurst = String(Date.now());
-          hero.classList.add("galaxy-click-pulse");
-          window.setTimeout(() => hero.classList.remove("galaxy-click-pulse"), 620);
+        };
+
+        const getMouseSpinAxis = () => {
+          return ["x", "y", "z"].includes(GALAXY_CONFIG.mouseSpinAxis) ? GALAXY_CONFIG.mouseSpinAxis : "z";
         };
 
         hero.addEventListener("pointermove", updatePointer, { passive: true });
-        hero.addEventListener("click", createStarburst);
+        hero.addEventListener("click", cycleGalaxyZoom);
         window.addEventListener("resize", resize);
         resize();
 
         const render = () => {
           clock += 1;
-          galaxy.rotation.x += (initialTiltX - galaxy.rotation.x) * 0.05;
-          galaxy.rotation.y += (0 - galaxy.rotation.y) * 0.05;
           if (!prefersReducedMotion) {
-            galaxy.rotation.z += mouseSpinVelocity;
-            mouseSpinVelocity *= 0.94;
+            mouseSpinOffset += mouseSpinVelocity;
+            mouseSpinVelocity *= GALAXY_CONFIG.spinDamping;
           }
+          const mouseSpinAxis = getMouseSpinAxis();
+          const targetRotationX = GALAXY_CONFIG.initialTiltX + (mouseSpinAxis === "x" ? mouseSpinOffset : 0);
+          const targetRotationY = GALAXY_CONFIG.initialYawY + (mouseSpinAxis === "y" ? mouseSpinOffset : 0);
+          const targetRotationZ = GALAXY_CONFIG.initialTiltZ + (mouseSpinAxis === "z" ? mouseSpinOffset : 0);
+          galaxy.rotation.x += (targetRotationX - galaxy.rotation.x) * 0.05;
+          galaxy.rotation.y += (targetRotationY - galaxy.rotation.y) * 0.05;
+          galaxy.rotation.z += (targetRotationZ - galaxy.rotation.z) * 0.05;
           const targetCameraDistance = baseCameraDistance / currentZoom;
           camera.position.z += (targetCameraDistance - camera.position.z) * 0.055;
           camera.lookAt(0, 0, 0); // Sgr A* remains centered while zooming.
@@ -1517,21 +1557,13 @@
             const i3 = i * 3;
             const radius = radii[i];
             const angle = angles[i];
-            const spiralBreath = 0;
-            const wave = burst > 0.002 && !prefersReducedMotion
-              ? Math.sin(radius * 4.1 - burst * 8.0 + clock * 0.04) * burst * 0.16
-              : 0;
-            const currentRadius = radius + spiralBreath + wave;
+            const currentRadius = radius;
             const jitter = armOffsets[i] * 0.1;
             attr.array[i3] = Math.cos(angle) * currentRadius + jitter;
             attr.array[i3 + 1] = Math.sin(angle) * currentRadius + jitter;
-            attr.array[i3 + 2] = thickness[i] + wave * 0.24;
+            attr.array[i3 + 2] = thickness[i];
           }
           attr.needsUpdate = true;
-
-          if (burst > 0.002 && !prefersReducedMotion) {
-            burst *= 0.93;
-          }
 
           renderer.render(scene, camera);
           window.requestAnimationFrame(render);
