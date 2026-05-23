@@ -87,7 +87,7 @@
         --muted: #cbd5e1;
         --soft-muted: #94a3b8;
         --subtle: #0b1120;
-        --card: rgba(15, 23, 42, 0.86);
+        --card: rgba(15, 23, 42, 0.98);
         --line: rgba(148, 163, 184, 0.3);
         --accent: #60a5fa;
         --accent-strong: #3b82f6;
@@ -128,6 +128,8 @@
       }
 
       .ops-console {
+        position: relative;
+        z-index: 1;
         min-height: 100vh;
       }
 
@@ -175,8 +177,6 @@
         display: grid;
         align-items: center;
         padding: 116px 24px 78px;
-        overflow: hidden;
-        contain: paint;
       }
 
       .hero::before {
@@ -188,13 +188,13 @@
       }
 
       .galaxy-canvas {
-        position: absolute;
+        position: fixed;
         inset: 0;
-        z-index: -2;
-        width: 100%;
-        height: 100%;
-        opacity: 0.88;
-        pointer-events: auto;
+        z-index: 0;
+        width: 100vw;
+        height: 100vh;
+        opacity: 0.74;
+        pointer-events: none;
       }
 
       .hero-inner {
@@ -777,6 +777,7 @@
     </style>
   </head>
   <body>
+    <canvas class="galaxy-canvas" id="galaxy-canvas" aria-hidden="true"></canvas>
     <div class="ops-console">
       <nav class="site-nav" aria-label="Primary">
         <ul>
@@ -791,7 +792,6 @@
 
       <main>
         <section class="hero" id="hero" aria-labelledby="intro-title">
-          <canvas class="galaxy-canvas" id="galaxy-canvas" aria-hidden="true"></canvas>
           <div class="hero-inner">
             <div>
               <p class="eyebrow typing-line typing-cursor" data-text="Instahyre SDE III / Platform Engineer">Instahyre SDE III / Platform Engineer</p>
@@ -1237,22 +1237,30 @@
       import * as THREE from "/assets/vendor/three.module.min.js";
 
       const GALAXY_CONFIG = {
-        initialTiltX: -0.78,
-        initialYawY: 0,
-        initialTiltZ: -0.78,
+        initialTiltX: -1.4,
+        initialYawY: -0.5,
+        initialTiltZ: 0,
         zoomLevels: [1, 2, 5, 10],
-        cameraDistanceDesktop: 8.4,
-        cameraDistanceMobile: 9.2,
+        cameraDistanceDesktop: 10,
+        cameraDistanceMobile: 10,
         mouseSpinAxis: "z",
-        mouseSpinScale: 0.0008,
+        mouseSpinScale: 0.0002,
         maxMouseSpinStep: 0.08,
-        spinDamping: 0.94,
+        spinDamping: 0.8,
+        mouseIdleDelayMs: 900,
+        defaultSpinAxis: "z",
+        defaultSpinSpeed: 0.00022,
         starCountMobile: 8500,
         starCountDesktop: 14000,
         haloCountMobile: 1300,
         haloCountDesktop: 2200,
         nebulaCountMobile: 1800,
         nebulaCountDesktop: 3200,
+        farGalaxyCountMobile: 18,
+        farGalaxyCountDesktop: 34,
+        farGalaxySpinSpeed: 0.000035,
+        farGalaxySizeMobile: 0.28,
+        farGalaxySizeDesktop: 0.38,
         diskThicknessBase: 0.16,
         diskThicknessFalloff: 0.018,
         starSizeMobile: 0.034,
@@ -1284,6 +1292,36 @@
         return texture;
       };
 
+      const createFarGalaxyTexture = () => {
+        const size = 160;
+        const canvas = document.createElement("canvas");
+        canvas.width = size;
+        canvas.height = size;
+        const context = canvas.getContext("2d");
+        const center = size / 2;
+        context.translate(center, center);
+        context.rotate(-0.28);
+        context.scale(1.45, 0.46);
+        const gradient = context.createRadialGradient(0, 0, 0, 0, 0, center * 0.72);
+        gradient.addColorStop(0, "rgba(255, 249, 220, 0.78)");
+        gradient.addColorStop(0.22, "rgba(147, 197, 253, 0.42)");
+        gradient.addColorStop(0.58, "rgba(167, 139, 250, 0.18)");
+        gradient.addColorStop(1, "rgba(34, 211, 238, 0)");
+        context.fillStyle = gradient;
+        context.beginPath();
+        context.arc(0, 0, center * 0.72, 0, Math.PI * 2);
+        context.fill();
+        context.scale(1 / 1.45, 1 / 0.46);
+        context.rotate(0.28);
+        context.fillStyle = "rgba(255, 255, 255, 0.5)";
+        context.beginPath();
+        context.arc(0, 0, 2.4, 0, Math.PI * 2);
+        context.fill();
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.needsUpdate = true;
+        return texture;
+      };
+
       const initGalaxy = () => {
         const canvas = document.getElementById("galaxy-canvas");
         const hero = document.querySelector(".hero");
@@ -1302,10 +1340,14 @@
 
         const galaxy = new THREE.Group();
         scene.add(galaxy);
+        const farGalaxies = new THREE.Group();
+        scene.add(farGalaxies);
 
         let mouseSpinVelocity = 0;
         let mouseSpinOffset = 0;
+        let defaultSpinOffset = 0;
         let lastPointerX = null;
+        let lastPointerAt = 0;
         let currentZoom = 1;
         let zoomIndex = 0;
         const zoomLevels = GALAXY_CONFIG.zoomLevels;
@@ -1318,6 +1360,7 @@
         const starTexture = createRadialTexture(1, 0);
         const glowTexture = createRadialTexture(0.82, 0);
         const nebulaTexture = createRadialTexture(0.5, 0);
+        const farGalaxyTexture = createFarGalaxyTexture();
         const starCount = window.innerWidth < 720 ? GALAXY_CONFIG.starCountMobile : GALAXY_CONFIG.starCountDesktop;
         const positions = new Float32Array(starCount * 3);
         const base = new Float32Array(starCount * 3);
@@ -1499,12 +1542,37 @@
         );
         galaxy.add(nebula);
 
+        const farGalaxyCount = window.innerWidth < 720 ? GALAXY_CONFIG.farGalaxyCountMobile : GALAXY_CONFIG.farGalaxyCountDesktop;
+        const farGalaxyBaseSize = window.innerWidth < 720 ? GALAXY_CONFIG.farGalaxySizeMobile : GALAXY_CONFIG.farGalaxySizeDesktop;
+        const farGalaxyColors = ["#bfdbfe", "#c4b5fd", "#fef3c7", "#bae6fd", "#fbcfe8"];
+        for (let i = 0; i < farGalaxyCount; i += 1) {
+          const lane = i % 4;
+          const sideBias = Math.random() < 0.5 ? -1 : 1;
+          const angle = (i / farGalaxyCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.42;
+          const radius = 6.2 + Math.random() * 5.6 + lane * 0.45;
+          const material = new THREE.SpriteMaterial({
+            map: farGalaxyTexture,
+            color: farGalaxyColors[i % farGalaxyColors.length],
+            transparent: true,
+            opacity: 0.16 + Math.random() * 0.2,
+            depthWrite: false,
+            depthTest: false,
+            blending: THREE.AdditiveBlending
+          });
+          const sprite = new THREE.Sprite(material);
+          sprite.position.set(Math.cos(angle) * radius, Math.sin(angle) * radius * 0.72, -8 - Math.random() * 9);
+          sprite.position.x += sideBias * (Math.random() * 1.2);
+          const scale = farGalaxyBaseSize * (0.55 + Math.random() * 1.2);
+          sprite.scale.set(scale * (1.3 + Math.random() * 1.6), scale * (0.42 + Math.random() * 0.34), 1);
+          sprite.material.rotation = Math.random() * Math.PI;
+          farGalaxies.add(sprite);
+        }
+
         let clock = 0;
 
         const resize = () => {
-          const rect = hero.getBoundingClientRect();
-          const width = Math.max(1, rect.width);
-          const height = Math.max(1, rect.height);
+          const width = Math.max(1, window.innerWidth);
+          const height = Math.max(1, window.innerHeight);
           renderer.setSize(width, height, false);
           camera.aspect = width / height;
           camera.updateProjectionMatrix();
@@ -1513,38 +1581,55 @@
         const updatePointer = (event) => {
           if (lastPointerX === null) {
             lastPointerX = event.clientX;
+            lastPointerAt = performance.now();
             return;
           }
           const deltaX = event.clientX - lastPointerX;
           lastPointerX = event.clientX;
+          lastPointerAt = performance.now();
           mouseSpinVelocity += Math.max(-GALAXY_CONFIG.maxMouseSpinStep, Math.min(GALAXY_CONFIG.maxMouseSpinStep, deltaX * GALAXY_CONFIG.mouseSpinScale));
         };
 
-        const cycleGalaxyZoom = () => {
+        const cycleGalaxyZoom = (event) => {
+          if (event.target.closest("a, button")) {
+            return;
+          }
           zoomIndex = (zoomIndex + 1) % zoomLevels.length;
           currentZoom = zoomLevels[zoomIndex];
           hero.dataset.galaxyZoom = `${currentZoom}x`;
         };
 
-        const getMouseSpinAxis = () => {
-          return ["x", "y", "z"].includes(GALAXY_CONFIG.mouseSpinAxis) ? GALAXY_CONFIG.mouseSpinAxis : "z";
+        const getSpinAxis = (axis) => {
+          return ["x", "y", "z"].includes(axis) ? axis : "z";
         };
 
-        hero.addEventListener("pointermove", updatePointer, { passive: true });
+        window.addEventListener("pointermove", updatePointer, { passive: true });
         hero.addEventListener("click", cycleGalaxyZoom);
         window.addEventListener("resize", resize);
         resize();
 
         const render = () => {
           clock += 1;
+          const pointerIsIdle = performance.now() - lastPointerAt > GALAXY_CONFIG.mouseIdleDelayMs;
           if (!prefersReducedMotion) {
             mouseSpinOffset += mouseSpinVelocity;
             mouseSpinVelocity *= GALAXY_CONFIG.spinDamping;
+            if (pointerIsIdle) {
+              defaultSpinOffset += GALAXY_CONFIG.defaultSpinSpeed;
+            }
+            farGalaxies.rotation.z += GALAXY_CONFIG.farGalaxySpinSpeed;
           }
-          const mouseSpinAxis = getMouseSpinAxis();
-          const targetRotationX = GALAXY_CONFIG.initialTiltX + (mouseSpinAxis === "x" ? mouseSpinOffset : 0);
-          const targetRotationY = GALAXY_CONFIG.initialYawY + (mouseSpinAxis === "y" ? mouseSpinOffset : 0);
-          const targetRotationZ = GALAXY_CONFIG.initialTiltZ + (mouseSpinAxis === "z" ? mouseSpinOffset : 0);
+          const mouseSpinAxis = getSpinAxis(GALAXY_CONFIG.mouseSpinAxis);
+          const defaultSpinAxis = getSpinAxis(GALAXY_CONFIG.defaultSpinAxis);
+          const targetRotationX = GALAXY_CONFIG.initialTiltX
+            + (mouseSpinAxis === "x" ? mouseSpinOffset : 0)
+            + (defaultSpinAxis === "x" ? defaultSpinOffset : 0);
+          const targetRotationY = GALAXY_CONFIG.initialYawY
+            + (mouseSpinAxis === "y" ? mouseSpinOffset : 0)
+            + (defaultSpinAxis === "y" ? defaultSpinOffset : 0);
+          const targetRotationZ = GALAXY_CONFIG.initialTiltZ
+            + (mouseSpinAxis === "z" ? mouseSpinOffset : 0)
+            + (defaultSpinAxis === "z" ? defaultSpinOffset : 0);
           galaxy.rotation.x += (targetRotationX - galaxy.rotation.x) * 0.05;
           galaxy.rotation.y += (targetRotationY - galaxy.rotation.y) * 0.05;
           galaxy.rotation.z += (targetRotationZ - galaxy.rotation.z) * 0.05;
