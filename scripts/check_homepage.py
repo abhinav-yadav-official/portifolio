@@ -187,7 +187,7 @@ def main():
         "https://leetcode.com/u/abhinav-yadav-official/" in body,
         "homepage must link LeetCode profile",
     )
-    require("https://github.com/abhinav-yadav-official/leetdrill" in body, "homepage must link GitHub repo")
+    require("https://github.com/abhinav-yadav-official/LeetDrill" in body, "homepage must link GitHub repo")
     require("https://abhiyadav.in/leetdrill" in body, "homepage must link hosted LeetDrill")
     require("LeetDrill" in body, "homepage must mention LeetDrill")
     require("Ichnos" in body, "homepage must mention Ichnos")
@@ -222,6 +222,7 @@ def main():
     require("CircleGeometry" not in body and "accretionRing" not in body, "homepage galaxy must not render artificial circles or rings")
     require("mouseSpinVelocity" in body, "homepage galaxy must rotate from horizontal mouse speed")
     require("defaultSpinSpeed" in body and "mouseIdleDelayMs" in body, "homepage galaxy must drift slowly after mouse idle")
+    require("handleSpinKeys" in body and "ArrowLeft" in body and "ArrowRight" in body, "homepage galaxy must respond to left and right arrow keys")
     require("targetTiltX" not in body, "homepage mouse must not control up/down tilt")
     require("targetYawY" not in body, "homepage mouse must not control yaw by pointer position")
     require("popularStars" in body and "Sirius" in body and "Vega" in body, "homepage galaxy must include popular star layer")
@@ -229,14 +230,16 @@ def main():
     require("mouseSpinAxis" in body, "homepage galaxy must expose mouse spin plane control")
     require("zoomLevels: [1, 2, 5, 10]" in body, "homepage click must cycle galaxy zoom levels")
     require("Sgr A*" in body, "homepage galaxy must anchor zoom around Sgr A*")
-    require("blackHole" in body and "centralShadowScale" in body, "homepage galaxy must include a soft Sgr A* center shadow")
     require("cycleGalaxyZoom" in body, "homepage click must only cycle galaxy zoom")
     require("createRadialTexture" in body, "homepage galaxy must render circular point sprites")
     require("centralGlow" in body and "popularStarGlowSprites" in body, "homepage galaxy must diffuse light around Sgr A* and bright stars")
+    require("galaxy-callout" in body and "YOU ARE HERE" in body and "Earth • Orion Spur" not in body, "homepage galaxy must label Earth's approximate position")
+    require("galaxy-callout-group" in body and "galaxy-callout-box-group" not in body, "homepage galaxy callout must render as one grouped SVG")
     require("createStarburst" not in body, "homepage click must not trigger starburst animation")
     require("galaxyPulse" not in body and "galaxy-click-pulse" not in body, "homepage click must not trigger pulse animation")
+    require("handlePageClick" in body and "document.addEventListener(\"click\", handlePageClick, true)" in body, "homepage zoom must work from background clicks across the page")
     require("position: fixed" in body and "window.innerHeight" in body, "homepage galaxy must stay fixed behind the full page")
-    require("universeStarCountDesktop: 420" in body and "universeStarCountMobile: 220" in body, "homepage universe backdrop must be visible at low density")
+    require("universeStarCountDesktop: 220" in body and "universeStarCountMobile: 120" in body, "homepage universe backdrop must be visible at low density")
     require("grid-template-columns: 92px 144px minmax(0, 1fr)" in body and "width: 144px" in body, "homepage ops-console progress bars must be equal length")
     require("post-typing" in body and "typing-complete" in body, "homepage hero content below typing must transition in after typing")
     require("reveal-item" in body and "is-visible" in body, "homepage lower content must use smooth reveal transitions")
@@ -268,7 +271,7 @@ def main():
     require("transition:" in body, "homepage must include interactive transitions")
     require("prefers-reduced-motion" in body, "homepage must respect reduced motion")
     for repo in [
-        "manager.ai",
+        "ManagerAI",
         "legacy-mac-wheels",
         "homebrew-legacy",
         "dotfiles",
@@ -285,7 +288,7 @@ def main():
             f"homepage must link GitHub repo {repo}",
         )
     for repo in [
-        "manager.ai",
+        "ManagerAI",
         "legacy-mac-wheels",
         "homebrew-legacy",
         "dotfiles",

@@ -177,6 +177,56 @@
         pointer-events: none;
       }
 
+      .galaxy-callout {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        transition: opacity 180ms ease;
+      }
+
+      .galaxy-callout-svg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+      }
+
+      .galaxy-callout-path {
+        fill: none;
+        stroke: rgba(34, 211, 238, 0.8);
+        stroke-width: 1.2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        filter: drop-shadow(0 0 5px rgba(34, 211, 238, 0.28));
+      }
+
+      .galaxy-callout-target {
+        fill: none;
+        stroke: rgba(34, 211, 238, 0.8);
+        stroke-width: 1.2;
+        filter: drop-shadow(0 0 5px rgba(34, 211, 238, 0.28));
+      }
+
+      .galaxy-callout-rect {
+        fill: rgba(2, 6, 23, 0.72);
+        stroke: rgba(34, 211, 238, 0.8);
+        stroke-width: 1.2;
+        filter: drop-shadow(0 0 5px rgba(34, 211, 238, 0.12));
+      }
+
+      .galaxy-callout-label {
+        fill: #a5f3fc;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        font-size: 14px;
+        font-weight: 400;
+        letter-spacing: 0;
+        text-anchor: middle;
+        dominant-baseline: middle;
+        user-select: none;
+      }
+
       .hero-inner {
         position: relative;
         z-index: 1;
@@ -697,6 +747,10 @@
       }
 
       @media (max-width: 700px) {
+        .galaxy-callout {
+          display: none;
+        }
+
         .metric-grid,
         .systems-grid,
         .project-grid,
@@ -808,6 +862,16 @@
 
       <main>
         <section class="hero" id="hero" aria-labelledby="intro-title">
+          <div class="galaxy-callout" aria-hidden="true">
+            <svg class="galaxy-callout-svg" id="galaxy-callout-svg" xmlns="http://www.w3.org/2000/svg">
+              <g id="galaxy-callout-group">
+                <path class="galaxy-callout-path" id="galaxy-callout-path"></path>
+                <circle class="galaxy-callout-target" id="galaxy-callout-target" r="4"></circle>
+                <rect class="galaxy-callout-rect" id="galaxy-callout-rect" rx="3" ry="3"></rect>
+                <text class="galaxy-callout-label" id="galaxy-callout-label">YOU ARE HERE</text>
+              </g>
+            </svg>
+          </div>
           <div class="hero-inner">
             <div>
               <p class="eyebrow typing-line typing-cursor" data-text="Instahyre SDE III / Platform Engineer">Instahyre SDE III / Platform Engineer</p>
@@ -1021,7 +1085,7 @@
                   <span class="repo-skill">Workflow</span>
                 </div>
               </article>
-              <a class="card-link" href="https://github.com/abhinav-yadav-official/leetdrill">View LeetDrill source</a>
+              <a class="card-link" href="https://github.com/abhinav-yadav-official/LeetDrill">View LeetDrill source</a>
             </div>
           </div>
         </section>
@@ -1034,7 +1098,7 @@
             </div>
             <div class="archive-grid">
               <article class="archive-card">
-                <a class="archive-card-link" href="https://github.com/abhinav-yadav-official/manager.ai">manager.ai</a>
+                <a class="archive-card-link" href="https://github.com/abhinav-yadav-official/ManagerAI">ManagerAI</a>
                 <p>Generates quarterly developer evaluations from Phabricator data.</p>
               </article>
               <article class="archive-card">
@@ -1259,25 +1323,25 @@
         cameraDistanceDesktop: 10,
         cameraDistanceMobile: 10,
         mouseSpinAxis: "z",
-        mouseSpinScale: 0.0002,
-        maxMouseSpinStep: 0.08,
+        mouseSpinScale: 0.0016,
+        maxMouseSpinStep: 0.64,
         spinDamping: 0.8,
         mouseIdleDelayMs: 900,
         defaultSpinAxis: "z",
-        defaultSpinSpeed: 0.00022,
-        starCountMobile: 17000,
-        starCountDesktop: 28000,
-        haloCountMobile: 2100,
-        haloCountDesktop: 3600,
-        nebulaCountMobile: 2400,
-        nebulaCountDesktop: 4300,
-        farGalaxyCountMobile: 16,
-        farGalaxyCountDesktop: 28,
-        farGalaxyStarsPerCluster: 22,
+        defaultSpinSpeed: 0.00088,
+        starCountMobile: 9000,
+        starCountDesktop: 14000,
+        haloCountMobile: 1100,
+        haloCountDesktop: 1800,
+        nebulaCountMobile: 1200,
+        nebulaCountDesktop: 2200,
+        farGalaxyCountMobile: 8,
+        farGalaxyCountDesktop: 14,
+        farGalaxyStarsPerCluster: 16,
         farGalaxySizeMobile: 0.034,
         farGalaxySizeDesktop: 0.046,
-        universeStarCountMobile: 220,
-        universeStarCountDesktop: 420,
+        universeStarCountMobile: 120,
+        universeStarCountDesktop: 220,
         universeStarSizeMobile: 0.018,
         universeStarSizeDesktop: 0.024,
         diskThicknessBase: 0.16,
@@ -1289,7 +1353,6 @@
         popularStarSizeMobile: 0.12,
         popularStarSizeDesktop: 0.16,
         centralGlowScale: 2.6,
-        centralShadowScale: 0.5,
         popularStarGlowScale: 0.36,
         nebulaPalette: ["#22d3ee", "#f59e0b", "#a78bfa", "#fb7185", "#34d399", "#f0abfc", "#38bdf8"]
       };
@@ -1315,13 +1378,23 @@
       const initGalaxy = () => {
         const canvas = document.getElementById("galaxy-canvas");
         const hero = document.querySelector(".hero");
+        const calloutSvg = document.getElementById("galaxy-callout-svg");
+        const calloutGroup = document.getElementById("galaxy-callout-group");
+        const calloutPath = document.getElementById("galaxy-callout-path");
+        const calloutTarget = document.getElementById("galaxy-callout-target");
+        const calloutRect = document.getElementById("galaxy-callout-rect");
+        const calloutLabel = document.getElementById("galaxy-callout-label");
         if (!canvas || !hero) {
           return;
         }
+        const calloutWorldPosition = new THREE.Vector3();
+        const calloutScreenPosition = new THREE.Vector3();
+        const earthAnchor = new THREE.Object3D();
+        earthAnchor.position.set(2.82, -1.68, 0.08);
 
         const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
         const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, powerPreference: "high-performance" });
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.7));
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
 
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(56, 1, 0.1, 100);
@@ -1334,6 +1407,7 @@
         scene.add(farGalaxies);
         const universeBackdrop = new THREE.Group();
         scene.add(universeBackdrop);
+        galaxy.add(earthAnchor);
 
         let mouseSpinVelocity = 0;
         let mouseSpinOffset = 0;
@@ -1344,6 +1418,14 @@
         let zoomIndex = 0;
         const zoomLevels = GALAXY_CONFIG.zoomLevels;
         const baseCameraDistance = window.innerWidth < 720 ? GALAXY_CONFIG.cameraDistanceMobile : GALAXY_CONFIG.cameraDistanceDesktop;
+        let calloutBoxWidth = 0;
+        let calloutBoxHeight = 0;
+        let viewportWidth = Math.max(1, window.innerWidth);
+        let viewportHeight = Math.max(1, window.innerHeight);
+        let calloutTargetX = 0;
+        let calloutTargetY = 0;
+        let calloutScale = 1;
+        let calloutInitialized = false;
         galaxy.rotation.x = GALAXY_CONFIG.initialTiltX;
         galaxy.rotation.y = GALAXY_CONFIG.initialYawY;
         galaxy.rotation.z = GALAXY_CONFIG.initialTiltZ;
@@ -1351,7 +1433,6 @@
         const topFacingGalaxy = true;
         const starTexture = createRadialTexture(1, 0);
         const glowTexture = createRadialTexture(0.82, 0);
-        const shadowTexture = createRadialTexture(0.92, 0);
         const nebulaTexture = createRadialTexture(0.5, 0);
         const starCount = window.innerWidth < 720 ? GALAXY_CONFIG.starCountMobile : GALAXY_CONFIG.starCountDesktop;
         const positions = new Float32Array(starCount * 3);
@@ -1403,7 +1484,7 @@
         geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
         geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
 
-        const material = new THREE.PointsMaterial({
+        const starMaterial = new THREE.PointsMaterial({
           size: window.innerWidth < 720 ? GALAXY_CONFIG.starSizeMobile : GALAXY_CONFIG.starSizeDesktop,
           sizeAttenuation: true,
           map: starTexture,
@@ -1415,22 +1496,8 @@
           blending: THREE.AdditiveBlending
         });
 
-        const stars = new THREE.Points(geometry, material);
+        const stars = new THREE.Points(geometry, starMaterial);
         galaxy.add(stars);
-
-        const centralGlow = new THREE.Sprite(
-          new THREE.SpriteMaterial({ map: glowTexture, color: "#fde68a", transparent: true, opacity: 0.68, depthWrite: false, blending: THREE.AdditiveBlending })
-        );
-        centralGlow.position.set(0, 0, 0.02);
-        centralGlow.scale.set(GALAXY_CONFIG.centralGlowScale, GALAXY_CONFIG.centralGlowScale, 1);
-        galaxy.add(centralGlow);
-
-        const blackHole = new THREE.Sprite(
-          new THREE.SpriteMaterial({ map: shadowTexture, color: "#000000", transparent: true, opacity: 0.9, depthWrite: false })
-        );
-        blackHole.position.set(0, 0, 0.035);
-        blackHole.scale.set(GALAXY_CONFIG.centralShadowScale, GALAXY_CONFIG.centralShadowScale, 1);
-        galaxy.add(blackHole);
 
         const haloGeometry = new THREE.BufferGeometry();
         const haloCount = window.innerWidth < 720 ? GALAXY_CONFIG.haloCountMobile : GALAXY_CONFIG.haloCountDesktop;
@@ -1444,9 +1511,10 @@
           haloPositions[i3 + 2] = (Math.random() - 0.5) * 0.24;
         }
         haloGeometry.setAttribute("position", new THREE.BufferAttribute(haloPositions, 3));
+        const haloMaterial = new THREE.PointsMaterial({ color: "#60a5fa", size: 0.018, map: starTexture, alphaTest: 0.02, transparent: true, opacity: 0.32, depthWrite: false, blending: THREE.AdditiveBlending });
         const halo = new THREE.Points(
           haloGeometry,
-          new THREE.PointsMaterial({ color: "#60a5fa", size: 0.018, map: starTexture, alphaTest: 0.02, transparent: true, opacity: 0.32, depthWrite: false, blending: THREE.AdditiveBlending })
+          haloMaterial
         );
         galaxy.add(halo);
 
@@ -1477,19 +1545,24 @@
         });
         popularStarGeometry.setAttribute("position", new THREE.BufferAttribute(popularStarPositions, 3));
         popularStarGeometry.setAttribute("color", new THREE.BufferAttribute(popularStarColors, 3));
+        const popularStarMaterial = new THREE.PointsMaterial(
+          { size: window.innerWidth < 720 ? GALAXY_CONFIG.popularStarSizeMobile : GALAXY_CONFIG.popularStarSizeDesktop, sizeAttenuation: true, map: starTexture, alphaTest: 0.02, vertexColors: true, transparent: true, opacity: 0.96, depthWrite: false, blending: THREE.AdditiveBlending }
+        );
         const popularStarPoints = new THREE.Points(
           popularStarGeometry,
-          new THREE.PointsMaterial({ size: window.innerWidth < 720 ? GALAXY_CONFIG.popularStarSizeMobile : GALAXY_CONFIG.popularStarSizeDesktop, sizeAttenuation: true, map: starTexture, alphaTest: 0.02, vertexColors: true, transparent: true, opacity: 0.96, depthWrite: false, blending: THREE.AdditiveBlending })
+          popularStarMaterial
         );
         galaxy.add(popularStarPoints);
 
         const popularStarGlowSprites = new THREE.Group();
         popularStars.forEach((star) => {
-          const glow = new THREE.Sprite(
-            new THREE.SpriteMaterial({ map: glowTexture, color: star[4], transparent: true, opacity: 0.34, depthWrite: false, blending: THREE.AdditiveBlending })
-          );
+          const glowMaterial = new THREE.SpriteMaterial({ map: glowTexture, color: star[4], transparent: true, opacity: 0.34, depthWrite: false, blending: THREE.AdditiveBlending });
+          const glow = new THREE.Sprite(glowMaterial);
           glow.position.set(star[1], star[2], star[3] - 0.01);
           glow.scale.set(GALAXY_CONFIG.popularStarGlowScale, GALAXY_CONFIG.popularStarGlowScale, 1);
+          glow.userData.blinkPhase = (star[1] + star[2]) * 0.8;
+          glow.userData.baseOpacity = 0.34;
+          glow.userData.material = glowMaterial;
           popularStarGlowSprites.add(glow);
         });
         galaxy.add(popularStarGlowSprites);
@@ -1515,9 +1588,10 @@
         }
         nebulaGeometry.setAttribute("position", new THREE.BufferAttribute(nebulaPositions, 3));
         nebulaGeometry.setAttribute("color", new THREE.BufferAttribute(nebulaColors, 3));
+        const nebulaMaterial = new THREE.PointsMaterial({ size: window.innerWidth < 720 ? GALAXY_CONFIG.nebulaSizeMobile : GALAXY_CONFIG.nebulaSizeDesktop, sizeAttenuation: true, map: nebulaTexture, alphaTest: 0.01, vertexColors: true, transparent: true, opacity: 0.2, depthWrite: false, blending: THREE.AdditiveBlending });
         const nebula = new THREE.Points(
           nebulaGeometry,
-          new THREE.PointsMaterial({ size: window.innerWidth < 720 ? GALAXY_CONFIG.nebulaSizeMobile : GALAXY_CONFIG.nebulaSizeDesktop, sizeAttenuation: true, map: nebulaTexture, alphaTest: 0.01, vertexColors: true, transparent: true, opacity: 0.2, depthWrite: false, blending: THREE.AdditiveBlending })
+          nebulaMaterial
         );
         galaxy.add(nebula);
 
@@ -1554,21 +1628,22 @@
         const farGalaxyGeometry = new THREE.BufferGeometry();
         farGalaxyGeometry.setAttribute("position", new THREE.BufferAttribute(farGalaxyPositions, 3));
         farGalaxyGeometry.setAttribute("color", new THREE.BufferAttribute(farGalaxyColors, 3));
+        const farGalaxyMaterial = new THREE.PointsMaterial({
+          size: window.innerWidth < 720 ? GALAXY_CONFIG.farGalaxySizeMobile : GALAXY_CONFIG.farGalaxySizeDesktop,
+          sizeAttenuation: true,
+          map: starTexture,
+          alphaTest: 0.02,
+          vertexColors: true,
+          transparent: true,
+          opacity: 0.54,
+          depthWrite: false,
+          depthTest: false,
+          blending: THREE.AdditiveBlending
+        });
         farGalaxies.add(
           new THREE.Points(
             farGalaxyGeometry,
-            new THREE.PointsMaterial({
-              size: window.innerWidth < 720 ? GALAXY_CONFIG.farGalaxySizeMobile : GALAXY_CONFIG.farGalaxySizeDesktop,
-              sizeAttenuation: true,
-              map: starTexture,
-              alphaTest: 0.02,
-              vertexColors: true,
-              transparent: true,
-              opacity: 0.54,
-              depthWrite: false,
-              depthTest: false,
-              blending: THREE.AdditiveBlending
-            })
+            farGalaxyMaterial
           )
         );
 
@@ -1589,21 +1664,22 @@
         const universeStarGeometry = new THREE.BufferGeometry();
         universeStarGeometry.setAttribute("position", new THREE.BufferAttribute(universeStarPositions, 3));
         universeStarGeometry.setAttribute("color", new THREE.BufferAttribute(universeStarColors, 3));
+        const universeStarMaterial = new THREE.PointsMaterial({
+          size: window.innerWidth < 720 ? GALAXY_CONFIG.universeStarSizeMobile : GALAXY_CONFIG.universeStarSizeDesktop,
+          sizeAttenuation: true,
+          map: starTexture,
+          alphaTest: 0.02,
+          vertexColors: true,
+          transparent: true,
+          opacity: 0.68,
+          depthWrite: false,
+          depthTest: false,
+          blending: THREE.AdditiveBlending
+        });
         universeBackdrop.add(
           new THREE.Points(
             universeStarGeometry,
-            new THREE.PointsMaterial({
-              size: window.innerWidth < 720 ? GALAXY_CONFIG.universeStarSizeMobile : GALAXY_CONFIG.universeStarSizeDesktop,
-              sizeAttenuation: true,
-              map: starTexture,
-              alphaTest: 0.02,
-              vertexColors: true,
-              transparent: true,
-              opacity: 0.68,
-              depthWrite: false,
-              depthTest: false,
-              blending: THREE.AdditiveBlending
-            })
+            universeStarMaterial
           )
         );
 
@@ -1612,9 +1688,19 @@
         const resize = () => {
           const width = Math.max(1, window.innerWidth);
           const height = Math.max(1, window.innerHeight);
+          viewportWidth = width;
+          viewportHeight = height;
           renderer.setSize(width, height, false);
           camera.aspect = width / height;
           camera.updateProjectionMatrix();
+          if (calloutSvg && calloutGroup && calloutPath && calloutTarget && calloutRect && calloutLabel) {
+            const isMobile = width < 720;
+            const boxWidth = Math.round(Math.min(isMobile ? 190 : 220, Math.max(isMobile ? 138 : 164, width * (isMobile ? 0.42 : 0.16))));
+            const boxHeight = 34;
+            calloutSvg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+            calloutBoxWidth = boxWidth;
+            calloutBoxHeight = boxHeight;
+          }
         };
 
         const updatePointer = (event) => {
@@ -1629,6 +1715,25 @@
           mouseSpinVelocity += Math.max(-GALAXY_CONFIG.maxMouseSpinStep, Math.min(GALAXY_CONFIG.maxMouseSpinStep, deltaX * GALAXY_CONFIG.mouseSpinScale));
         };
 
+        const nudgeSpinVelocity = (deltaX) => {
+          mouseSpinVelocity += Math.max(-GALAXY_CONFIG.maxMouseSpinStep, Math.min(GALAXY_CONFIG.maxMouseSpinStep, deltaX * GALAXY_CONFIG.mouseSpinScale));
+          lastPointerAt = performance.now();
+        };
+
+        const handleSpinKeys = (event) => {
+          const target = event.target instanceof Element ? event.target : null;
+          if (target && target.closest("input, textarea, select, button, a, [contenteditable='true'], [role='button']")) {
+            return;
+          }
+          if (event.key === "ArrowLeft") {
+            event.preventDefault();
+            nudgeSpinVelocity(-384);
+          } else if (event.key === "ArrowRight") {
+            event.preventDefault();
+            nudgeSpinVelocity(384);
+          }
+        };
+
         const cycleGalaxyZoom = (event) => {
           if (event.target.closest("a, button")) {
             return;
@@ -1638,12 +1743,24 @@
           hero.dataset.galaxyZoom = `${currentZoom}x`;
         };
 
+        const handlePageClick = (event) => {
+          const target = event.target instanceof Element ? event.target : null;
+          if (!target) {
+            return;
+          }
+          if (target.closest("a, button, input, textarea, select, label, summary, [role='button'], [contenteditable='true'], .metric-card, .system-card, .project-card, .archive-card, .experience-card, .education-card, .skill-card, .skill, .repo-skill, .icon-tile, .site-nav")) {
+            return;
+          }
+          cycleGalaxyZoom(event);
+        };
+
         const getSpinAxis = (axis) => {
           return ["x", "y", "z"].includes(axis) ? axis : "z";
         };
 
         window.addEventListener("pointermove", updatePointer, { passive: true });
-        hero.addEventListener("click", cycleGalaxyZoom);
+        window.addEventListener("keydown", handleSpinKeys, { passive: false });
+        document.addEventListener("click", handlePageClick, true);
         window.addEventListener("resize", resize);
         resize();
 
@@ -1674,19 +1791,47 @@
           const targetCameraDistance = baseCameraDistance / currentZoom;
           camera.position.z += (targetCameraDistance - camera.position.z) * 0.055;
           camera.lookAt(0, 0, 0); // Sgr A* remains centered while zooming.
-
-          const attr = geometry.getAttribute("position");
-          for (let i = 0; i < starCount; i += 1) {
-            const i3 = i * 3;
-            const radius = radii[i];
-            const angle = angles[i];
-            const currentRadius = radius;
-            const jitter = armOffsets[i] * 0.1;
-            attr.array[i3] = Math.cos(angle) * currentRadius + jitter;
-            attr.array[i3 + 1] = Math.sin(angle) * currentRadius + jitter;
-            attr.array[i3 + 2] = thickness[i];
+          if (calloutSvg && calloutGroup && calloutPath && calloutTarget && calloutRect && calloutLabel && calloutBoxWidth > 0) {
+            earthAnchor.getWorldPosition(calloutWorldPosition);
+            calloutScreenPosition.copy(calloutWorldPosition).project(camera);
+            const targetX = (calloutScreenPosition.x + 1) * 0.5 * viewportWidth;
+            const targetY = (1 - (calloutScreenPosition.y + 1) * 0.5) * viewportHeight;
+            const targetScale = THREE.MathUtils.clamp(1.06 - ((calloutScreenPosition.z + 1) * 0.5) * 0.42, 0.62, 1);
+            const isMobileCallout = viewportWidth < 720;
+            const lineRise = isMobileCallout ? 44 : 58;
+            const slantX = lineRise / Math.tan(Math.PI / 3);
+            const slantY = -lineRise;
+            const boxX = slantX + (isMobileCallout ? 42 : 70);
+            const boxY = slantY - calloutBoxHeight * 0.5;
+            const minX = -8;
+            const maxX = boxX + calloutBoxWidth;
+            const minY = boxY;
+            const maxY = 8;
+            const desiredTargetX = THREE.MathUtils.clamp(targetX, 12 - minX * targetScale, viewportWidth - 12 - maxX * targetScale);
+            const desiredTargetY = THREE.MathUtils.clamp(targetY, 12 - minY * targetScale, viewportHeight - 12 - maxY * targetScale);
+            if (!calloutInitialized) {
+              calloutTargetX = desiredTargetX;
+              calloutTargetY = desiredTargetY;
+              calloutScale = targetScale;
+              calloutInitialized = true;
+            } else {
+              calloutTargetX += (desiredTargetX - calloutTargetX) * 0.18;
+              calloutTargetY += (desiredTargetY - calloutTargetY) * 0.18;
+              calloutScale += (targetScale - calloutScale) * 0.14;
+            }
+            calloutSvg.parentElement.style.opacity = currentZoom === 1 ? "1" : "0";
+            calloutGroup.setAttribute("transform", `translate(${calloutTargetX.toFixed(2)} ${calloutTargetY.toFixed(2)}) scale(${calloutScale.toFixed(3)})`);
+            calloutPath.setAttribute("d", `M 0 0 L ${slantX.toFixed(2)} ${slantY} L ${boxX.toFixed(2)} ${slantY}`);
+            calloutTarget.setAttribute("cx", "0");
+            calloutTarget.setAttribute("cy", "0");
+            calloutRect.setAttribute("x", `${boxX.toFixed(2)}`);
+            calloutRect.setAttribute("y", `${boxY}`);
+            calloutRect.setAttribute("width", `${calloutBoxWidth}`);
+            calloutRect.setAttribute("height", `${calloutBoxHeight}`);
+            calloutLabel.setAttribute("x", `${(boxX + calloutBoxWidth * 0.5).toFixed(2)}`);
+            calloutLabel.setAttribute("y", `${(boxY + calloutBoxHeight * 0.5).toFixed(2)}`);
+            calloutLabel.setAttribute("font-size", "14");
           }
-          attr.needsUpdate = true;
 
           renderer.render(scene, camera);
           window.requestAnimationFrame(render);
