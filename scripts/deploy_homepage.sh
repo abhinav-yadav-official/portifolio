@@ -87,7 +87,7 @@ rsync -az --delete \
 ssh "$HOST" \
   "WEB_ROOT=$(quote "$WEB_ROOT") TMP_HOME=$(quote "$tmp_home") bash -s" <<'REMOTE_SYNC'
 set -euo pipefail
-sudo rsync -a --delete --exclude=shared/ "$TMP_HOME"/ "$WEB_ROOT"/
+sudo rsync -a --delete --exclude=shared/ --exclude=github-profile/ "$TMP_HOME"/ "$WEB_ROOT"/
 sudo find "$WEB_ROOT" -maxdepth 1 -type f \( -name '*.html' -o -name '*.txt' -o -name '*.xml' -o -name '*.svg' \) -exec gzip -9 -kf {} \;
 rm -rf "$TMP_HOME"
 REMOTE_SYNC
