@@ -1,0 +1,7 @@
+
+# Hide internal notes/specs/agent docs; keep only README visible.
+*.md
+!README.md
+checkpoints.txt
+.agent_*
+.superpowers/
