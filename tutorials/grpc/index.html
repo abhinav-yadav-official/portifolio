@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>gRPC &amp; Protocol Buffers — A Reference for Backend Engineers</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;450;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/styles/base16/tomorrow-night.min.css">
+<style>
+/* ============ TOKENS ============ */
+:root{
+  --bg:#0d1117;
+  --bg-raised:#151b23;
+  --bg-code:#0a0e14;
+  --bg-inline:#1c232d;
+  --border:#222b36;
+  --border-soft:#1a212b;
+  --text:#e7edf4;
+  --text-dim:#9fabb9;
+  --text-faint:#69757f;
+  --accent:#46c8dc;        /* wire cyan */
+  --accent-deep:#2b9fb3;
+  --link:#6ea8fe;
+  --amber:#efb340;         /* why / insight */
+  --rose:#ff7b9c;          /* gotcha */
+  --green:#5fd17a;         /* output / good */
+  --violet:#b692f6;        /* spec / keyword */
+  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --disp:'Space Grotesk',system-ui,sans-serif;
+  --body:'Inter',system-ui,sans-serif;
+  --sidebar-w:268px;
+  --maxw:820px;
+}
+
+/* ============ RESET ============ */
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;scroll-padding-top:24px}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--body);
+  font-size:16px;
+  line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+  font-feature-settings:"cv05","ss01";
+}
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(900px 500px at 88% -8%, rgba(70,200,220,.07), transparent 60%),
+    radial-gradient(700px 600px at -5% 12%, rgba(110,168,254,.05), transparent 55%);
+}
+
+/* ============ LAYOUT ============ */
+.shell{display:flex;position:relative;z-index:1}
+
+/* sidebar */
+.sidebar{
+  width:var(--sidebar-w);flex:0 0 var(--sidebar-w);
+  height:100vh;position:sticky;top:0;
+  border-right:1px solid var(--border);
+  background:rgba(13,17,23,.7);backdrop-filter:blur(8px);
+  overflow-y:auto;padding:26px 0 60px;
+}
+.sidebar::-webkit-scrollbar{width:8px}
+.sidebar::-webkit-scrollbar-thumb{background:var(--border);border-radius:8px}
+.brand{padding:0 24px 20px;border-bottom:1px solid var(--border-soft);margin-bottom:14px}
+.brand .logo{
+  font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:.06em;
+  color:var(--accent);display:flex;align-items:center;gap:8px;
+}
+.brand .logo .dot{width:7px;height:7px;border-radius:2px;background:var(--accent);box-shadow:0 0 10px var(--accent)}
+.brand h1{font-family:var(--disp);font-size:17px;font-weight:600;line-height:1.25;margin-top:10px;letter-spacing:-.01em}
+.brand p{font-size:11.5px;color:var(--text-faint);margin-top:6px;font-family:var(--mono)}
+
+.toc{list-style:none;padding:0 12px}
+.toc a{
+  display:block;color:var(--text-dim);text-decoration:none;
+  font-size:13.5px;padding:6px 12px;border-radius:7px;
+  border-left:2px solid transparent;transition:.12s;line-height:1.35;
+}
+.toc a:hover{color:var(--text);background:var(--bg-raised)}
+.toc a.active{color:var(--accent);border-left-color:var(--accent);background:rgba(70,200,220,.07)}
+.toc .num{font-family:var(--mono);font-size:11px;color:var(--text-faint);margin-right:9px}
+.toc a.active .num{color:var(--accent)}
+.toc .grp{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-faint);padding:16px 14px 6px}
+
+/* main */
+.main{flex:1 1 auto;min-width:0;padding:0 40px}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:64px 0 140px}
+
+/* hero */
+.hero{margin-bottom:18px}
+.hero .kicker{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:18px}
+.hero h1{font-family:var(--disp);font-size:46px;line-height:1.05;font-weight:700;letter-spacing:-.02em;margin-bottom:18px}
+.hero h1 .g{color:var(--accent)}
+.hero .lede{font-size:18px;color:var(--text-dim);max-width:640px;line-height:1.6}
+.hero .meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:26px}
+.chip{font-family:var(--mono);font-size:11.5px;padding:5px 11px;border:1px solid var(--border);border-radius:20px;color:var(--text-dim);background:var(--bg-raised)}
+.chip b{color:var(--accent);font-weight:500}
+
+/* ============ SECTIONS ============ */
+section{scroll-margin-top:24px;padding-top:60px;border-top:1px solid var(--border-soft);margin-top:8px}
+section:first-of-type{border-top:none}
+.sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:8px}
+.sec-num{
+  font-family:var(--mono);font-size:13px;font-weight:600;color:var(--accent);
+  border:1px solid var(--accent-deep);border-radius:6px;padding:2px 8px;
+  flex:0 0 auto;background:rgba(70,200,220,.06);
+}
+h2{font-family:var(--disp);font-size:30px;font-weight:700;letter-spacing:-.02em;line-height:1.15}
+h3{font-family:var(--disp);font-size:20px;font-weight:600;margin:38px 0 12px;letter-spacing:-.01em;color:var(--text)}
+h4{font-family:var(--disp);font-size:15.5px;font-weight:600;margin:26px 0 10px;color:var(--text)}
+.sub{color:var(--text-dim);font-size:16.5px;margin:6px 0 14px;max-width:680px}
+p{margin:14px 0;color:var(--text-dim)}
+p strong,li strong{color:var(--text);font-weight:600}
+a.lnk{color:var(--link);text-decoration:none;border-bottom:1px solid rgba(110,168,254,.3)}
+a.lnk:hover{border-bottom-color:var(--link)}
+ul,ol{margin:14px 0 14px 4px;padding-left:22px;color:var(--text-dim)}
+li{margin:7px 0}
+li::marker{color:var(--text-faint)}
+
+/* inline code */
+code:not(.hljs){
+  font-family:var(--mono);font-size:.86em;
+  background:var(--bg-inline);border:1px solid var(--border-soft);
+  padding:1px 6px;border-radius:5px;color:#a7e9f5;white-space:nowrap;
+}
+kbd{font-family:var(--mono);font-size:.8em;background:#222b36;border:1px solid #2f3a47;border-bottom-width:2px;border-radius:5px;padding:1px 6px;color:var(--text)}
+
+/* ============ CODE BLOCKS ============ */
+.code{margin:18px 0;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--bg-code)}
+.code-bar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 14px;background:#11161d;border-bottom:1px solid var(--border);
+}
+.code-bar .fname{font-family:var(--mono);font-size:12px;color:var(--text-dim);display:flex;align-items:center;gap:8px}
+.code-bar .lang{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-faint);padding:2px 7px;border:1px solid var(--border);border-radius:4px}
+.copy{
+  font-family:var(--mono);font-size:11px;color:var(--text-dim);background:transparent;
+  border:1px solid var(--border);border-radius:6px;padding:4px 10px;cursor:pointer;transition:.12s;
+}
+.copy:hover{color:var(--accent);border-color:var(--accent-deep)}
+.copy.done{color:var(--green);border-color:var(--green)}
+.code pre{margin:0;overflow-x:auto}
+.code pre code{
+  display:block;font-family:var(--mono);font-size:13px;line-height:1.7;
+  padding:16px 18px;background:transparent!important;
+}
+.code pre::-webkit-scrollbar{height:9px}
+.code pre::-webkit-scrollbar-thumb{background:#222b36;border-radius:9px}
+.code pre::-webkit-scrollbar-track{background:transparent}
+
+/* ============ CALLOUTS ============ */
+.note{
+  border-radius:10px;padding:14px 16px 14px 16px;margin:18px 0;
+  border:1px solid var(--border);background:var(--bg-raised);position:relative;
+  border-left-width:3px;
+}
+.note .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;display:flex;align-items:center;gap:7px;margin-bottom:6px}
+.note p{margin:4px 0;font-size:14.5px;line-height:1.6}
+.note p:first-of-type{margin-top:0}
+.note code:not(.hljs){font-size:.84em}
+.note.why{border-left-color:var(--amber)}
+.note.why .tag{color:var(--amber)}
+.note.gotcha{border-left-color:var(--rose)}
+.note.gotcha .tag{color:var(--rose)}
+.note.symbol{border-left-color:var(--accent)}
+.note.symbol .tag{color:var(--accent)}
+.note.def{border-left-color:var(--violet)}
+.note.def .tag{color:var(--violet)}
+
+/* ============ TABLES ============ */
+.tbl{margin:18px 0;border:1px solid var(--border);border-radius:10px;overflow:hidden;overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:480px}
+th,td{text-align:left;padding:9px 14px;border-bottom:1px solid var(--border-soft)}
+th{background:#11161d;font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-faint);font-weight:600}
+td{color:var(--text-dim);vertical-align:top}
+tr:last-child td{border-bottom:none}
+td code:not(.hljs),th code:not(.hljs){white-space:nowrap}
+td .mono{font-family:var(--mono);color:#a7e9f5;font-size:.92em}
+tbody tr:hover td{background:rgba(255,255,255,.015)}
+
+/* ============ ANNOTATED LINES (symbol explainer) ============ */
+.annot{margin:18px 0;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.annot .ahead{font-family:var(--mono);font-size:11px;color:var(--text-faint);padding:8px 14px;background:#11161d;border-bottom:1px solid var(--border);letter-spacing:.08em;text-transform:uppercase}
+.annot table{min-width:0}
+.annot td{border-bottom:1px solid var(--border-soft);font-size:13.5px}
+.annot td:first-child{font-family:var(--mono);color:#a7e9f5;white-space:nowrap;width:1%;border-right:1px solid var(--border-soft);background:rgba(70,200,220,.03)}
+
+/* divider rule */
+.rule{height:1px;background:var(--border-soft);margin:34px 0;border:none}
+
+/* footer */
+.foot{border-top:1px solid var(--border);margin-top:80px;padding-top:24px;color:var(--text-faint);font-size:13px;font-family:var(--mono)}
+.foot a{color:var(--link);text-decoration:none}
+
+/* mobile nav toggle */
+.navtog{display:none}
+.scrim{display:none}
+
+/* progress bar */
+.prog{position:fixed;top:0;left:0;height:2px;background:var(--accent);width:0;z-index:50;box-shadow:0 0 8px var(--accent)}
+
+/* ============ RESPONSIVE ============ */
+@media (max-width:920px){
+  :root{--sidebar-w:0px}
+  .sidebar{
+    position:fixed;left:0;top:0;width:280px;flex-basis:280px;z-index:40;
+    transform:translateX(-100%);transition:transform .22s ease;
+  }
+  .sidebar.open{transform:translateX(0)}
+  .scrim.open{display:block;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:35}
+  .main{padding:0 20px}
+  .wrap{padding:72px 0 100px}
+  .hero h1{font-size:34px}
+  .hero .lede{font-size:16px}
+  h2{font-size:25px}
+  .navtog{
+    display:flex;align-items:center;gap:8px;position:fixed;top:12px;left:12px;z-index:45;
+    font-family:var(--mono);font-size:12px;color:var(--text);background:var(--bg-raised);
+    border:1px solid var(--border);border-radius:8px;padding:8px 12px;cursor:pointer;
+  }
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+</style>
+</head>
+<body>
+<div class="prog" id="prog"></div>
+<button class="navtog" id="navtog" aria-label="Toggle navigation">☰ contents</button>
+<div class="scrim" id="scrim"></div>
+
+<div class="shell">
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="logo"><span class="dot"></span>RPC // PROTOBUF</div>
+      <h1>gRPC &amp; Protocol Buffers</h1>
+      <p>backend reference · 2026</p>
+    </div>
+    <nav>
+      <ul class="toc" id="toc">
+        <li class="grp">Foundations</li>
+        <li><a href="#orient"><span class="num">01</span>Orientation</a></li>
+        <li><a href="#proto"><span class="num">02</span>Protobuf: the schema</a></li>
+        <li><a href="#fields"><span class="num">03</span>Fields, tags &amp; rules</a></li>
+        <li><a href="#wire"><span class="num">04</span>The wire format</a></li>
+        <li class="grp">Services</li>
+        <li><a href="#service"><span class="num">05</span>Service definition</a></li>
+        <li><a href="#streaming"><span class="num">06</span>The four RPC types</a></li>
+        <li><a href="#codegen"><span class="num">07</span>Codegen: protoc &amp; buf</a></li>
+        <li class="grp">Integration</li>
+        <li><a href="#python"><span class="num">08</span>Python</a></li>
+        <li><a href="#go"><span class="num">09</span>Go</a></li>
+        <li><a href="#node"><span class="num">10</span>Node.js</a></li>
+        <li class="grp">Runtime &amp; production</li>
+        <li><a href="#mechanics"><span class="num">11</span>gRPC mechanics</a></li>
+        <li><a href="#prod"><span class="num">12</span>Production concerns</a></li>
+        <li><a href="#cheat"><span class="num">13</span>Cheatsheet</a></li>
+      </ul>
+    </nav>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <main class="main">
+    <div class="wrap">
+
+      <!-- HERO -->
+      <header class="hero">
+        <div class="kicker">Interview-grade reference</div>
+        <h1>A field guide to <span class="g">gRPC</span> &amp; <span class="g">Protocol Buffers</span></h1>
+        <p class="lede">You know REST and JSON. This takes you to wire-format depth: every keyword, every tag, every byte on the wire, and runnable servers in Python, Go, and Node. No hand-waving.</p>
+        <div class="meta">
+          <span class="chip">proto <b>3</b> + editions</span>
+          <span class="chip">gRPC <b>1.81</b></span>
+          <span class="chip">buf <b>1.70</b></span>
+          <span class="chip">grpcio <b>1.81</b></span>
+          <span class="chip">grpc-go <b>1.81</b></span>
+          <span class="chip">grpc-js <b>1.14</b></span>
+        </div>
+      </header>
+
+      <!-- CONTENT INJECTED BELOW -->
+
+      <!-- ===================== 01 ORIENTATION ===================== -->
+      <section id="orient">
+        <div class="sec-head"><span class="sec-num">01</span><h2>Orientation</h2></div>
+        <p class="sub">Two technologies that ship together but are not the same thing. Get this separation right and the rest is mechanical.</p>
+
+        <p><strong>Protocol Buffers (protobuf)</strong> is two things in one: a schema language (an IDL) for describing structured data, and a compact binary serialization format for that data. <strong>gRPC</strong> is a remote-procedure-call framework that runs over HTTP/2 and uses protobuf as its default payload format and its service-definition language. You can use protobuf without gRPC (config files, Kafka payloads, on-disk records). You rarely use gRPC without protobuf.</p>
+
+        <div class="note def">
+          <div class="tag">◆ mental model</div>
+          <p>REST: you act on <em>resources</em> at URLs with verbs (<code>GET /users/42</code>), payloads are self-describing text. gRPC: you call <em>methods</em> on a service (<code>GetUser(GetUserRequest)</code>), payloads are opaque binary whose meaning lives entirely in a shared <code>.proto</code> contract. The contract is compiled into typed client and server stubs in each language. You program against generated function signatures, not HTTP.</p>
+        </div>
+
+        <h3>Why it exists / what it buys you</h3>
+        <ul>
+          <li><strong>Contract-first.</strong> The <code>.proto</code> file is the single source of truth. Clients and servers in different languages generate code from the same file, so the interface cannot drift.</li>
+          <li><strong>Binary &amp; small.</strong> No field names on the wire, integers are varint-packed. Typically 3–10× smaller than equivalent JSON, and far cheaper to parse (no string scanning).</li>
+          <li><strong>HTTP/2 transport.</strong> One TCP connection multiplexes many concurrent calls, supports flow control, header compression, and full-duplex streaming.</li>
+          <li><strong>Streaming is native.</strong> Server-, client-, and bidirectional-streaming are first-class, not bolted on with SSE or WebSockets.</li>
+          <li><strong>Schema evolution.</strong> Field numbers (not names) identify data, so you can add and remove fields without breaking old peers — if you follow the rules in §04.</li>
+        </ul>
+
+        <h3>When not to reach for it</h3>
+        <ul>
+          <li><strong>Browser-to-server directly.</strong> Browsers cannot speak raw gRPC frames. You need <code>grpc-web</code> + a proxy (Envoy) or a framework like Connect. Native gRPC shines server-to-server.</li>
+          <li><strong>Public, human-debuggable APIs.</strong> JSON/REST wins when third parties poke at it with curl and read it by eye. Binary is opaque without the schema.</li>
+          <li><strong>Trivial CRUD with no polyglot or perf pressure.</strong> The codegen toolchain is overhead you may not need.</li>
+        </ul>
+
+        <div class="tbl">
+          <table>
+            <thead><tr><th>Layer</th><th>What it is</th><th>What it is not</th></tr></thead>
+            <tbody>
+              <tr><td><span class="mono">protobuf IDL</span></td><td>Schema language: messages, enums, services</td><td>A transport</td></tr>
+              <tr><td><span class="mono">protobuf wire</span></td><td>Binary encoding of a message</td><td>Self-describing (needs the schema to decode)</td></tr>
+              <tr><td><span class="mono">gRPC</span></td><td>RPC semantics over HTTP/2 (framing, status, metadata, streaming)</td><td>Tied to protobuf — pluggable, but protobuf is the default</td></tr>
+              <tr><td><span class="mono">stubs</span></td><td>Generated typed client/server code per language</td><td>Hand-written</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ===================== 02 PROTOBUF SCHEMA ===================== -->
+      <section id="proto">
+        <div class="sec-head"><span class="sec-num">02</span><h2>Protobuf: the schema</h2></div>
+        <p class="sub">A <code>.proto</code> file is a typed contract. Here is one with every line annotated.</p>
+
+        <div class="code">
+          <div class="code-bar"><span class="fname">📄 user.proto</span><span class="lang">protobuf</span><button class="copy">copy</button></div>
+<pre><code class="language-protobuf">syntax = "proto3";
+
+package acme.user.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/acme/gen/user/v1;userv1";
+
+// A registered user of the system.
+message User {
+  string id        = 1;
+  string email     = 2;
+  string full_name = 3;
+  Role   role      = 4;
+  repeated string tags = 5;
+  google.protobuf.Timestamp created_at = 6;
+  optional string nickname = 7;
+}
+
+enum Role {
+  ROLE_UNSPECIFIED = 0;
+  ROLE_MEMBER      = 1;
+  ROLE_ADMIN       = 2;
+}</code></pre>
+        </div>
+
+        <div class="annot">
+          <div class="ahead">line by line — what each token does</div>
+          <table>
+            <tr><td>syntax = "proto3";</td><td>Declares the dialect. Must be the first non-comment line. <code>proto3</code> is the modern default; <code>proto2</code> still exists; <em>editions</em> (below) is the future. Without it the compiler assumes proto2.</td></tr>
+            <tr><td>package acme.user.v1;</td><td>Logical namespace. Prevents name collisions across files and maps to a package/module prefix in generated code. Convention: reverse-domain-ish, version-suffixed (<code>.v1</code>) so v1 and v2 can coexist.</td></tr>
+            <tr><td>import "...timestamp.proto";</td><td>Pulls in another <code>.proto</code> so you can reference its types. Here, a Google "well-known type". Imports are resolved against the compiler's include paths, not the filesystem directly.</td></tr>
+            <tr><td>option go_package = ...;</td><td>A file-level option: per-language codegen knobs that do not change the wire format. <code>go_package</code> sets the Go import path; the part after <code>;</code> is the package name. Other languages have their own (<code>java_package</code>, etc).</td></tr>
+            <tr><td>message User { }</td><td>Defines a composite type — a struct. Compiles to a class/struct with typed accessors in every target language.</td></tr>
+            <tr><td>string id = 1;</td><td>A field: <em>type</em> <code>string</code>, <em>name</em> <code>id</code>, <em>field number</em> <code>1</code>. The number — not the name — is what goes on the wire. §03 is entirely about this.</td></tr>
+            <tr><td>repeated string tags = 5;</td><td><code>repeated</code> = a list/array of zero or more values. Order is preserved.</td></tr>
+            <tr><td>optional string nickname = 7;</td><td><code>optional</code> re-enables explicit field presence (can distinguish "" from unset). See the presence gotcha in §03.</td></tr>
+            <tr><td>enum Role { }</td><td>A closed set of named integer constants. The <code>= 0</code> member is mandatory and is the default. Convention: prefix members with the enum name and reserve <code>0</code> for <code>_UNSPECIFIED</code>.</td></tr>
+          </table>
+        </div>
+
+        <h3>Scalar types</h3>
+        <p>The full set of built-in field types. Pick deliberately: the choice affects both size on the wire and language mapping.</p>
+        <div class="tbl">
+          <table>
+            <thead><tr><th>proto type</th><th>Notes / when to use</th><th>Python</th><th>Go</th><th>JS/TS</th></tr></thead>
+            <tbody>
+              <tr><td><span class="mono">double / float</span></td><td>64- / 32-bit IEEE floats</td><td>float</td><td>float64 / float32</td><td>number</td></tr>
+              <tr><td><span class="mono">int32 / int64</span></td><td>Variable-length. Inefficient for negatives (always 10 bytes for negative int64)</td><td>int</td><td>int32 / int64</td><td>number / string*</td></tr>
+              <tr><td><span class="mono">uint32 / uint64</span></td><td>Unsigned varint</td><td>int</td><td>uint32 / uint64</td><td>number / string*</td></tr>
+              <tr><td><span class="mono">sint32 / sint64</span></td><td>Signed, ZigZag-encoded. Use these when values are often negative</td><td>int</td><td>int32 / int64</td><td>number</td></tr>
+              <tr><td><span class="mono">fixed32 / fixed64</span></td><td>Always 4 / 8 bytes. Faster, and smaller than varint for large values</td><td>int</td><td>uint32 / uint64</td><td>number</td></tr>
+              <tr><td><span class="mono">sfixed32 / sfixed64</span></td><td>Signed fixed-width</td><td>int</td><td>int32 / int64</td><td>number</td></tr>
+              <tr><td><span class="mono">bool</span></td><td>1-byte varint (0 / 1)</td><td>bool</td><td>bool</td><td>boolean</td></tr>
+              <tr><td><span class="mono">string</span></td><td>UTF-8 text, length-prefixed</td><td>str</td><td>string</td><td>string</td></tr>
+              <tr><td><span class="mono">bytes</span></td><td>Arbitrary byte blob, length-prefixed</td><td>bytes</td><td>[]byte</td><td>Uint8Array</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p style="font-size:13px;color:var(--text-faint)">* 64-bit integers exceed JS's safe integer range, so loaders serialize them as strings by default.</p>
+
+        <div class="note why">
+          <div class="tag">◆ why sint over int for signed values</div>
+          <p>Plain <code>int32</code>/<code>int64</code> store negative numbers as their two's-complement, which a varint sees as a huge unsigned number — so <code>-1</code> costs the full 10 bytes. <code>sint32</code>/<code>sint64</code> apply ZigZag first (§04), mapping small-magnitude negatives to small varints. Rule: if a field is frequently negative, reach for <code>sint*</code>.</p>
+        </div>
+
+        <div class="note def">
+          <div class="tag">◆ editions — where this is heading</div>
+          <p>Protobuf <em>editions</em> (e.g. <code>edition = "2023";</code>) replace the proto2/proto3 split with per-feature <code>features</code> you opt into individually (field presence, enum openness, packed encoding), set with <code>option features.* = ...</code>. The wire format is unchanged. As of 2026 proto3 is still the default most teams write; editions is what new Google-internal and buf-managed schemas migrate toward. Learn proto3 first — editions is a superset of the same ideas.</p>
+        </div>
+      </section>
+
+      <!-- ===================== 03 FIELDS ===================== -->
+      <section id="fields">
+        <div class="sec-head"><span class="sec-num">03</span><h2>Fields, tags &amp; rules</h2></div>
+        <p class="sub">Field numbers are the load-bearing wall of the whole system. Everything about compatibility flows from them.</p>
+
+        <h3>Field numbers (tags)</h3>
+        <p>Every field carries an integer <em>field number</em> (often called its tag). It is the identity of the field on the wire — the name is compile-time only and never transmitted. This is why you can rename a field freely but must <strong>never</strong> reuse or change a number.</p>
+        <ul>
+          <li>Range: <code>1</code> to <code>536,870,911</code> (2²⁹−1).</li>
+          <li><code>19000–19999</code> are reserved by the implementation — you cannot use them.</li>
+          <li>Numbers <strong>1–15</strong> encode their tag in a single byte; <strong>16–2047</strong> take two bytes. Spend the low numbers on your hottest, most-frequent fields.</li>
+        </ul>
+
+        <div class="note gotcha">
+          <div class="tag">▲ gotcha — the cardinal rule</div>
+          <p>Once a field number is in production, it is forever bound to that field's <em>type and meaning</em>. Changing the type, or reusing the number for a different field after deleting the old one, silently corrupts data for any peer still on the old schema. To retire a field, delete the field and <code>reserved</code> its number (below) so no one reuses it by accident.</p>
+        </div>
+
+        <h3>Field presence — the proto3 trap</h3>
+        <p>In proto3, a singular scalar field has <em>no presence tracking</em> by default: if you set <code>count = 0</code> it is indistinguishable from never setting it, and zero values are not serialized at all. Add the <code>optional</code> keyword to get explicit presence back (a <code>has_count()</code> accessor).</p>
+        <div class="code">
+          <div class="code-bar"><span class="fname">presence.proto</span><span class="lang">protobuf</span><button class="copy">copy</button></div>
+<pre><code class="language-protobuf">message Settings {
+  int32 retries = 1;            // no presence: 0 == "unset". Not sent on wire if 0.
+  optional int32 timeout = 2;   // presence: can tell "set to 0" from "absent".
+}</code></pre>
+        </div>
+        <div class="note why">
+          <div class="tag">◆ why this matters</div>
+          <p>Partial updates (PATCH-style) and "use server default if absent" semantics break without presence. If a client genuinely needs to send <code>0</code> / <code>false</code> / <code>""</code> as a deliberate value distinct from "I didn't set this", mark the field <code>optional</code>. Message-typed fields always have presence; scalars are the trap.</p>
+        </div>
+
+        <h3>Aggregates: repeated, map, oneof</h3>
+        <div class="code">
+          <div class="code-bar"><span class="fname">aggregates.proto</span><span class="lang">protobuf</span><button class="copy">copy</button></div>
+<pre><code class="language-protobuf">message Order {
+  repeated string item_ids = 1;          // list, order preserved
+
+  map&lt;string, int32&gt; quantities = 2;     // key -&gt; value. keys: integral or string only
+
+  oneof payment {                        // at most ONE of these is set at a time
+    CreditCard card   = 3;
+    BankTransfer bank = 4;
+  }
+}</code></pre>
+        </div>
+        <div class="annot">
+          <div class="ahead">what each construct does</div>
+          <table>
+            <tr><td>repeated</td><td>Zero-or-more values. Numeric/enum/bool repeated fields are <em>packed</em> by default in proto3 (all values in one length-delimited block — fewer tag bytes).</td></tr>
+            <tr><td>map&lt;K,V&gt;</td><td>Associative array. Sugar for <code>repeated</code> of a hidden key/value message — so map order is undefined and duplicate keys keep the last. Keys must be integral or string; values can be anything except another map.</td></tr>
+            <tr><td>oneof</td><td>A union: setting any member clears the others. Saves space and expresses "exactly one of" in the type system. You cannot make a <code>oneof</code> member <code>repeated</code>.</td></tr>
+          </table>
+        </div>
+
+        <h3>Enums — the zero-value rule</h3>
+        <div class="code">
+          <div class="code-bar"><span class="fname">enum.proto</span><span class="lang">protobuf</span><button class="copy">copy</button></div>
+<pre><code class="language-protobuf">enum Status {
+  STATUS_UNSPECIFIED = 0;   // REQUIRED: first member must be 0
+  STATUS_ACTIVE      = 1;
+  STATUS_SUSPENDED   = 2;
+}</code></pre>
+        </div>
+        <div class="note gotcha">
+          <div class="tag">▲ gotcha — always reserve 0 for UNSPECIFIED</div>
+          <p>Because proto3 scalars default to their zero value, an unset enum field reads as the <code>0</code> member. If <code>0</code> means <code>ACTIVE</code>, every message that forgot to set the field silently becomes "active". Make <code>0</code> a neutral <code>_UNSPECIFIED</code> sentinel. Proto3 enums are also <em>open</em>: an unknown number deserializes intact and round-trips, so you can add members without breaking old readers.</p>
+        </div>
+
+        <h3>reserved — tombstoning removed fields</h3>
+        <div class="code">
+          <div class="code-bar"><span class="fname">reserved.proto</span><span class="lang">protobuf</span><button class="copy">copy</button></div>
+<pre><code class="language-protobuf">message User {
+  reserved 4, 7, 10 to 15;          // these numbers can never be reused
+  reserved "legacy_token", "ssn";   // these names can never be reused
+  string id = 1;
+}</code></pre>
+        </div>
+        <div class="note why">
+          <div class="tag">◆ why reserve names too</div>
+          <p>Reserving the <em>number</em> stops wire-level corruption. Reserving the <em>name</em> stops a future developer re-introducing a field with the old name (and a new number) that revives a deprecated concept and confuses readers. Cheap insurance — do both whenever you delete a field.</p>
+        </div>
+
+        <h3>Nested, imported &amp; well-known types</h3>
+        <p>Messages nest, import across files, and reuse Google's standard library of "well-known types" (WKTs) for things you should never hand-roll.</p>
+        <div class="tbl">
+          <table>
+            <thead><tr><th>Well-known type</th><th>Use for</th></tr></thead>
+            <tbody>
+              <tr><td><span class="mono">Timestamp</span></td><td>A point in time (UTC, nanosecond precision). Not a Unix int.</td></tr>
+              <tr><td><span class="mono">Duration</span></td><td>A span of time (signed seconds + nanos).</td></tr>
+              <tr><td><span class="mono">FieldMask</span></td><td>A set of field paths — the standard way to express "update only these fields" in PATCH-style RPCs.</td></tr>
+              <tr><td><span class="mono">Any</span></td><td>A type-erased message packed with its type URL. Escape hatch; avoid unless you truly need dynamic typing.</td></tr>
+              <tr><td><span class="mono">Struct / Value / ListValue</span></td><td>Arbitrary JSON-like data when the shape is genuinely unknown.</td></tr>
+              <tr><td><span class="mono">Empty</span></td><td>A message with no fields, for RPCs that take or return nothing.</td></tr>
+              <tr><td><span class="mono">wrappers (Int32Value…)</span></td><td>Legacy way to get presence on scalars before <code>optional</code> existed. Prefer <code>optional</code> in new code.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Naming conventions (the standard style)</h3>
+        <ul>
+          <li><strong>Messages &amp; enums:</strong> <code>PascalCase</code> — <code>UserAccount</code>, <code>OrderStatus</code>.</li>
+          <li><strong>Fields:</strong> <code>snake_case</code> — <code>full_name</code>, <code>created_at</code>. Codegen converts to each language's idiom (<code>fullName</code> in Go/JS).</li>
+          <li><strong>Enum members:</strong> <code>SCREAMING_SNAKE_CASE</code>, prefixed with the enum name, <code>0</code> = <code>*_UNSPECIFIED</code>.</li>
+          <li><strong>Services:</strong> <code>PascalCase</code> ending in <code>Service</code>; RPCs are <code>PascalCase</code> verbs.</li>
+          <li><strong>Packages:</strong> lowercase, dotted, version-suffixed — <code>acme.user.v1</code>.</li>
+        </ul>
+      </section>
+
+      <!-- ===================== 04 WIRE FORMAT ===================== -->
+      <section id="wire">
+        <div class="sec-head"><span class="sec-num">04</span><h2>The wire format</h2></div>
+        <p class="sub">This is the section that separates "I use gRPC" from "I understand gRPC". A serialized message is just a flat sequence of key-value pairs.</p>
+
+        <p>Each field on the wire is a <strong>tag byte (or bytes)</strong> followed by a <strong>value</strong>. The tag packs the field number and a 3-bit <em>wire type</em> that tells the parser how to read the value that follows:</p>
+
+        <div class="code">
+          <div class="code-bar"><span class="fname">tag construction</span><span class="lang">formula</span><button class="copy">copy</button></div>
+<pre><code class="language-text">tag = (field_number &lt;&lt; 3) | wire_type
+
+# field 1, wire_type 2 (LEN):  (1 &lt;&lt; 3) | 2 = 0x0A
+# field 2, wire_type 0 (VARINT): (2 &lt;&lt; 3) | 0 = 0x10</code></pre>
+        </div>
+
+        <div class="tbl">
+          <table>
+            <thead><tr><th>Wire type</th><th>ID</th><th>Used by</th><th>How the value is read</th></tr></thead>
+            <tbody>
+              <tr><td><span class="mono">VARINT</span></td><td>0</td><td>int32/64, uint32/64, sint*, bool, enum</td><td>Read varint bytes until high bit clears</td></tr>
+              <tr><td><span class="mono">I64</span></td><td>1</td><td>fixed64, sfixed64, double</td><td>Exactly 8 bytes, little-endian</td></tr>
+              <tr><td><span class="mono">LEN</span></td><td>2</td><td>string, bytes, embedded messages, packed repeated</td><td>A varint length, then that many bytes</td></tr>
+              <tr><td><span class="mono">I32</span></td><td>5</td><td>fixed32, sfixed32, float</td><td>Exactly 4 bytes, little-endian</td></tr>
+              <tr><td><span class="mono">SGROUP/EGROUP</span></td><td>3,4</td><td>deprecated groups</td><td>Do not use</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Varints — variable-length integers</h3>
+        <p>A varint stores an integer in as few bytes as possible. Each byte uses its low 7 bits for data; the high bit (the <em>continuation bit</em>) is <code>1</code> if more bytes follow, <code>0</code> on the last. Bytes are little-endian (least-significant group first).</p>
+        <div class="code">
+          <div class="code-bar"><span class="fname">encoding 300 as a varint</span><span class="lang">walk-through</span><button class="copy">copy</button></div>
+<pre><code class="language-text">300 decimal           = 1 0010 1100  (binary)
+split into 7-bit groups: 0000010  0101100
+reverse to little-endian: 0101100  0000010
+add continuation bits:  1 0101100   0 0000010
+                        = 0xAC       0x02
+
+So 300 on the wire = AC 02   (two bytes, not four)</code></pre>
+        </div>
+
+        <h3>ZigZag — making signed varints small</h3>
+        <p>Varints are inefficient for negatives because two's-complement makes <code>-1</code> look enormous. <code>sint32</code>/<code>sint64</code> first apply ZigZag, which interleaves positive and negative numbers so small magnitudes stay small:</p>
+        <div class="code">
+          <div class="code-bar"><span class="fname">zigzag</span><span class="lang">mapping</span><button class="copy">copy</button></div>
+<pre><code class="language-text">encode: (n &lt;&lt; 1) ^ (n &gt;&gt; 31)     # 64-bit: &gt;&gt; 63
+
+  0 -&gt; 0      -1 -&gt; 1      1 -&gt; 2     -2 -&gt; 3     2 -&gt; 4
+small negatives map to small varints, so -1 costs 1 byte, not 10.</code></pre>
+        </div>
+
+        <h3>Decoding a real message</h3>
+        <p>Take <code>message M { string name = 1; int32 age = 2; }</code> holding <code>name="Al"</code>, <code>age=30</code>:</p>
+        <div class="code">
+          <div class="code-bar"><span class="fname">bytes on the wire</span><span class="lang">hex</span><button class="copy">copy</button></div>
+<pre><code class="language-text">0A 02 41 6C 10 1E
+
+0A          tag: field 1, wire_type 2 (LEN)   ← (1&lt;&lt;3)|2
+02          length: 2 bytes follow
+41 6C       "Al"  (ASCII A=0x41, l=0x6C)
+10          tag: field 2, wire_type 0 (VARINT) ← (2&lt;&lt;3)|0
+1E          value: 30</code></pre>
+        </div>
+        <div class="note symbol">
+          <div class="tag">◆ what the parser knows — and doesn't</div>
+          <p>The wire bytes carry <em>numbers and wire types only</em>. There is no <code>"name"</code>, no <code>"age"</code>, no type beyond the 3-bit wire type. The decoder needs the <code>.proto</code> to know field 1 is a <code>string</code> and field 2 is an <code>int32</code>. This is exactly why protobuf is compact — and why you cannot read a payload without its schema.</p>
+        </div>
+
+        <h3>The payoff: schema-evolution rules</h3>
+        <p>Because fields are keyed by number and unknown fields are skipped (and, by default, preserved on re-serialization), you can evolve schemas without coordinated deploys — within these rules:</p>
+        <div class="tbl">
+          <table>
+            <thead><tr><th>Change</th><th>Safe?</th><th>Why</th></tr></thead>
+            <tbody>
+              <tr><td>Add a new field (new number)</td><td style="color:var(--green)">✓ yes</td><td>Old peers skip the unknown number; new peers read it</td></tr>
+              <tr><td>Rename a field</td><td style="color:var(--green)">✓ yes</td><td>Names aren't on the wire</td></tr>
+              <tr><td>Delete a field</td><td style="color:var(--green)">✓ yes*</td><td>*Must <code>reserved</code> the number so it's never reused</td></tr>
+              <tr><td>Change field number</td><td style="color:var(--rose)">✗ no</td><td>It's a different field now; data mismatches</td></tr>
+              <tr><td>Change a field's type</td><td style="color:var(--rose)">✗ usually</td><td>Only a few wire-compatible swaps are safe (e.g. int32/int64/bool share VARINT but truncate)</td></tr>
+              <tr><td>Move a field in/out of a <code>oneof</code></td><td style="color:var(--rose)">✗ no</td><td>Changes presence semantics</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="note why">
+          <div class="tag">◆ let a tool enforce this</div>
+          <p>Don't police these by code review. <code>buf breaking</code> (§07) diffs your schema against a baseline (git ref or the Buf registry) and fails CI on any wire-incompatible change. This is the single highest-leverage thing you can add to a protobuf workflow.</p>
+        </div>
+      </section>
+
+      <!-- ===================== 05 SERVICE ===================== -->
+      <section id="service">
+        <div class="sec-head"><span class="sec-num">05</span><h2>The service definition</h2></div>
+        <p class="sub">Where protobuf stops being just serialization and gRPC begins. A <code>service</code> declares callable methods; each method names a request type and a response type.</p>
+
+        <div class="code">
+          <div class="code-bar"><span class="fname">user_service.proto</span><span class="lang">protobuf</span><button class="copy">copy</button></div>
+<pre><code class="language-protobuf">syntax = "proto3";
+package acme.user.v1;
+option go_package = "github.com/acme/gen/user/v1;userv1";
+
+service UserService {
+  rpc GetUser     (GetUserRequest)    returns (User);                 // unary
+  rpc ListUsers   (ListUsersRequest)  returns (stream User);          // server-stream
+  rpc ImportUsers (stream User)       returns (ImportSummary);        // client-stream
+  rpc Chat        (stream ChatMessage) returns (stream ChatMessage);  // bidi
+}
+
+message GetUserRequest  { string id = 1; }
+message ListUsersRequest { int32 page_size = 1; string page_token = 2; }
+message ImportSummary    { int32 imported = 1; int32 skipped = 2; }
+message ChatMessage      { string from = 1; string body = 2; }
+message User             { string id = 1; string email = 2; }</code></pre>
+        </div>
+
+        <div class="annot">
+          <div class="ahead">anatomy of an rpc line</div>
+          <table>
+            <tr><td>rpc</td><td>Keyword introducing one callable method.</td></tr>
+            <tr><td>GetUser</td><td>Method name → becomes a function on the generated client stub and a handler you implement on the server.</td></tr>
+            <tr><td>(GetUserRequest)</td><td>The single request message type. gRPC methods take exactly one message in and one out — bundle parameters into a request message.</td></tr>
+            <tr><td>returns (User)</td><td>The single response message type.</td></tr>
+            <tr><td>stream</td><td>Prefix on the request and/or response type. Its presence on each side is what selects the RPC kind (next section).</td></tr>
+          </table>
+        </div>
+
+        <div class="note why">
+          <div class="tag">◆ why one-message-in, one-message-out</div>
+          <p>Wrapping every call's inputs in a dedicated <code>...Request</code> message (rather than a bare scalar) is the convention even for single-argument calls. It lets you add fields later without changing the method signature — the same evolution story as §04, applied to APIs. Returning a dedicated <code>...Response</code>/<code>...Summary</code> message (not a bare <code>User</code>) is similarly future-proof when you later need pagination tokens or metadata alongside the payload.</p>
+        </div>
+      </section>
+
+      <!-- ===================== 06 STREAMING ===================== -->
+      <section id="streaming">
+        <div class="sec-head"><span class="sec-num">06</span><h2>The four RPC types</h2></div>
+        <p class="sub">Where <code>stream</code> appears decides everything about the call's shape. All four ride the same HTTP/2 connection.</p>
+
+        <div class="tbl">
+          <table>
+            <thead><tr><th>Kind</th><th>Signature shape</th><th>Use for</th></tr></thead>
+            <tbody>
+              <tr><td><span class="mono">Unary</span></td><td><code>(Req) returns (Res)</code></td><td>Ordinary request/response — most calls</td></tr>
+              <tr><td><span class="mono">Server streaming</span></td><td><code>(Req) returns (stream Res)</code></td><td>One request, many responses: feeds, large list pagination, progress</td></tr>
+              <tr><td><span class="mono">Client streaming</span></td><td><code>(stream Req) returns (Res)</code></td><td>Many requests, one response: uploads, batched ingest</td></tr>
+              <tr><td><span class="mono">Bidirectional</span></td><td><code>(stream Req) returns (stream Res)</code></td><td>Independent full-duplex: chat, live sync, multiplexed control</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="note symbol">
+          <div class="tag">◆ what "bidirectional" actually means</div>
+          <p>Both streams are independent — the server is not forced to reply once per request. It can read three messages then send one, or send continuously while reading. Ordering is guaranteed <em>within</em> each direction, not across them. That independence is what makes bidi suitable for protocols, not just RPC.</p>
+        </div>
+
+        <div class="note gotcha">
+          <div class="tag">▲ gotcha — streaming isn't free</div>
+          <p>A stream pins a long-lived HTTP/2 stream and server goroutine/thread/coroutine for its whole lifetime. Unbounded server-streams without flow-control awareness or client cancellation handling leak resources. Always honor the call's context/deadline and stop producing when the peer goes away (§11). For "just return a big list", prefer paginated unary over an open-ended server stream unless you genuinely need push.</p>
+        </div>
+      </section>
+
+      <!-- ===================== 07 CODEGEN ===================== -->
+      <section id="codegen">
+        <div class="sec-head"><span class="sec-num">07</span><h2>Codegen: protoc &amp; buf</h2></div>
+        <p class="sub">A <code>.proto</code> does nothing until you compile it into a target language. The raw tool is <code>protoc</code>; the modern workflow is <code>buf</code>.</p>
+
+        <h3>The raw way — protoc + plugins</h3>
+        <p><code>protoc</code> is the reference compiler. It parses <code>.proto</code> files and hands the parsed schema to <em>plugins</em> (<code>protoc-gen-*</code>), one per language/feature, which emit code. You assemble the toolchain by hand:</p>
+        <div class="code">
+          <div class="code-bar"><span class="fname">protoc invocation (Go)</span><span class="lang">bash</span><button class="copy">copy</button></div>
+<pre><code class="language-bash"># one plugin emits message types, another emits the gRPC service stubs
+protoc \
+  --proto_path=proto \
+  --go_out=gen --go_opt=paths=source_relative \
+  --go-grpc_out=gen --go-grpc_opt=paths=source_relative \
+  proto/acme/user/v1/user_service.proto</code></pre>
+        </div>
+        <div class="note gotcha">
+          <div class="tag">▲ gotcha — why protoc-by-hand hurts at scale</div>
+          <p>Every developer needs the exact same <code>protoc</code> version and the exact same plugin versions, the include paths sprawl, and there's nothing stopping a breaking schema change. The flags become a fragile shell script no one wants to touch. This is the problem <code>buf</code> exists to solve.</p>
+        </div>
+
+        <h3>The modern way — buf</h3>
+        <p><code>buf</code> wraps the whole Protobuf lifecycle: a fast built-in compiler, linting, breaking-change detection, formatting, and code generation driven by version-controlled YAML instead of CLI flags. Two config files do the work.</p>
+
+        <div class="code">
+          <div class="code-bar"><span class="fname">buf.yaml</span><span class="lang">yaml</span><button class="copy">copy</button></div>
+<pre><code class="language-yaml">version: v2
+modules:
+  - path: proto
+lint:
+  use:
+    - STANDARD          # the standard lint ruleset (naming, package versioning, …)
+breaking:
+  use:
+    - FILE              # detect wire-breaking changes at file granularity
+deps:
+  - buf.build/googleapis/googleapis   # pull shared types from the registry, no vendoring</code></pre>
+        </div>
+
+        <div class="code">
+          <div class="code-bar"><span class="fname">buf.gen.yaml</span><span class="lang">yaml</span><button class="copy">copy</button></div>
+<pre><code class="language-yaml">version: v2
+managed:
+  enabled: true        # auto-manage file options (go_package etc.) so you don't hand-write them
+plugins:
+  # remote plugins run on Buf's infra — no local protoc/plugin installs needed
+  - remote: buf.build/protocolbuffers/go
+    out: gen
+    opt: paths=source_relative
+  - remote: buf.build/grpc/go
+    out: gen
+    opt: paths=source_relative
+  - remote: buf.build/protocolbuffers/python
+    out: gen/py
+  - remote: buf.build/grpc/python
+    out: gen/py</code></pre>
+        </div>
+
+        <div class="code">
+          <div class="code-bar"><span class="fname">daily commands</span><span class="lang">bash</span><button class="copy">copy</button></div>
+<pre><code class="language-bash">buf lint                                   # catch API-shape problems while editing
+buf format -w                              # auto-format in place
+buf breaking --against '.git#branch=main'  # fail if this diverges from main incompatibly
+buf generate                               # emit code for every plugin in buf.gen.yaml
+buf build                                  # compile the workspace to a binary image</code></pre>
+        </div>
+
+        <div class="note why">
+          <div class="tag">◆ why buf is the standard answer in 2026</div>
+          <p>Three things you cannot get from <code>protoc</code> alone: <strong>breaking-change CI</strong> (the §04 rules enforced automatically), <strong>remote plugins</strong> (pin a plugin by URL, no "works on my machine" version skew), and <strong>managed mode</strong> (stop hand-writing per-language file options). If you're starting fresh, start with buf. If you inherit raw <code>protoc</code> scripts, buf reads the same <code>.proto</code> and is the upgrade path.</p>
+        </div>
+
+        <h3>Testing without writing a client</h3>
+        <p>Two tools let you hit a running server by hand — invaluable while developing:</p>
+        <ul>
+          <li><code>grpcurl</code> — curl for gRPC. With <em>server reflection</em> enabled, it discovers the schema live: <code>grpcurl -plaintext -d '{"id":"42"}' localhost:50051 acme.user.v1.UserService/GetUser</code>.</li>
+          <li><code>buf curl</code> — buf's built-in equivalent, handles gRPC and Connect protocols.</li>
+          <li><code>grpcui</code> / <code>evans</code> — interactive REPL/UI clients for exploratory testing.</li>
+        </ul>
+      </section>
+
+      <!-- ===================== 08 PYTHON ===================== -->
+      <section id="python">
+        <div class="sec-head"><span class="sec-num">08</span><h2>Python</h2></div>
+        <p class="sub">grpcio for the runtime, grpcio-tools for codegen. Python ≥3.10. Sync and async (<code>grpc.aio</code>) both first-class.</p>
+
+        <div class="code">
+          <div class="code-bar"><span class="fname">install + generate</span><span class="lang">bash</span><button class="copy">copy</button></div>
+<pre><code class="language-bash">pip install grpcio grpcio-tools          # runtime + protoc wrapper
+
+# generate messages (_pb2), stubs (_pb2_grpc), and type stubs (.pyi)
+python -m grpc_tools.protoc \
+  -I proto \
+  --python_out=gen --grpc_python_out=gen --pyi_out=gen \
+  proto/acme/user/v1/user_service.proto</code></pre>
+        </div>
+        <div class="annot">
+          <div class="ahead">what each flag emits</div>
+          <table>
+            <tr><td>--python_out</td><td><code>user_service_pb2.py</code> — the message classes (serialization).</td></tr>
+            <tr><td>--grpc_python_out</td><td><code>user_service_pb2_grpc.py</code> — the <code>UserServiceStub</code> (client) and <code>UserServiceServicer</code> (server base) plus the registration helper.</td></tr>
+            <tr><td>--pyi_out</td><td><code>.pyi</code> type stubs so editors and mypy understand the generated classes.</td></tr>
+          </table>
+        </div>
+
+        <h4>Server (sync)</h4>
+        <div class="code">
+          <div class="code-bar"><span class="fname">server.py</span><span class="lang">python</span><button class="copy">copy</button></div>
+<pre><code class="language-python">from concurrent import futures
+import grpc
+from acme.user.v1 import user_service_pb2 as pb
+from acme.user.v1 import user_service_pb2_grpc as pb_grpc
+
+class UserService(pb_grpc.UserServiceServicer):
+    def GetUser(self, request, context):                 # unary handler
+        if not request.id:
+            context.abort(grpc.StatusCode.INVALID_ARGUMENT, "id required")
+        return pb.User(id=request.id, email=f"{request.id}@acme.dev")
+
+    def ListUsers(self, request, context):               # server-streaming: yield
+        for i in range(request.page_size or 3):
+            yield pb.User(id=str(i), email=f"u{i}@acme.dev")
+
+def serve():
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    pb_grpc.add_UserServiceServicer_to_server(UserService(), server)
+    server.add_insecure_port("[::]:50051")               # plaintext; use TLS in prod
+    server.start()
+    server.wait_for_termination()
+
+if __name__ == "__main__":
+    serve()</code></pre>
+        </div>
+        <div class="note symbol">
+          <div class="tag">◆ context — the second parameter on every handler</div>
+          <p><code>context</code> is your handle on the live call: <code>context.abort(code, msg)</code> ends with a gRPC status, <code>context.invocation_metadata()</code> reads request headers, <code>context.set_trailing_metadata(...)</code> attaches response headers, and <code>context.is_active()</code> / <code>context.add_callback(...)</code> detect client cancellation. Returning normally is <code>OK</code>; raising or aborting maps to an error status.</p>
+        </div>
+
+        <h4>Client (sync)</h4>
+        <div class="code">
+          <div class="code-bar"><span class="fname">client.py</span><span class="lang">python</span><button class="copy">copy</button></div>
+<pre><code class="language-python">import grpc
+from acme.user.v1 import user_service_pb2 as pb
+from acme.user.v1 import user_service_pb2_grpc as pb_grpc
+
+with grpc.insecure_channel("localhost:50051") as channel:
+    stub = pb_grpc.UserServiceStub(channel)
+
+    user = stub.GetUser(pb.GetUserRequest(id="42"), timeout=2.0)   # deadline = 2s
+    print(user.email)
+
+    for u in stub.ListUsers(pb.ListUsersRequest(page_size=3)):     # iterate the stream
+        print(u.id)</code></pre>
+        </div>
+
+        <h4>Async (grpc.aio)</h4>
+        <div class="code">
+          <div class="code-bar"><span class="fname">async_server.py</span><span class="lang">python</span><button class="copy">copy</button></div>
+<pre><code class="language-python">import asyncio, grpc
+from acme.user.v1 import user_service_pb2 as pb
+from acme.user.v1 import user_service_pb2_grpc as pb_grpc
+
+class UserService(pb_grpc.UserServiceServicer):
+    async def GetUser(self, request, context):
+        return pb.User(id=request.id, email=f"{request.id}@acme.dev")
+
+async def serve():
+    server = grpc.aio.server()                  # no thread pool: asyncio drives it
+    pb_grpc.add_UserServiceServicer_to_server(UserService(), server)
+    server.add_insecure_port("[::]:50051")
+    await server.start()
+    await server.wait_for_termination()
+
+asyncio.run(serve())</code></pre>
+        </div>
+        <div class="note gotcha">
+          <div class="tag">▲ gotcha — sync gRPC and forking</div>
+          <p>The sync server uses a thread pool sized by <code>max_workers</code>; a slow handler starves it. Under heavy concurrency prefer <code>grpc.aio</code>. Also: gRPC's C-core does not survive <code>os.fork()</code> cleanly — create channels and servers <em>after</em> forking (relevant under Gunicorn/uWSGI with pre-fork workers).</p>
+        </div>
+      </section>
+
+      <!-- ===================== 09 GO ===================== -->
+      <section id="go">
+        <div class="sec-head"><span class="sec-num">09</span><h2>Go</h2></div>
+        <p class="sub">Two plugins: <code>protoc-gen-go</code> (messages) and <code>protoc-gen-go-grpc</code> (service stubs). Statically typed end to end. Note the modern <code>grpc.NewClient</code> constructor.</p>
+
+        <div class="code">
+          <div class="code-bar"><span class="fname">install + generate</span><span class="lang">bash</span><button class="copy">copy</button></div>
+<pre><code class="language-bash">go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+go get google.golang.org/grpc@latest
+
+# (or just `buf generate` with the buf.gen.yaml from §07 — recommended)
+protoc -I proto \
+  --go_out=gen --go_opt=paths=source_relative \
+  --go-grpc_out=gen --go-grpc_opt=paths=source_relative \
+  proto/acme/user/v1/user_service.proto</code></pre>
+        </div>
+
+        <h4>Server</h4>
+        <div class="code">
+          <div class="code-bar"><span class="fname">server.go</span><span class="lang">go</span><button class="copy">copy</button></div>
+<pre><code class="language-go">package main
+
+import (
+    "context"
+    "log"
+    "net"
+
+    "google.golang.org/grpc"
+    "google.golang.org/grpc/codes"
+    "google.golang.org/grpc/status"
+    userv1 "github.com/acme/gen/user/v1"
+)
+
+type server struct {
+    userv1.UnimplementedUserServiceServer // MUST embed — forward compatibility
+}
+
+func (s *server) GetUser(ctx context.Context, req *userv1.GetUserRequest) (*userv1.User, error) {
+    if req.GetId() == "" {
+        return nil, status.Error(codes.InvalidArgument, "id required")
+    }
+    return &amp;userv1.User{Id: req.GetId(), Email: req.GetId() + "@acme.dev"}, nil
+}
+
+// server-streaming: push via the stream, return nil to close
+func (s *server) ListUsers(req *userv1.ListUsersRequest, stream userv1.UserService_ListUsersServer) error {
+    for i := 0; i &lt; 3; i++ {
+        if err := stream.Send(&amp;userv1.User{Id: "u" + string(rune('0'+i))}); err != nil {
+            return err
+        }
+    }
+    return nil
+}
+
+func main() {
+    lis, err := net.Listen("tcp", ":50051")
+    if err != nil {
+        log.Fatal(err)
+    }
+    s := grpc.NewServer()
+    userv1.RegisterUserServiceServer(s, &amp;server{})
+    log.Println("listening :50051")
+    log.Fatal(s.Serve(lis))
+}</code></pre>
+        </div>
+        <div class="note gotcha">
+          <div class="tag">▲ gotcha — embed UnimplementedUserServiceServer</div>
+          <p>The generated base struct gives default <code>Unimplemented</code> handlers for every method. Embedding it means adding a new RPC to the <code>.proto</code> won't break compilation of existing servers — they inherit a "not implemented" stub until you write the real one. Omitting it (or the older <code>require_unimplemented_servers=false</code> escape hatch) makes every schema addition a build break. Embed it <em>by value</em>, not as a pointer.</p>
+        </div>
+
+        <h4>Client</h4>
+        <div class="code">
+          <div class="code-bar"><span class="fname">client.go</span><span class="lang">go</span><button class="copy">copy</button></div>
+<pre><code class="language-go">package main
+
+import (
+    "context"
+    "log"
+    "time"
+
+    "google.golang.org/grpc"
+    "google.golang.org/grpc/credentials/insecure"
+    userv1 "github.com/acme/gen/user/v1"
+)
+
+func main() {
+    // NewClient is the current constructor. grpc.Dial / DialContext are deprecated.
+    // It does NOT connect eagerly — the first RPC triggers the connection.
+    conn, err := grpc.NewClient(
+        "localhost:50051",
+        grpc.WithTransportCredentials(insecure.NewCredentials()), // plaintext; TLS in prod
+    )
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer conn.Close()
+
+    client := userv1.NewUserServiceClient(conn)
+
+    ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second) // deadline
+    defer cancel()
+
+    user, err := client.GetUser(ctx, &amp;userv1.GetUserRequest{Id: "42"})
+    if err != nil {
+        log.Fatal(err)
+    }
+    log.Println(user.GetEmail())
+}</code></pre>
+        </div>
+        <div class="note why">
+          <div class="tag">◆ NewClient vs the old Dial</div>
+          <p>Older tutorials show <code>grpc.Dial</code>/<code>DialContext</code>, which eagerly connected and made <code>WithBlock</code> a common footgun. <code>grpc.NewClient</code> (the recommended API since the 1.6x line) is lazy and uses the standard <code>dns</code> resolver by default, so <code>"host:port"</code> targets behave predictably. Always pass a per-call <code>context</code> with a deadline — it's how cancellation and timeouts propagate across the whole call chain.</p>
+        </div>
+      </section>
+
+      <!-- ===================== 10 NODE ===================== -->
+      <section id="node">
+        <div class="sec-head"><span class="sec-num">10</span><h2>Node.js</h2></div>
+        <p class="sub">Pure-JS runtime <code>@grpc/grpc-js</code>. Two codegen styles: dynamic (load <code>.proto</code> at runtime) or static (pre-generate). Dynamic is the common default.</p>
+
+        <div class="code">
+          <div class="code-bar"><span class="fname">install</span><span class="lang">bash</span><button class="copy">copy</button></div>
+<pre><code class="language-bash">npm install @grpc/grpc-js @grpc/proto-loader
+# dynamic loading needs no build step. For static/TS codegen, add grpc-tools or ts-proto.</code></pre>
+        </div>
+
+        <h4>Server (dynamic codegen)</h4>
+        <div class="code">
+          <div class="code-bar"><span class="fname">server.js</span><span class="lang">javascript</span><button class="copy">copy</button></div>
+<pre><code class="language-javascript">const grpc = require("@grpc/grpc-js");
+const protoLoader = require("@grpc/proto-loader");
+
+// parse the .proto at runtime into a package definition
+const def = protoLoader.loadSync("proto/acme/user/v1/user_service.proto", {
+  keepCase: true,   // keep snake_case field names as written in the .proto
+  longs: String,    // 64-bit ints -> strings (JS number can't hold them safely)
+  enums: String,    // enums -> their string names
+  defaults: true,
+});
+const proto = grpc.loadPackageDefinition(def).acme.user.v1;
+
+function GetUser(call, callback) {            // unary: (call, callback) signature
+  const { id } = call.request;
+  if (!id) {
+    return callback({ code: grpc.status.INVALID_ARGUMENT, message: "id required" });
+  }
+  callback(null, { id, email: `${id}@acme.dev` });
+}
+
+function ListUsers(call) {                     // server-streaming: write + end
+  for (let i = 0; i &lt; 3; i++) call.write({ id: String(i), email: `u${i}@acme.dev` });
+  call.end();
+}
+
+const server = new grpc.Server();
+server.addService(proto.UserService.service, { GetUser, ListUsers });
+server.bindAsync("0.0.0.0:50051", grpc.ServerCredentials.createInsecure(), () => {
+  console.log("listening :50051");            // server starts automatically after bind
+});</code></pre>
+        </div>
+        <div class="note gotcha">
+          <div class="tag">▲ gotcha — bindAsync, not bind; and loader options</div>
+          <p><code>server.bind()</code> is removed — use <code>server.bindAsync()</code>, and note modern <code>grpc-js</code> no longer needs an explicit <code>server.start()</code> after it. The <code>proto-loader</code> options are easy to get wrong: without <code>keepCase</code> your field names get camelCased; without <code>longs: String</code>, 64-bit integers lose precision silently. Set them deliberately and consistently between client and server.</p>
+        </div>
+
+        <h4>Client (dynamic codegen)</h4>
+        <div class="code">
+          <div class="code-bar"><span class="fname">client.js</span><span class="lang">javascript</span><button class="copy">copy</button></div>
+<pre><code class="language-javascript">const grpc = require("@grpc/grpc-js");
+const protoLoader = require("@grpc/proto-loader");
+
+const def = protoLoader.loadSync("proto/acme/user/v1/user_service.proto", {
+  keepCase: true, longs: String, enums: String, defaults: true,
+});
+const proto = grpc.loadPackageDefinition(def).acme.user.v1;
+
+const client = new proto.UserService(
+  "localhost:50051",
+  grpc.credentials.createInsecure(),
+);
+
+// unary calls are callback-style; set a deadline via a call options object
+const deadline = new Date(Date.now() + 2000);
+client.GetUser({ id: "42" }, { deadline }, (err, user) => {
+  if (err) return console.error(err.code, err.details);
+  console.log(user.email);
+});
+
+// server-streaming returns an event emitter
+const stream = client.ListUsers({ page_size: 3 });
+stream.on("data", (u) => console.log(u.id));
+stream.on("end", () => console.log("done"));
+stream.on("error", (e) => console.error(e));</code></pre>
+        </div>
+        <div class="note why">
+          <div class="tag">◆ dynamic vs static codegen — which to pick</div>
+          <p><strong>Dynamic</strong> (<code>proto-loader</code>) is fastest to start: no build step, the <code>.proto</code> is the only artifact. <strong>Static</strong> (via <code>grpc-tools</code> or <code>ts-proto</code>) pre-generates <code>.js</code>/<code>.d.ts</code>, giving you real TypeScript types, autocomplete, and compile-time checking — worth it for any TS codebase. Both interoperate on the wire; the choice is purely developer ergonomics. For a typed Node service in 2026, most teams reach for <code>ts-proto</code> or Connect-ES.</p>
+        </div>
+      </section>
+
+      <!-- ===================== 11 MECHANICS ===================== -->
+      <section id="mechanics">
+        <div class="sec-head"><span class="sec-num">11</span><h2>gRPC mechanics</h2></div>
+        <p class="sub">The runtime concepts every gRPC service touches: channels, metadata, deadlines, status, interceptors. This is the interview surface area.</p>
+
+        <h3>Channels &amp; stubs</h3>
+        <p>A <strong>channel</strong> is a long-lived, reusable connection to a server (really a managed pool of HTTP/2 connections with its own state machine: <code>IDLE → CONNECTING → READY → TRANSIENT_FAILURE</code>). A <strong>stub</strong> (client) is a thin typed wrapper over a channel. <strong>Create one channel and share it</strong> — channels are expensive; stubs are cheap. Never open a channel per request.</p>
+
+        <h3>Metadata</h3>
+        <p>Metadata is key–value headers attached to a call — gRPC's equivalent of HTTP headers, used for auth tokens, request IDs, tracing context. Keys are lowercase ASCII; a <code>-bin</code> suffix marks binary values.</p>
+        <div class="code">
+          <div class="code-bar"><span class="fname">metadata (Python client / Go server)</span><span class="lang">text</span><button class="copy">copy</button></div>
+<pre><code class="language-text"># client attaches:
+stub.GetUser(req, metadata=(("authorization", "Bearer …"), ("x-request-id", "abc")))
+
+// server reads (Go):
+md, _ := metadata.FromIncomingContext(ctx)
+token := md.Get("authorization")</code></pre>
+        </div>
+
+        <h3>Deadlines &amp; cancellation</h3>
+        <p>gRPC uses <strong>deadlines</strong> (an absolute point in time), not bare timeouts. The deadline propagates: it travels in call metadata, so a downstream service inherits the remaining budget. When it passes, the call fails with <code>DEADLINE_EXCEEDED</code> on both ends and the server's <code>context</code> is cancelled, letting handlers stop work.</p>
+        <div class="note why">
+          <div class="tag">◆ always set a deadline</div>
+          <p>A client with no deadline can hang forever on a stuck server, and threads/goroutines pile up until the process dies. Set one on every call. On the server, <em>check</em> for cancellation in long handlers (<code>ctx.Err()</code> in Go, <code>context.is_active()</code> in Python) and abandon work the client no longer wants — otherwise you do expensive work for a caller who already gave up.</p>
+        </div>
+
+        <h3>Status codes</h3>
+        <p>Every call ends with a status code. Returning the right one is how clients decide whether to retry, fail, or surface an error. The canonical set:</p>
+        <div class="tbl">
+          <table>
+            <thead><tr><th>#</th><th>Code</th><th>Meaning / when to return it</th></tr></thead>
+            <tbody>
+              <tr><td>0</td><td><span class="mono">OK</span></td><td>Success</td></tr>
+              <tr><td>1</td><td><span class="mono">CANCELLED</span></td><td>Caller cancelled the call</td></tr>
+              <tr><td>2</td><td><span class="mono">UNKNOWN</span></td><td>Unexpected error / unmapped exception</td></tr>
+              <tr><td>3</td><td><span class="mono">INVALID_ARGUMENT</span></td><td>Bad input regardless of system state (client bug)</td></tr>
+              <tr><td>4</td><td><span class="mono">DEADLINE_EXCEEDED</span></td><td>Ran out of time</td></tr>
+              <tr><td>5</td><td><span class="mono">NOT_FOUND</span></td><td>Resource doesn't exist</td></tr>
+              <tr><td>6</td><td><span class="mono">ALREADY_EXISTS</span></td><td>Create conflicts with existing resource</td></tr>
+              <tr><td>7</td><td><span class="mono">PERMISSION_DENIED</span></td><td>Authenticated but not authorized</td></tr>
+              <tr><td>8</td><td><span class="mono">RESOURCE_EXHAUSTED</span></td><td>Quota / rate limit hit</td></tr>
+              <tr><td>9</td><td><span class="mono">FAILED_PRECONDITION</span></td><td>System state forbids it (don't retry without fixing state)</td></tr>
+              <tr><td>10</td><td><span class="mono">ABORTED</span></td><td>Concurrency conflict, e.g. txn abort (retry may help)</td></tr>
+              <tr><td>11</td><td><span class="mono">OUT_OF_RANGE</span></td><td>Past valid range (e.g. seek beyond EOF)</td></tr>
+              <tr><td>12</td><td><span class="mono">UNIMPLEMENTED</span></td><td>Method not implemented</td></tr>
+              <tr><td>13</td><td><span class="mono">INTERNAL</span></td><td>Serious internal invariant broken</td></tr>
+              <tr><td>14</td><td><span class="mono">UNAVAILABLE</span></td><td>Transient — server down/overloaded. The standard <em>retryable</em> code</td></tr>
+              <tr><td>15</td><td><span class="mono">DATA_LOSS</span></td><td>Unrecoverable data corruption</td></tr>
+              <tr><td>16</td><td><span class="mono">UNAUTHENTICATED</span></td><td>Missing/invalid credentials</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="note gotcha">
+          <div class="tag">▲ gotcha — INVALID_ARGUMENT vs FAILED_PRECONDITION</div>
+          <p>Both mean "request rejected", but they signal different retry behavior. <code>INVALID_ARGUMENT</code> means the request is malformed no matter what — the client must change the request. <code>FAILED_PRECONDITION</code> means the request is fine but the system isn't in a state to accept it — the client should fix state first, not blindly retry. <code>ABORTED</code> and <code>UNAVAILABLE</code> are the retryable ones. Picking the right code is what makes a gRPC API usable by automated clients.</p>
+        </div>
+
+        <h4>Rich error details</h4>
+        <p>Beyond code + message, attach structured details with the <code>google.rpc.Status</code> model (<code>grpcio-status</code> in Python, <code>status</code> package in Go): <code>BadRequest.FieldViolation</code>, <code>RetryInfo</code>, <code>QuotaFailure</code>, etc. Clients parse these for machine-readable error handling instead of regexing message strings.</p>
+
+        <h3>Interceptors</h3>
+        <p>Interceptors are gRPC's middleware: one place to wrap every call for logging, auth, metrics, tracing, retries, panic recovery. Client-side and server-side, unary and streaming variants exist.</p>
+        <div class="code">
+          <div class="code-bar"><span class="fname">server interceptor (Go) — auth + timing</span><span class="lang">go</span><button class="copy">copy</button></div>
+<pre><code class="language-go">func authUnary(
+    ctx context.Context, req any,
+    info *grpc.UnaryServerInfo, handler grpc.UnaryHandler,
+) (any, error) {
+    md, _ := metadata.FromIncomingContext(ctx)
+    if len(md.Get("authorization")) == 0 {
+        return nil, status.Error(codes.Unauthenticated, "missing token")
+    }
+    start := time.Now()
+    resp, err := handler(ctx, req)                 // call the actual handler
+    log.Printf("%s took %s", info.FullMethod, time.Since(start))
+    return resp, err
+}
+
+s := grpc.NewServer(grpc.ChainUnaryInterceptor(authUnary, otherInterceptor))</code></pre>
+        </div>
+
+        <h3>Built-in services you should turn on</h3>
+        <ul>
+          <li><strong>Health checking</strong> — the standard <code>grpc.health.v1.Health</code> service. Load balancers and orchestrators (k8s gRPC probes) call <code>Check</code>/<code>Watch</code> to route only to healthy backends.</li>
+          <li><strong>Server reflection</strong> — exposes your schema at runtime so <code>grpcurl</code>/<code>grpcui</code> can call the server without the <code>.proto</code>. Enable in dev; gate it in prod.</li>
+        </ul>
+
+        <h3>Keepalive &amp; retries</h3>
+        <p><strong>Keepalive</strong> pings detect dead connections behind load balancers and idle NAT timeouts; tune ping interval and timeout, but don't ping so aggressively that the server rejects you with <code>ENHANCE_YOUR_CALM</code>. <strong>Transparent retries</strong> can be configured declaratively via a service config (retry policy: which codes, max attempts, backoff) — let the framework retry <code>UNAVAILABLE</code> rather than hand-rolling loops.</p>
+      </section>
+
+      <!-- ===================== 12 PRODUCTION ===================== -->
+      <section id="prod">
+        <div class="sec-head"><span class="sec-num">12</span><h2>Production concerns</h2></div>
+        <p class="sub">What the toy examples skip. Plaintext and a single backend get you to a demo, not to prod.</p>
+
+        <h3>Transport security: TLS &amp; mTLS</h3>
+        <p>Every example above used <code>insecure</code>/<code>plaintext</code> credentials — fine for localhost, never for real traffic. Production uses TLS (server proves identity to client) or <strong>mTLS</strong> (both sides present certs — common for service-to-service zero-trust). You swap the credential object, not your handlers:</p>
+        <div class="code">
+          <div class="code-bar"><span class="fname">TLS credentials</span><span class="lang">text</span><button class="copy">copy</button></div>
+<pre><code class="language-text"># Go server:
+creds, _ := credentials.NewServerTLSFromFile("server.crt", "server.key")
+s := grpc.NewServer(grpc.Creds(creds))
+
+# Go client:
+creds := credentials.NewClientTLSFromCert(certPool, "")
+conn, _ := grpc.NewClient(addr, grpc.WithTransportCredentials(creds))
+
+# Python client:
+creds = grpc.ssl_channel_credentials(root_certs)
+channel = grpc.secure_channel(addr, creds)</code></pre>
+        </div>
+        <div class="note why">
+          <div class="tag">◆ in 2026, assume TLS 1.3 + mTLS for east-west traffic</div>
+          <p>Service meshes (Istio, Linkerd) often terminate mTLS for you transparently. If you're not in a mesh, wire it yourself — and rotate certs. Plaintext gRPC should exist only inside a single trusted boundary, if at all.</p>
+        </div>
+
+        <h3>Load balancing</h3>
+        <p>gRPC's HTTP/2 multiplexing breaks naive L4 load balancers: one long-lived connection pins all calls to one backend. Two correct approaches:</p>
+        <ul>
+          <li><strong>Client-side LB</strong> — the client resolves multiple backend addresses (via a <code>dns:///</code> or custom resolver) and a policy (<code>round_robin</code>, <code>pick_first</code>) spreads calls across them. No proxy hop.</li>
+          <li><strong>Look-aside / proxy LB</strong> — an L7 proxy that understands gRPC (Envoy) balances per-<em>request</em>, not per-connection. This is what a mesh gives you.</li>
+        </ul>
+        <div class="note gotcha">
+          <div class="tag">▲ gotcha — a plain TCP/round-robin DNS LB is wrong for gRPC</div>
+          <p>Because all requests share one connection, an L4 balancer sends every call to whichever backend won the connection. Use an L7/gRPC-aware proxy or client-side balancing, or one hot backend takes all the load.</p>
+        </div>
+
+        <h3>Observability</h3>
+        <p>The 2026 default is <strong>OpenTelemetry</strong>: gRPC has built-in OTel instrumentation for traces and metrics across every language. Trace context propagates in metadata automatically, so a single request stitches across services. Export metrics (latency, status-code rates, in-flight calls) to Prometheus; export traces to your backend of choice. Add a logging/recovery interceptor (§11) so a panicking handler returns <code>INTERNAL</code> instead of killing the process.</p>
+
+        <h3>Browsers: gRPC-Web</h3>
+        <p>Browsers can't open raw HTTP/2 gRPC streams, so direct browser→gRPC doesn't work. Options: <strong>gRPC-Web</strong> (a browser-compatible variant; needs an Envoy proxy or in-process translator, and supports unary + server-streaming only), or <strong>Connect</strong> (buf's protocol — speaks gRPC, gRPC-Web, and a plain HTTP/JSON mode from the same handlers, callable with curl). For new browser-facing work, Connect is often the smoother path.</p>
+      </section>
+
+      <!-- ===================== 13 CHEATSHEET ===================== -->
+      <section id="cheat">
+        <div class="sec-head"><span class="sec-num">13</span><h2>Cheatsheet</h2></div>
+        <p class="sub">The bits you'll forget and look up again.</p>
+
+        <h4>Wire types</h4>
+        <div class="tbl">
+          <table>
+            <thead><tr><th>ID</th><th>Name</th><th>Carries</th></tr></thead>
+            <tbody>
+              <tr><td>0</td><td><span class="mono">VARINT</span></td><td>int/uint/sint 32-64, bool, enum</td></tr>
+              <tr><td>1</td><td><span class="mono">I64</span></td><td>fixed64, sfixed64, double</td></tr>
+              <tr><td>2</td><td><span class="mono">LEN</span></td><td>string, bytes, message, packed repeated</td></tr>
+              <tr><td>5</td><td><span class="mono">I32</span></td><td>fixed32, sfixed32, float</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h4>Field-number budget</h4>
+        <ul>
+          <li><code>1–15</code>: 1-byte tag → hot fields here</li>
+          <li><code>16–2047</code>: 2-byte tag</li>
+          <li><code>19000–19999</code>: reserved, unusable</li>
+          <li>max <code>536,870,911</code> (2²⁹−1)</li>
+        </ul>
+
+        <h4>Decision rules</h4>
+        <div class="tbl">
+          <table>
+            <thead><tr><th>If…</th><th>then</th></tr></thead>
+            <tbody>
+              <tr><td>field is often negative</td><td>use <code>sint32/64</code> (ZigZag)</td></tr>
+              <tr><td>need to tell "0/empty" from "unset"</td><td>mark scalar <code>optional</code></td></tr>
+              <tr><td>deleting a field</td><td><code>reserved</code> its number <em>and</em> name</td></tr>
+              <tr><td>"exactly one of"</td><td><code>oneof</code></td></tr>
+              <tr><td>partial update</td><td><code>google.protobuf.FieldMask</code></td></tr>
+              <tr><td>a timestamp</td><td><code>google.protobuf.Timestamp</code>, not int</td></tr>
+              <tr><td>big list, no push needed</td><td>paginated unary, not server-stream</td></tr>
+              <tr><td>transient failure</td><td>return <code>UNAVAILABLE</code> (retryable)</td></tr>
+              <tr><td>bad input</td><td><code>INVALID_ARGUMENT</code>; wrong state → <code>FAILED_PRECONDITION</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h4>Toolchain commands</h4>
+        <div class="code">
+          <div class="code-bar"><span class="fname">buf + grpcurl</span><span class="lang">bash</span><button class="copy">copy</button></div>
+<pre><code class="language-bash">buf lint                                    # shape checks
+buf format -w                               # format
+buf breaking --against '.git#branch=main'   # enforce §04 rules in CI
+buf generate                                # codegen all languages
+
+grpcurl -plaintext localhost:50051 list                       # list services (needs reflection)
+grpcurl -plaintext -d '{"id":"42"}' localhost:50051 \
+  acme.user.v1.UserService/GetUser                            # call a method</code></pre>
+        </div>
+
+        <h4>The five things people get wrong</h4>
+        <ol>
+          <li>Reusing or renumbering a field number → silent data corruption.</li>
+          <li>Letting enum <code>0</code> mean something real instead of <code>_UNSPECIFIED</code>.</li>
+          <li>Forgetting <code>optional</code> when "0 vs unset" matters.</li>
+          <li>No deadline on the client → hangs and resource leaks.</li>
+          <li>An L4 load balancer in front of gRPC → one backend takes all traffic.</li>
+        </ol>
+      </section>
+
+      <footer class="foot">
+        <p>Versions assumed: protoc/protobuf editions-aware (proto3 primary) · gRPC C-core 1.81 line · buf 1.70 (buf.yaml v2) · grpcio + grpcio-tools 1.81 (Python ≥3.10) · google.golang.org/grpc 1.81 · @grpc/grpc-js 1.14 + @grpc/proto-loader 0.8.</p>
+        <p style="margin-top:10px">Primary sources: <a href="https://protobuf.dev">protobuf.dev</a> · <a href="https://grpc.io/docs">grpc.io/docs</a> · <a href="https://buf.build/docs">buf.build/docs</a>. Cross-checked against language SDK docs. Verify version-pinned commands against current release notes before relying on them in production.</p>
+      </footer>
+
+    </div>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/languages/protobuf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/languages/go.min.js"></script>
+<script>
+// highlight
+document.querySelectorAll('pre code').forEach(b=>{try{hljs.highlightElement(b)}catch(e){}});
+
+// copy buttons
+document.querySelectorAll('.copy').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const code=btn.closest('.code').querySelector('code').innerText;
+    navigator.clipboard.writeText(code).then(()=>{
+      const t=btn.textContent;btn.textContent='copied';btn.classList.add('done');
+      setTimeout(()=>{btn.textContent=t;btn.classList.remove('done')},1400);
+    });
+  });
+});
+
+// scrollspy
+const links=[...document.querySelectorAll('.toc a')];
+const map=new Map(links.map(a=>[a.getAttribute('href').slice(1),a]));
+const obs=new IntersectionObserver((es)=>{
+  es.forEach(e=>{
+    if(e.isIntersecting){
+      links.forEach(l=>l.classList.remove('active'));
+      const a=map.get(e.target.id);if(a)a.classList.add('active');
+    }
+  });
+},{rootMargin:'-10% 0px -80% 0px',threshold:0});
+document.querySelectorAll('section[id]').forEach(s=>obs.observe(s));
+
+// progress
+const prog=document.getElementById('prog');
+addEventListener('scroll',()=>{
+  const h=document.documentElement;
+  const p=h.scrollTop/(h.scrollHeight-h.clientHeight);
+  prog.style.width=(p*100)+'%';
+},{passive:true});
+
+// mobile nav
+const sb=document.getElementById('sidebar'),sc=document.getElementById('scrim'),tg=document.getElementById('navtog');
+function toggle(o){sb.classList.toggle('open',o);sc.classList.toggle('open',o)}
+tg.addEventListener('click',()=>toggle(!sb.classList.contains('open')));
+sc.addEventListener('click',()=>toggle(false));
+document.querySelectorAll('.toc a').forEach(a=>a.addEventListener('click',()=>{if(innerWidth<=920)toggle(false)}));
+</script>
+</body>
+</html>
