@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FastAPI Field Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;450;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#FAFAF7;
+  --surface:#FFFFFF;
+  --ink:#16181D;
+  --muted:#5C6270;
+  --faint:#8A909E;
+  --line:#E7E5DD;
+  --accent:#0B7A75;
+  --accent-d:#085C58;
+  --accent-soft:#E1F0EF;
+  --warm:#C4671F;
+  --warm-soft:#FBEEDF;
+  --red:#B23B3B;
+  --red-soft:#FBE9E7;
+  --code-bg:#181A20;
+  --code-ink:#E5E7EC;
+  --code-c:#7C8696;   /* comment */
+  --code-k:#7FD6C9;   /* keyword  */
+  --code-s:#E0B36B;   /* string   */
+  --code-f:#9CB6F0;   /* function */
+  --side:#14161B;
+  --side-2:#1C1F26;
+  --side-ink:#C9CDD6;
+  --side-faint:#737B8A;
+  --r:10px;
+  --sb-w:288px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font-family:Inter,system-ui,sans-serif;font-weight:450;
+  font-size:16.5px;line-height:1.66;-webkit-font-smoothing:antialiased;
+}
+
+/* ---------- progress bar ---------- */
+#progress{position:fixed;top:0;left:0;height:3px;background:var(--accent);
+  width:0;z-index:60;transition:width .35s cubic-bezier(.4,0,.2,1)}
+
+/* ---------- sidebar ---------- */
+#sidebar{
+  position:fixed;top:0;left:0;width:var(--sb-w);height:100vh;
+  background:var(--side);color:var(--side-ink);overflow-y:auto;
+  border-right:1px solid #000;z-index:50;
+}
+.brand{padding:26px 24px 20px;border-bottom:1px solid var(--side-2)}
+.brand .mark{display:flex;align-items:center;gap:10px;font-family:'Space Grotesk',sans-serif;
+  font-weight:700;font-size:19px;color:#fff;letter-spacing:-.01em}
+.brand .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);
+  box-shadow:0 0 0 4px rgba(11,122,117,.25);flex:none}
+.brand .sub{margin-top:8px;font-size:12.5px;color:var(--side-faint);font-family:'JetBrains Mono',monospace}
+nav{padding:14px 12px 40px}
+.nav-group{margin:18px 0 6px;padding:0 12px;font-family:'JetBrains Mono',monospace;
+  font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--side-faint)}
+.nav-item{
+  display:flex;align-items:baseline;gap:11px;width:100%;text-align:left;
+  background:none;border:0;cursor:pointer;color:var(--side-ink);
+  font-family:Inter,sans-serif;font-size:14.5px;line-height:1.35;
+  padding:9px 12px;border-radius:8px;transition:background .15s,color .15s;
+}
+.nav-item:hover{background:var(--side-2);color:#fff}
+.nav-item .n{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--side-faint);
+  flex:none;width:18px}
+.nav-item.active{background:var(--accent);color:#fff}
+.nav-item.active .n{color:rgba(255,255,255,.7)}
+.nav-item.done .n::after{content:"\2713";color:var(--accent);font-size:11px}
+.nav-item.active.done .n::after{color:#fff}
+
+/* ---------- main ---------- */
+main{margin-left:var(--sb-w);min-height:100vh}
+.wrap{max-width:792px;margin:0 auto;padding:64px 40px 120px}
+.lesson{display:none;animation:fade .4s ease}
+.lesson.show{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* eyebrow + heading */
+.eyebrow{font-family:'JetBrains Mono',monospace;font-size:12.5px;letter-spacing:.08em;
+  color:var(--accent);text-transform:uppercase;display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.eyebrow .bar{height:1px;width:34px;background:var(--accent);opacity:.5}
+h1{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:38px;line-height:1.1;
+  letter-spacing:-.02em;margin:0 0 14px}
+.lede{font-size:18.5px;color:var(--muted);line-height:1.6;margin:0 0 8px;max-width:62ch}
+h2{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:23px;letter-spacing:-.01em;
+  margin:46px 0 12px;padding-top:6px}
+h3{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:17.5px;margin:30px 0 8px}
+p{margin:14px 0;max-width:68ch}
+a{color:var(--accent-d);text-decoration:none;border-bottom:1px solid rgba(11,122,117,.3)}
+a:hover{border-color:var(--accent)}
+strong{font-weight:600;color:var(--ink)}
+ul,ol{max-width:66ch;padding-left:22px}
+li{margin:7px 0}
+hr{border:0;border-top:1px solid var(--line);margin:40px 0}
+
+/* inline code */
+code.ic{font-family:'JetBrains Mono',monospace;font-size:.86em;
+  background:#EEEDE6;color:#243b3a;padding:2px 6px;border-radius:5px;
+  border:1px solid #E2E0D6}
+
+/* ---------- code blocks ---------- */
+.codewrap{position:relative;margin:20px 0}
+.codewrap .label{position:absolute;top:0;left:14px;transform:translateY(-50%);
+  background:var(--code-bg);color:var(--code-c);font-family:'JetBrains Mono',monospace;
+  font-size:11.5px;padding:2px 9px;border-radius:5px;border:1px solid #2A2D36;z-index:2}
+pre{margin:0;background:var(--code-bg);color:var(--code-ink);border-radius:var(--r);
+  padding:22px 20px 20px;overflow-x:auto;font-family:'JetBrains Mono',monospace;
+  font-size:13.6px;line-height:1.62;border:1px solid #23262F}
+pre.has-label{padding-top:26px}
+.copy{position:absolute;top:10px;right:10px;background:#23262F;color:var(--code-c);
+  border:1px solid #313440;border-radius:6px;font-family:'JetBrains Mono',monospace;
+  font-size:11px;padding:4px 9px;cursor:pointer;opacity:0;transition:opacity .15s,color .15s;z-index:2}
+.codewrap:hover .copy{opacity:1}
+.copy:hover{color:#fff}
+.copy.ok{color:var(--code-k);border-color:var(--code-k)}
+.c{color:var(--code-c);font-style:italic}
+.k{color:var(--code-k)}
+.s{color:var(--code-s)}
+.f{color:var(--code-f)}
+.ann{border-bottom:2px dotted var(--warm);position:relative;padding-bottom:1px}
+.ann sup{color:var(--warm);font-weight:700;font-size:.62em;margin-left:1px;
+  font-family:'JetBrains Mono',monospace}
+
+/* annotation legend */
+.legend{list-style:none;margin:14px 0 6px;padding:0;max-width:none}
+.legend li{display:flex;gap:12px;margin:0;padding:11px 14px;align-items:flex-start;
+  border-left:2px solid var(--warm-soft)}
+.legend li+li{border-top:1px solid var(--line)}
+.legend .num{flex:none;width:22px;height:22px;border-radius:50%;background:var(--warm-soft);
+  color:var(--warm);font-family:'JetBrains Mono',monospace;font-weight:700;font-size:12px;
+  display:flex;align-items:center;justify-content:center;margin-top:2px}
+.legend .txt{font-size:14.5px;line-height:1.55;color:var(--ink)}
+.legend code{font-family:'JetBrains Mono',monospace;font-size:.85em;background:#EEEDE6;
+  padding:1px 5px;border-radius:4px;color:#243b3a}
+
+/* callouts */
+.call{margin:22px 0;padding:15px 18px 15px 16px;border-radius:var(--r);
+  border:1px solid var(--line);background:var(--surface);position:relative}
+.call .tag{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.07em;
+  text-transform:uppercase;font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.call p{margin:4px 0;max-width:none;font-size:15px}
+.call.why{background:var(--warm-soft);border-color:#F0DCC4}
+.call.why .tag{color:var(--warm)}
+.call.note{background:var(--accent-soft);border-color:#C9E4E2}
+.call.note .tag{color:var(--accent-d)}
+.call.warn{background:var(--red-soft);border-color:#F3CFC9}
+.call.warn .tag{color:var(--red)}
+.call .ic{background:rgba(0,0,0,.05);border-color:rgba(0,0,0,.08)}
+
+/* term box */
+.term{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;margin:18px 0;
+  border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.term dt{padding:11px 16px;font-family:'JetBrains Mono',monospace;font-size:13px;
+  font-weight:500;color:var(--accent-d);background:var(--surface);border-bottom:1px solid var(--line)}
+.term dd{margin:0;padding:11px 16px 11px 0;font-size:14.5px;color:var(--muted);
+  border-bottom:1px solid var(--line)}
+.term dt:last-of-type,.term dd:last-of-type{border-bottom:0}
+
+/* ---------- prev / next ---------- */
+.pager{display:flex;gap:14px;margin-top:64px;padding-top:30px;border-top:1px solid var(--line)}
+.pager button{flex:1;display:flex;flex-direction:column;gap:3px;text-align:left;
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  padding:15px 18px;cursor:pointer;transition:border-color .15s,transform .12s,box-shadow .15s;
+  font-family:Inter,sans-serif}
+.pager button:hover{border-color:var(--accent);transform:translateY(-1px);
+  box-shadow:0 4px 18px rgba(11,122,117,.08)}
+.pager button:disabled{opacity:.4;cursor:default;transform:none;box-shadow:none;border-color:var(--line)}
+.pager .dir{font-family:'JetBrains Mono',monospace;font-size:11.5px;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--faint)}
+.pager .ttl{font-weight:600;font-size:15px;color:var(--ink)}
+.pager .next{text-align:right;align-items:flex-end}
+
+/* footer meta */
+.meta{margin-top:40px;font-size:12.5px;color:var(--faint);font-family:'JetBrains Mono',monospace;
+  display:flex;flex-wrap:wrap;gap:8px 18px}
+.meta a{color:var(--faint);border-bottom-color:rgba(0,0,0,.12)}
+
+/* mobile bar */
+#topbar{display:none}
+@media(max-width:920px){
+  :root{--sb-w:0px}
+  #sidebar{transform:translateX(-100%);transition:transform .28s ease;width:280px}
+  #sidebar.open{transform:none}
+  main{margin-left:0}
+  #topbar{display:flex;position:sticky;top:0;z-index:40;background:var(--side);
+    color:#fff;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid #000}
+  #topbar .burger{background:var(--side-2);border:1px solid #2A2D36;color:#fff;
+    border-radius:7px;padding:7px 11px;cursor:pointer;font-size:16px;line-height:1}
+  #topbar .t{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:15px}
+  #scrim{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:45;display:none}
+  #scrim.show{display:block}
+  .wrap{padding:40px 22px 100px}
+  h1{font-size:30px}
+  .pager{flex-direction:column}
+}
+@media(prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important;scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+
+<aside id="sidebar">
+  <div class="brand">
+    <div class="mark"><span class="dot"></span>FastAPI Field Guide</div>
+    <div class="sub">single file &rarr; production service</div>
+  </div>
+  <nav id="nav"></nav>
+</aside>
+
+<div id="topbar">
+  <button class="burger" id="burger" aria-label="Open contents">&#9776;</button>
+  <span class="t" id="topTitle">FastAPI Field Guide</span>
+</div>
+<div id="scrim"></div>
+
+<main>
+  <div class="wrap" id="content"></div>
+</main>
+
+<script>
+/* =========================================================================
+   COURSE CONTENT
+   Each lesson is authored as an HTML string. Helper builders keep code
+   blocks and annotation legends consistent.
+   ========================================================================= */
+
+// escape nothing here on purpose: snippets are pre-escaped where needed.
+const lessons = [];
+function L(group, title, html){ lessons.push({group, title, html}); }
+
+/* ---- shared helper markup as template literals ---- */
+
+// LESSON 1 -----------------------------------------------------------------
+L("Foundations","Why FastAPI",`
+<p class="lede">If you have shipped Django or Flask, you already know 80% of the mental model. This lesson covers the 20% that is genuinely new: ASGI, async handlers, and type hints that do real work at runtime.</p>
+
+<h2>What FastAPI actually is</h2>
+<p>FastAPI is a thin, opinionated layer on top of two libraries: <strong>Starlette</strong> (the ASGI toolkit that handles routing, requests, and responses) and <strong>Pydantic</strong> (data validation driven by Python type hints). FastAPI itself mostly wires those two together and generates an OpenAPI schema from your function signatures.</p>
+<p>So when something feels like magic, it is usually one of those two doing the work. Knowing which one helps you debug fast.</p>
+
+<div class="call note">
+  <div class="tag">Note &middot; mental model</div>
+  <p>Django gives you a framework with batteries (ORM, admin, templates, auth). FastAPI gives you a fast request layer and lets you choose the rest. You bring your own ORM, your own auth, your own background worker. More wiring, more control.</p>
+</div>
+
+<h2>WSGI vs ASGI, and why async matters</h2>
+<p>Django (classic) and Flask run on <strong>WSGI</strong>: one request blocks one worker thread until it finishes. If a view waits 200ms on the database, that worker does nothing else for 200ms.</p>
+<p><strong>ASGI</strong> is the async successor. A single worker can hold thousands of requests that are all "waiting" (on a DB query, a Redis call, an HTTP request to another service) and do useful work on whichever one is ready. For I/O-bound APIs, that is a large throughput win on the same hardware.</p>
+
+<dl class="term">
+  <dt>WSGI</dt><dd>Synchronous server interface. One request occupies one worker for its whole duration.</dd>
+  <dt>ASGI</dt><dd>Asynchronous server interface. Workers interleave many in-flight requests during I/O waits.</dd>
+  <dt>coroutine</dt><dd>A function defined with <code class="ic">async def</code>. It can pause at <code class="ic">await</code> and hand control back to the event loop.</dd>
+  <dt>event loop</dt><dd>The scheduler that runs coroutines, resuming each one when the thing it awaited is ready.</dd>
+</dl>
+
+<div class="call warn">
+  <div class="tag">Gotcha &middot; the async trap</div>
+  <p>Inside an <code class="ic">async def</code> handler, calling a <em>blocking</em> function (a sync DB driver, <code class="ic">requests.get</code>, <code class="ic">time.sleep</code>) freezes the entire event loop, not just one request. Async only helps if the libraries you await are also async. We use async drivers throughout this guide for exactly this reason.</p>
+</div>
+
+<h2>What you get for free</h2>
+<p>Two features fall out of the type-hint design and are the reason most teams pick FastAPI:</p>
+<ul>
+  <li><strong>Automatic validation.</strong> A parameter typed <code class="ic">int</code> is parsed and validated on the way in. Bad input returns a structured <code class="ic">422</code> before your code runs.</li>
+  <li><strong>Automatic interactive docs.</strong> FastAPI emits an OpenAPI schema and serves a live Swagger UI at <code class="ic">/docs</code> and ReDoc at <code class="ic">/redoc</code>. No annotations file to maintain.</li>
+</ul>
+
+<h2>Versions this guide targets</h2>
+<p>Everything here is written for the current stack as of mid 2026:</p>
+<dl class="term">
+  <dt>Python 3.12+</dt><dd>3.12 or 3.13 recommended. FastAPI needs 3.10 minimum.</dd>
+  <dt>FastAPI 0.137</dt><dd>Latest release line. Pydantic v2 only.</dd>
+  <dt>Pydantic v2</dt><dd>Rewritten validation core. Different API from v1 (<code class="ic">model_dump</code>, not <code class="ic">.dict</code>).</dd>
+  <dt>SQLAlchemy 2.0</dt><dd>Native async engine and the new typed <code class="ic">Mapped</code> ORM syntax.</dd>
+  <dt>uv</dt><dd>Rust package manager that replaces pip, venv, and poetry. Next lesson.</dd>
+</dl>
+`);
+
+// LESSON 2 -----------------------------------------------------------------
+L("Foundations","Project setup with uv",`
+<p class="lede">uv is the default Python toolchain in 2026. One Rust binary replaces pip, virtualenv, pyenv, and poetry, and resolves dependencies 10 to 100 times faster. We use it for every step from here on.</p>
+
+<h2>Install uv</h2>
+<div class="codewrap"><span class="label">shell</span><pre class="has-label"><span class="c"># macOS / Linux</span>
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+<span class="c"># verify</span>
+uv --version</pre></div>
+
+<h2>Create the project</h2>
+<p>One command scaffolds a project. We pass <code class="ic">--app</code> because we are building an application, not a library.</p>
+
+<div class="codewrap"><span class="label">shell</span><pre class="has-label">uv init <span class="ann">fastapi-guide<sup>1</sup></span> --app
+cd fastapi-guide
+uv add <span class="ann">fastapi<sup>2</sup></span> <span class="s">"uvicorn[standard]"</span>
+uv add <span class="ann">--dev<sup>3</sup></span> ruff pytest pytest-asyncio httpx</pre></div>
+<ol class="legend">
+  <li><span class="num">1</span><span class="txt"><code>uv init</code> creates the project folder with a <code>pyproject.toml</code>, a <code>.python-version</code> pin, a <code>.gitignore</code>, and a starter <code>main.py</code>.</span></li>
+  <li><span class="num">2</span><span class="txt"><code>uv add</code> installs a package <em>and</em> records it in <code>pyproject.toml</code>, then updates the lockfile. <code>uvicorn[standard]</code> is the ASGI server that runs the app; the <code>[standard]</code> extra pulls in fast event-loop and HTTP libraries.</span></li>
+  <li><span class="num">3</span><span class="txt"><code>--dev</code> puts a package in the dev dependency group. It installs locally but is excluded from production builds.</span></li>
+</ol>
+
+<h2>What got created</h2>
+<dl class="term">
+  <dt>pyproject.toml</dt><dd>The single source of truth: project metadata and dependency ranges. Replaces setup.py and requirements.txt.</dd>
+  <dt>uv.lock</dt><dd>Exact, resolved versions of every package and sub-dependency. Commit this. It makes installs reproducible across machines and CI.</dd>
+  <dt>.venv/</dt><dd>The virtual environment uv created and manages for you. You rarely touch it directly.</dd>
+  <dt>.python-version</dt><dd>Pins the interpreter (e.g. 3.12). A teammate running <code>uv sync</code> gets that exact Python installed automatically.</dd>
+</dl>
+
+<h2>The two commands you will live in</h2>
+<div class="codewrap"><span class="label">shell</span><pre class="has-label"><span class="c"># install everything from the lockfile (e.g. after git clone)</span>
+uv sync
+
+<span class="c"># run any command inside the project env, no "activate" needed</span>
+uv run uvicorn main:app --reload</pre></div>
+
+<div class="call why">
+  <div class="tag">Why uv over pip</div>
+  <p>pip is written in Python, so it boots an interpreter before it can resolve anything, and it has no lockfile by default. uv resolves in milliseconds, locks deterministically, and manages the interpreter and venv in one tool. For CI, the install-time drop directly cuts build minutes.</p>
+</div>
+
+<div class="call note">
+  <div class="tag">Note &middot; uv run</div>
+  <p><code class="ic">uv run X</code> executes X with the project's venv active for that command only. You never source an activate script. This is the idiomatic way to run scripts, tests, and the server.</p>
+</div>
+`);
+
+// LESSON 3 -----------------------------------------------------------------
+L("Foundations","Your first endpoint",`
+<p class="lede">A working API in seven lines. We then dissect every token, because the whole framework reads like this one function.</p>
+
+<h2>The minimal app</h2>
+<div class="codewrap"><span class="label">main.py</span><pre class="has-label"><span class="k">from</span> fastapi <span class="k">import</span> <span class="ann">FastAPI<sup>1</sup></span>
+
+app = <span class="ann">FastAPI()<sup>2</sup></span>
+
+<span class="ann">@app.get(<span class="s">"/"</span>)<sup>3</sup></span>
+<span class="ann">async def<sup>4</sup></span> root():
+    <span class="k">return</span> <span class="ann">{<span class="s">"status"</span>: <span class="s">"ok"</span>}<sup>5</sup></span></pre></div>
+<ol class="legend">
+  <li><span class="num">1</span><span class="txt"><code>FastAPI</code> is the application class. Importing it is the entry point to the whole framework.</span></li>
+  <li><span class="num">2</span><span class="txt"><code>app = FastAPI()</code> builds the ASGI application object. This is the thing uvicorn talks to. Everything you register (routes, middleware, startup hooks) hangs off this object.</span></li>
+  <li><span class="num">3</span><span class="txt"><code>@app.get("/")</code> is a <strong>decorator</strong>. It registers the function below as the handler for HTTP <code>GET</code> at the path <code>/</code>. There are siblings: <code>@app.post</code>, <code>.put</code>, <code>.delete</code>, <code>.patch</code>. FastAPI calls these "path operations".</span></li>
+  <li><span class="num">4</span><span class="txt"><code>async def</code> makes the handler a coroutine so the server can interleave other requests while this one awaits I/O. You can also write plain <code>def</code>; FastAPI runs those in a threadpool so they do not block the loop.</span></li>
+  <li><span class="num">5</span><span class="txt">Returning a <code>dict</code> (or list, or Pydantic model) is enough. FastAPI serializes it to JSON and sets <code>Content-Type: application/json</code> for you.</span></li>
+</ol>
+
+<h2>Run it</h2>
+<div class="codewrap"><span class="label">shell</span><pre class="has-label">uv run uvicorn <span class="ann">main<sup>1</sup></span>:<span class="ann">app<sup>2</sup></span> <span class="ann">--reload<sup>3</sup></span></pre></div>
+<ol class="legend">
+  <li><span class="num">1</span><span class="txt"><code>main</code> is the module, that is the file <code>main.py</code> without the extension.</span></li>
+  <li><span class="num">2</span><span class="txt"><code>app</code> is the variable name of your <code>FastAPI()</code> instance inside that file. The colon separates module from attribute.</span></li>
+  <li><span class="num">3</span><span class="txt"><code>--reload</code> restarts the server when files change. Development only. It adds disk-watch overhead and disables some optimizations, so never run it in production.</span></li>
+</ol>
+
+<h2>The free documentation</h2>
+<p>With the server running, open these two URLs:</p>
+<dl class="term">
+  <dt>/docs</dt><dd>Swagger UI. Interactive: you can call your endpoints from the browser.</dd>
+  <dt>/redoc</dt><dd>ReDoc. A cleaner, read-only reference view of the same schema.</dd>
+  <dt>/openapi.json</dt><dd>The raw OpenAPI schema FastAPI generated from your code. Clients and codegen tools consume this.</dd>
+</dl>
+
+<div class="call why">
+  <div class="tag">Why this is a big deal</div>
+  <p>You wrote no schema and no docs config. FastAPI read your function signature and return type and produced a full OpenAPI document. As you add typed parameters and models in the next lessons, that document gets richer automatically. The docs cannot drift from the code because they are generated from it.</p>
+</div>
+`);
+
+// LESSON 4 -----------------------------------------------------------------
+L("Foundations","Path & query parameters",`
+<p class="lede">This is where type hints stop being documentation and start doing work. The annotation on a parameter is what FastAPI uses to parse, validate, and document it.</p>
+
+<h2>Path parameters</h2>
+<div class="codewrap"><span class="label">main.py</span><pre class="has-label"><span class="ann">@app.get(<span class="s">"/items/{item_id}"</span>)<sup>1</sup></span>
+async def read_item(<span class="ann">item_id: int<sup>2</sup></span>):
+    <span class="k">return</span> {<span class="s">"item_id"</span>: item_id}</pre></div>
+<ol class="legend">
+  <li><span class="num">1</span><span class="txt">The <code>{item_id}</code> in the path string declares a path parameter. The name must match the function argument.</span></li>
+  <li><span class="num">2</span><span class="txt"><code>item_id: int</code> tells FastAPI to parse the URL segment as an integer. <code>/items/7</code> gives you <code>7</code> (an int, not the string "7"). <code>/items/abc</code> never reaches your code: FastAPI returns a <code>422</code> with a precise error.</span></li>
+</ol>
+
+<h2>Query parameters</h2>
+<p>Any function argument that is <em>not</em> in the path becomes a query parameter, read from the part after the <code class="ic">?</code> in the URL.</p>
+
+<div class="codewrap"><span class="label">main.py</span><pre class="has-label">async def list_items(
+    <span class="ann">skip: int = 0<sup>1</sup></span>,
+    <span class="ann">limit: int = 20<sup>2</sup></span>,
+    <span class="ann">q: str | None = None<sup>3</sup></span>,
+):
+    <span class="k">return</span> {<span class="s">"skip"</span>: skip, <span class="s">"limit"</span>: limit, <span class="s">"q"</span>: q}</pre></div>
+<ol class="legend">
+  <li><span class="num">1</span><span class="txt">A default value makes the parameter optional. <code>?skip=10</code> sets it; absent, it is <code>0</code>.</span></li>
+  <li><span class="num">2</span><span class="txt">Same pattern. <code>/items</code> uses the defaults; <code>/items?skip=40&amp;limit=10</code> overrides both.</span></li>
+  <li><span class="num">3</span><span class="txt"><code>str | None = None</code> is the modern union syntax (PEP 604, Python 3.10+). It means "a string or nothing", with default nothing. This marks the query parameter as fully optional and nullable in the docs.</span></li>
+</ol>
+
+<h2>Adding constraints</h2>
+<p>To validate beyond the type, wrap the annotation with <code class="ic">Query</code> and the <code class="ic">Annotated</code> form. <code class="ic">Annotated[T, meta]</code> attaches metadata to a type without changing it.</p>
+
+<div class="codewrap"><span class="label">main.py</span><pre class="has-label"><span class="k">from</span> typing <span class="k">import</span> Annotated
+<span class="k">from</span> fastapi <span class="k">import</span> Query
+
+async def search(
+    q: <span class="ann">Annotated[str, Query(min_length=3, max_length=50)]<sup>1</sup></span> = <span class="s">""</span>,
+):
+    <span class="k">return</span> {<span class="s">"q"</span>: q}</pre></div>
+<ol class="legend">
+  <li><span class="num">1</span><span class="txt">The type is still <code>str</code>. The <code>Query(...)</code> piece adds rules: minimum 3 characters, maximum 50. FastAPI enforces them and writes them into the OpenAPI schema, so the docs show the limits too.</span></li>
+</ol>
+
+<div class="call note">
+  <div class="tag">Note &middot; the 422 response</div>
+  <p>When validation fails, FastAPI returns HTTP <code class="ic">422 Unprocessable Entity</code> with a JSON body that names the field, the rule it broke, and the bad value. You get this for free on every typed parameter. It is one of the most useful default behaviors in the framework.</p>
+</div>
+`);
+
+// LESSON 5 -----------------------------------------------------------------
+L("Modeling","Pydantic v2 models",`
+<p class="lede">For anything past a couple of scalar fields, you describe the shape of data with a Pydantic model. The same class validates input, serializes output, and documents both.</p>
+
+<h2>Request bodies</h2>
+<p>When a parameter is typed as a Pydantic model, FastAPI reads it from the JSON request body, validates it, and hands you a fully typed object.</p>
+
+<div class="codewrap"><span class="label">schemas.py</span><pre class="has-label"><span class="k">from</span> pydantic <span class="k">import</span> <span class="ann">BaseModel<sup>1</sup></span>, <span class="ann">Field<sup>2</sup></span>
+
+class ItemIn(BaseModel):
+    name: str
+    price: float = <span class="ann">Field(gt=0)<sup>3</sup></span>
+    tags: list[str] = []</pre></div>
+<ol class="legend">
+  <li><span class="num">1</span><span class="txt"><code>BaseModel</code> is the parent class for every schema. Subclassing it turns plain type hints into a validated model.</span></li>
+  <li><span class="num">2</span><span class="txt"><code>Field</code> attaches per-field rules and metadata (constraints, description, examples, default factories).</span></li>
+  <li><span class="num">3</span><span class="txt"><code>Field(gt=0)</code> means "greater than 0". A request with <code>price: -5</code> is rejected with a 422 before your handler runs. Other constraints: <code>ge</code>, <code>le</code>, <code>lt</code>, <code>min_length</code>, <code>max_length</code>, <code>pattern</code>.</span></li>
+</ol>
+
+<h2>Using it in an endpoint</h2>
+<div class="codewrap"><span class="label">main.py</span><pre class="has-label"><span class="ann">@app.post(<span class="s">"/items"</span>, response_model=ItemOut, status_code=201)<sup>1</sup></span>
+async def create_item(<span class="ann">item: ItemIn<sup>2</sup></span>):
+    saved = {<span class="s">"id"</span>: 1, **<span class="ann">item.model_dump()<sup>3</sup></span>}
+    <span class="k">return</span> saved</pre></div>
+<ol class="legend">
+  <li><span class="num">1</span><span class="txt"><code>response_model=ItemOut</code> declares the output shape. FastAPI filters and validates whatever you return against it, so you never leak a field the client should not see. <code>status_code=201</code> sets the HTTP status for the success case (201 Created).</span></li>
+  <li><span class="num">2</span><span class="txt"><code>item: ItemIn</code> tells FastAPI this comes from the JSON body. It parses the body, validates it against <code>ItemIn</code>, and gives you a typed <code>item</code>. Your editor now autocompletes <code>item.name</code>.</span></li>
+  <li><span class="num">3</span><span class="txt"><code>item.model_dump()</code> turns the model into a plain dict. This is the Pydantic <strong>v2</strong> method. If you have seen <code>.dict()</code> in older tutorials, that is v1 and is deprecated.</span></li>
+</ol>
+
+<h2>Input and output as separate models</h2>
+<p>A common pattern: the input has no <code class="ic">id</code> (the server assigns it), the output does. Model each direction so the docs and validation are exact.</p>
+
+<div class="codewrap"><span class="label">schemas.py</span><pre class="has-label">class ItemOut(ItemIn):    <span class="c"># inherits name, price, tags</span>
+    id: int               <span class="c"># adds the server-assigned id</span></pre></div>
+
+<div class="call why">
+  <div class="tag">Why split input and output schemas</div>
+  <p>You almost never want request and response to be the same shape. Passwords come in but never go out. IDs and timestamps go out but are never accepted in. Separate <code class="ic">In</code> and <code class="ic">Out</code> models make those rules structural instead of something you remember to enforce by hand.</p>
+</div>
+
+<div class="call note">
+  <div class="tag">Note &middot; Pydantic v1 to v2 cheat sheet</div>
+  <p><code class="ic">.dict()</code> &rarr; <code class="ic">.model_dump()</code>. <code class="ic">.json()</code> &rarr; <code class="ic">.model_dump_json()</code>. <code class="ic">parse_obj()</code> &rarr; <code class="ic">model_validate()</code>. Inner <code class="ic">class Config</code> &rarr; <code class="ic">model_config = ConfigDict(...)</code>. <code class="ic">orm_mode=True</code> &rarr; <code class="ic">from_attributes=True</code>.</p>
+</div>
+`);
+
+// LESSON 6 -----------------------------------------------------------------
+L("Modeling","Dependency injection",`
+<p class="lede">Dependency injection is the spine of a FastAPI codebase. It is how you share database sessions, the current user, pagination, and config without passing them through every function by hand.</p>
+
+<h2>The idea</h2>
+<p>A dependency is just a callable. You declare that a handler needs its result, and FastAPI calls it, awaits it, and injects the value. If the dependency itself has parameters, those become part of the endpoint too.</p>
+
+<div class="codewrap"><span class="label">deps.py</span><pre class="has-label"><span class="k">from</span> typing <span class="k">import</span> Annotated
+<span class="k">from</span> fastapi <span class="k">import</span> Depends
+
+async def pagination(skip: int = 0, limit: int = 20):
+    <span class="k">return</span> {<span class="s">"skip"</span>: skip, <span class="s">"limit"</span>: min(limit, 100)}
+
+<span class="ann">PageParams = Annotated[dict, Depends(pagination)]<sup>1</sup></span></pre></div>
+<ol class="legend">
+  <li><span class="num">1</span><span class="txt">This is the recommended modern pattern: name the dependency once as an <code>Annotated</code> type alias. <code>Depends(pagination)</code> tells FastAPI "to fill this argument, call <code>pagination</code> and use its return value". Wrapping it in a type alias means you write it once and reuse it everywhere, fully typed.</span></li>
+</ol>
+
+<h2>Using it</h2>
+<div class="codewrap"><span class="label">main.py</span><pre class="has-label">@app.get(<span class="s">"/users"</span>)
+async def list_users(<span class="ann">p: PageParams<sup>1</sup></span>):
+    <span class="c"># p is already {"skip": ..., "limit": ...}</span>
+    <span class="k">return</span> p</pre></div>
+<ol class="legend">
+  <li><span class="num">1</span><span class="txt">The endpoint declares it needs <code>PageParams</code>. FastAPI sees the embedded <code>Depends</code>, runs <code>pagination</code> (pulling <code>skip</code> and <code>limit</code> from the query string), and passes the result in as <code>p</code>. Those query parameters also show up in the docs automatically.</span></li>
+</ol>
+
+<h2>Two properties that make DI powerful</h2>
+<dl class="term">
+  <dt>per-request cache</dt><dd>If two dependencies in one request both need the same sub-dependency (say, the DB session), FastAPI calls it once and reuses the result for that request. No accidental double connections.</dd>
+  <dt>cleanup with yield</dt><dd>A dependency can <code>yield</code> instead of <code>return</code>. Code before the yield runs on the way in; code after runs on the way out, even if the handler raised. This is exactly how database sessions get closed reliably.</dd>
+</dl>
+
+<div class="codewrap"><span class="label">deps.py</span><pre class="has-label">async def get_thing():
+    thing = open_resource()       <span class="c"># setup, runs before request</span>
+    <span class="k">try</span>:
+        <span class="ann">yield thing<sup>1</sup></span>             <span class="c"># value injected into the handler</span>
+    <span class="k">finally</span>:
+        thing.close()             <span class="c"># teardown, always runs</span></pre></div>
+<ol class="legend">
+  <li><span class="num">1</span><span class="txt">Everything before <code>yield</code> is setup. The handler runs while paused here. Everything after <code>yield</code> is guaranteed teardown. We use this pattern for the database session and Redis client in later lessons.</span></li>
+</ol>
+
+<div class="call why">
+  <div class="tag">Why not just import a global</div>
+  <p>Globals cannot be overridden in tests, cannot be scoped per request, and cannot run teardown. With <code class="ic">Depends</code>, you can swap the real database for a test one with a single line (<code class="ic">app.dependency_overrides</code>), which we use in the testing lesson. DI is what makes the app testable.</p>
+</div>
+`);
+
+// LESSON 7 -----------------------------------------------------------------
+L("Modeling","Structure, routers & config",`
+<p class="lede">One file is fine for a demo. A real service splits into modules. Here is the layout this guide builds toward, plus the two pieces that hold it together: routers and settings.</p>
+
+<h2>A layout that scales</h2>
+<div class="codewrap"><span class="label">tree</span><pre class="has-label">app/
+  main.py          <span class="c"># FastAPI() instance, wiring, lifespan</span>
+  config.py        <span class="c"># settings from env</span>
+  db.py            <span class="c"># engine + session dependency</span>
+  cache.py         <span class="c"># redis pool + dependency</span>
+  models.py        <span class="c"># SQLAlchemy ORM tables</span>
+  schemas.py       <span class="c"># Pydantic request/response models</span>
+  deps.py          <span class="c"># shared dependencies</span>
+  routers/
+    users.py       <span class="c"># APIRouter for /users</span>
+    items.py       <span class="c"># APIRouter for /items</span></pre></div>
+
+<h2>Routers: splitting the API</h2>
+<p>An <code class="ic">APIRouter</code> is a mini FastAPI app you can register routes on, then mount onto the main app. It keeps each resource in its own file.</p>
+
+<div class="codewrap"><span class="label">routers/users.py</span><pre class="has-label"><span class="k">from</span> fastapi <span class="k">import</span> APIRouter
+
+<span class="ann">router = APIRouter(prefix=<span class="s">"/users"</span>, tags=[<span class="s">"users"</span>])<sup>1</sup></span>
+
+<span class="ann">@router.get(<span class="s">""</span>)<sup>2</sup></span>
+async def list_users():
+    <span class="k">return</span> []</pre></div>
+<ol class="legend">
+  <li><span class="num">1</span><span class="txt"><code>prefix="/users"</code> means every route in this file is automatically under <code>/users</code>. <code>tags=["users"]</code> groups them together in the docs UI.</span></li>
+  <li><span class="num">2</span><span class="txt"><code>@router.get("")</code> with the prefix resolves to <code>GET /users</code>. You use <code>@router</code> here, not <code>@app</code>.</span></li>
+</ol>
+
+<div class="codewrap"><span class="label">main.py</span><pre class="has-label"><span class="k">from</span> fastapi <span class="k">import</span> FastAPI
+<span class="k">from</span> app.routers <span class="k">import</span> users, items
+
+app = FastAPI()
+<span class="ann">app.include_router(users.router)<sup>1</sup></span>
+app.include_router(items.router)</pre></div>
+<ol class="legend">
+  <li><span class="num">1</span><span class="txt"><code>include_router</code> mounts every route from that router onto the main app. This one line is how the pieces come together.</span></li>
+</ol>
+
+<h2>Config from the environment</h2>
+<p>Never hardcode connection strings or secrets. <code class="ic">pydantic-settings</code> reads them from environment variables and a <code class="ic">.env</code> file, with the same validation as any model.</p>
+
+<div class="codewrap"><span class="label">config.py</span><pre class="has-label"><span class="k">from</span> pydantic_settings <span class="k">import</span> BaseSettings, SettingsConfigDict
+
+class Settings(BaseSettings):
+    database_url: str
+    redis_url: str = <span class="s">"redis://localhost:6379"</span>
+    secret_key: str
+    <span class="ann">model_config = SettingsConfigDict(env_file=<span class="s">".env"</span>)<sup>1</sup></span>
+
+<span class="ann">settings = Settings()<sup>2</sup></span></pre></div>
+<ol class="legend">
+  <li><span class="num">1</span><span class="txt"><code>model_config</code> with <code>env_file=".env"</code> tells it to also read a local <code>.env</code> file. Field names map to env vars case-insensitively (<code>database_url</code> reads <code>DATABASE_URL</code>).</span></li>
+  <li><span class="num">2</span><span class="txt">Instantiating <code>Settings()</code> loads and validates everything at import time. A missing required value (like <code>secret_key</code>) fails loudly at startup instead of at 2am in production.</span></li>
+</ol>
+
+<div class="call warn">
+  <div class="tag">Gotcha &middot; commit the right files</div>
+  <p>Add <code class="ic">.env</code> to <code class="ic">.gitignore</code>. Commit a <code class="ic">.env.example</code> with the keys but no values. Commit <code class="ic">uv.lock</code>. Never commit real secrets.</p>
+</div>
+`);
+
+// LESSON 8 -----------------------------------------------------------------
+L("Data layer","Async database (SQLAlchemy 2.0)",`
+<p class="lede">Now the app talks to a real database, the async way. We use SQLAlchemy 2.0's native async engine, the new typed ORM syntax, and a session dependency that cleans itself up.</p>
+
+<h2>Install the drivers</h2>
+<div class="codewrap"><span class="label">shell</span><pre class="has-label"><span class="c"># Postgres (production)</span>
+uv add sqlalchemy asyncpg alembic
+<span class="c"># or SQLite for local dev:  uv add sqlalchemy aiosqlite</span></pre></div>
+<div class="call note">
+  <div class="tag">Note &middot; async drivers only</div>
+  <p>The driver must be async or the event loop blocks. Use <code class="ic">asyncpg</code> for Postgres, <code class="ic">aiosqlite</code> for SQLite, <code class="ic">aiomysql</code> for MySQL. The URL scheme reflects it: <code class="ic">postgresql+asyncpg://...</code>.</p>
+</div>
+
+<h2>Engine and session</h2>
+<div class="codewrap"><span class="label">db.py</span><pre class="has-label"><span class="k">from</span> sqlalchemy.ext.asyncio <span class="k">import</span> (
+    <span class="ann">create_async_engine<sup>1</sup></span>, <span class="ann">async_sessionmaker<sup>2</sup></span>, AsyncSession,
+)
+<span class="k">from</span> app.config <span class="k">import</span> settings
+
+engine = create_async_engine(settings.database_url, echo=False)
+SessionLocal = async_sessionmaker(engine, <span class="ann">expire_on_commit=False<sup>3</sup></span>)
+
+async def get_session():
+    async with SessionLocal() as session:
+        <span class="ann">yield session<sup>4</sup></span></pre></div>
+<ol class="legend">
+  <li><span class="num">1</span><span class="txt"><code>create_async_engine</code> builds the connection pool. It is created once at import and shared across all requests.</span></li>
+  <li><span class="num">2</span><span class="txt"><code>async_sessionmaker</code> is a factory. Calling <code>SessionLocal()</code> produces a fresh session bound to the engine.</span></li>
+  <li><span class="num">3</span><span class="txt"><code>expire_on_commit=False</code> keeps ORM objects usable after <code>commit()</code>. Without it, accessing an attribute post-commit triggers a fresh DB load, which fails outside an async context. This setting is effectively required for async work.</span></li>
+  <li><span class="num">4</span><span class="txt">The <code>yield</code> dependency pattern from the DI lesson: a session is opened per request and the <code>async with</code> block closes it afterward, even on error.</span></li>
+</ol>
+
+<h2>Models with the typed syntax</h2>
+<p>SQLAlchemy 2.0 uses <code class="ic">Mapped[...]</code> and <code class="ic">mapped_column(...)</code>. The Python type on the left drives the column type, and your editor type-checks queries.</p>
+
+<div class="codewrap"><span class="label">models.py</span><pre class="has-label"><span class="k">from</span> sqlalchemy.orm <span class="k">import</span> DeclarativeBase, <span class="ann">Mapped<sup>1</sup></span>, <span class="ann">mapped_column<sup>2</sup></span>
+
+class Base(DeclarativeBase):
+    <span class="k">pass</span>
+
+class User(Base):
+    <span class="ann">__tablename__ = <span class="s">"users"</span><sup>3</sup></span>
+    id: Mapped[int] = mapped_column(primary_key=True)
+    email: Mapped[str] = mapped_column(unique=True, index=True)
+    name: Mapped[str]</pre></div>
+<ol class="legend">
+  <li><span class="num">1</span><span class="txt"><code>Mapped[int]</code> is the type annotation that maps a Python attribute to a column. The inner type (<code>int</code>, <code>str</code>) determines the SQL column type.</span></li>
+  <li><span class="num">2</span><span class="txt"><code>mapped_column(...)</code> adds column options: primary key, uniqueness, indexes, nullability, defaults.</span></li>
+  <li><span class="num">3</span><span class="txt"><code>__tablename__</code> is the actual table name in the database. Required on every model.</span></li>
+</ol>
+
+<h2>CRUD in an endpoint</h2>
+<div class="codewrap"><span class="label">routers/users.py</span><pre class="has-label"><span class="k">from</span> typing <span class="k">import</span> Annotated
+<span class="k">from</span> fastapi <span class="k">import</span> Depends, HTTPException
+<span class="k">from</span> sqlalchemy.ext.asyncio <span class="k">import</span> AsyncSession
+<span class="k">from</span> app.db <span class="k">import</span> get_session
+
+<span class="ann">SessionDep = Annotated[AsyncSession, Depends(get_session)]<sup>1</sup></span>
+
+@router.post(<span class="s">""</span>, response_model=UserOut, status_code=201)
+async def create_user(data: UserIn, db: SessionDep):
+    user = User(**data.model_dump())
+    db.add(user)
+    <span class="ann">await db.commit()<sup>2</sup></span>
+    <span class="ann">await db.refresh(user)<sup>3</sup></span>
+    <span class="k">return</span> user
+
+@router.get(<span class="s">"/{user_id}"</span>, response_model=UserOut)
+async def get_user(user_id: int, db: SessionDep):
+    user = <span class="ann">await db.get(User, user_id)<sup>4</sup></span>
+    <span class="k">if</span> user <span class="k">is None</span>:
+        <span class="ann">raise HTTPException(404, <span class="s">"user not found"</span>)<sup>5</sup></span>
+    <span class="k">return</span> user</pre></div>
+<ol class="legend">
+  <li><span class="num">1</span><span class="txt">The session dependency as a reusable type alias. Every handler that needs the database just adds <code>db: SessionDep</code>.</span></li>
+  <li><span class="num">2</span><span class="txt"><code>await db.commit()</code> writes the transaction. It is awaited because the I/O is async.</span></li>
+  <li><span class="num">3</span><span class="txt"><code>await db.refresh(user)</code> reloads the row so server-generated fields (like the new <code>id</code>) are populated on the object before you return it.</span></li>
+  <li><span class="num">4</span><span class="txt"><code>db.get(Model, pk)</code> is the shortcut for a primary-key lookup. For filters, use <code>select(User).where(...)</code> with <code>await db.execute(stmt)</code>.</span></li>
+  <li><span class="num">5</span><span class="txt"><code>HTTPException(404, ...)</code> short-circuits the request with a proper status code and JSON error. Raise it; do not return it.</span></li>
+</ol>
+
+<div class="call note">
+  <div class="tag">Note &middot; reading ORM objects into schemas</div>
+  <p>For <code class="ic">response_model=UserOut</code> to accept a SQLAlchemy object, give <code class="ic">UserOut</code> a config of <code class="ic">model_config = ConfigDict(from_attributes=True)</code>. That lets Pydantic read attributes off the ORM instance instead of expecting a dict.</p>
+</div>
+
+<h2>Migrations with Alembic</h2>
+<p>Models describe the schema; Alembic versions changes to the real database. The loop:</p>
+<div class="codewrap"><span class="label">shell</span><pre class="has-label">uv run alembic init -t async migrations   <span class="c"># one-time, async template</span>
+uv run alembic revision --autogenerate -m <span class="s">"create users"</span>
+uv run alembic upgrade head                <span class="c"># apply to the database</span></pre></div>
+<div class="call warn">
+  <div class="tag">Gotcha &middot; autogenerate needs to see your models</div>
+  <p>Point Alembic's <code class="ic">target_metadata</code> at <code class="ic">Base.metadata</code> and import your models in its env file. If it cannot import the models, <code class="ic">--autogenerate</code> produces an empty migration and you will wonder why nothing changed.</p>
+</div>
+`);
+
+// LESSON 9 -----------------------------------------------------------------
+L("Data layer","Redis & caching",`
+<p class="lede">Redis sits in front of the database for read-heavy endpoints. We wire an async client into the app lifespan, then apply the cache-aside pattern with a TTL and explicit invalidation.</p>
+
+<h2>Install and connect</h2>
+<div class="codewrap"><span class="label">shell</span><pre class="has-label">uv add <span class="s">"redis[hiredis]"</span></pre></div>
+<div class="call note">
+  <div class="tag">Note &middot; one library, async included</div>
+  <p>The modern <code class="ic">redis-py</code> ships its async client at <code class="ic">redis.asyncio</code>. The old separate <code class="ic">aioredis</code> package is deprecated and merged in. The <code class="ic">[hiredis]</code> extra adds a C parser for faster responses.</p>
+</div>
+
+<h2>A pooled client via lifespan</h2>
+<p>Open the connection pool when the app starts and close it on shutdown, using the <code class="ic">lifespan</code> context manager.</p>
+
+<div class="codewrap"><span class="label">cache.py</span><pre class="has-label"><span class="k">from</span> redis.asyncio <span class="k">import</span> Redis, ConnectionPool
+<span class="k">from</span> app.config <span class="k">import</span> settings
+
+<span class="ann">pool = ConnectionPool.from_url(<sup>1</sup></span>
+    settings.redis_url,
+    <span class="ann">decode_responses=True<sup>2</sup></span>,
+    max_connections=20,
+)
+
+def get_redis() -&gt; Redis:
+    <span class="ann">return Redis(connection_pool=pool)<sup>3</sup></span></pre></div>
+<ol class="legend">
+  <li><span class="num">1</span><span class="txt"><code>ConnectionPool.from_url</code> builds a shared pool from the Redis URL. One pool for the whole app; handlers borrow connections from it.</span></li>
+  <li><span class="num">2</span><span class="txt"><code>decode_responses=True</code> returns Python <code>str</code> instead of raw <code>bytes</code>, so you do not call <code>.decode()</code> everywhere.</span></li>
+  <li><span class="num">3</span><span class="txt">The dependency hands out a <code>Redis</code> client bound to the shared pool. Cheap to create; the pool does the real work.</span></li>
+</ol>
+
+<div class="codewrap"><span class="label">main.py</span><pre class="has-label"><span class="k">from</span> contextlib <span class="k">import</span> asynccontextmanager
+
+<span class="ann">@asynccontextmanager<sup>1</sup></span>
+async def lifespan(app: FastAPI):
+    await get_redis().ping()      <span class="c"># fail fast if Redis is down</span>
+    <span class="ann">yield<sup>2</sup></span>
+    await pool.disconnect()       <span class="c"># clean shutdown</span>
+
+app = FastAPI(<span class="ann">lifespan=lifespan<sup>3</sup></span>)</pre></div>
+<ol class="legend">
+  <li><span class="num">1</span><span class="txt"><code>@asynccontextmanager</code> turns a generator into something with setup and teardown around a single <code>yield</code>. This replaces the old <code>@app.on_event("startup")</code> hooks, which are deprecated.</span></li>
+  <li><span class="num">2</span><span class="txt">Everything before <code>yield</code> runs once at startup; everything after runs once at shutdown. The app serves requests during the yield.</span></li>
+  <li><span class="num">3</span><span class="txt">Pass the function to <code>FastAPI(lifespan=...)</code> to register it.</span></li>
+</ol>
+
+<h2>Cache-aside on a read endpoint</h2>
+<p>Check Redis first. On a miss, read the database, store the result with a time-to-live, then return it.</p>
+
+<div class="codewrap"><span class="label">routers/users.py</span><pre class="has-label"><span class="k">import</span> json
+RedisDep = Annotated[Redis, Depends(get_redis)]
+
+@router.get(<span class="s">"/{user_id}"</span>, response_model=UserOut)
+async def get_user(user_id: int, db: SessionDep, cache: RedisDep):
+    key = <span class="ann">f<span class="s">"user:{user_id}"</span><sup>1</sup></span>
+    <span class="k">if</span> <span class="ann">(hit := await cache.get(key))<sup>2</sup></span>:
+        <span class="k">return</span> json.loads(hit)            <span class="c"># cache hit, skip the DB</span>
+
+    user = await db.get(User, user_id)
+    <span class="k">if</span> user <span class="k">is None</span>:
+        raise HTTPException(404, <span class="s">"user not found"</span>)
+
+    out = UserOut.model_validate(user).model_dump()
+    <span class="ann">await cache.set(key, json.dumps(out), ex=60)<sup>3</sup></span>
+    <span class="k">return</span> out</pre></div>
+<ol class="legend">
+  <li><span class="num">1</span><span class="txt">A namespaced key. The <code>user:</code> prefix keeps Redis organized and makes bulk invalidation by pattern possible later.</span></li>
+  <li><span class="num">2</span><span class="txt">The walrus <code>:=</code> assigns and tests in one expression: fetch the key, and if it is non-empty, return the cached JSON without touching the database.</span></li>
+  <li><span class="num">3</span><span class="txt"><code>ex=60</code> sets a 60-second TTL. The key expires on its own, so stale data has a bounded lifetime even if you forget to invalidate.</span></li>
+</ol>
+
+<h2>Invalidate on write</h2>
+<p>A TTL alone serves stale data until it expires. On any update or delete, drop the key so the next read repopulates it.</p>
+
+<div class="codewrap"><span class="label">routers/users.py</span><pre class="has-label">@router.delete(<span class="s">"/{user_id}"</span>, status_code=204)
+async def delete_user(user_id: int, db: SessionDep, cache: RedisDep):
+    user = await db.get(User, user_id)
+    <span class="k">if</span> user:
+        await db.delete(user)
+        await db.commit()
+    <span class="ann">await cache.delete(f<span class="s">"user:{user_id}"</span>)<sup>1</sup></span></pre></div>
+<ol class="legend">
+  <li><span class="num">1</span><span class="txt">Delete the cache key so the data does not linger. Cache invalidation is the part everyone gets wrong; the rule of thumb is "write to the database, then delete the cache key", never "write to both".</span></li>
+</ol>
+
+<div class="call why">
+  <div class="tag">Why cache-aside, and when not to</div>
+  <p>Cache-aside is simple and correct for read-heavy data that tolerates brief staleness: profiles, catalogs, config. Do not cache data that must be exact on every read (account balances, inventory at checkout) without a deliberate consistency strategy. The cache is an optimization, not a source of truth.</p>
+</div>
+`);
+
+// LESSON 10 ----------------------------------------------------------------
+L("Production","Authentication (JWT)",`
+<p class="lede">Token-based auth is a near-universal interview and production topic. We hash passwords, issue signed JWTs, and protect routes with a single dependency that resolves the current user.</p>
+
+<h2>Install</h2>
+<div class="codewrap"><span class="label">shell</span><pre class="has-label">uv add pyjwt <span class="s">"pwdlib[argon2]"</span></pre></div>
+<div class="call note">
+  <div class="tag">Note &middot; on hashers</div>
+  <p><code class="ic">pwdlib</code> with Argon2 is the current recommendation. Argon2 won the password-hashing competition and is the modern default. You will still see <code class="ic">passlib[bcrypt]</code> in older guides; it works, but bcrypt has a 72-byte input limit and recent compatibility friction.</p>
+</div>
+
+<h2>Hashing and tokens</h2>
+<div class="codewrap"><span class="label">security.py</span><pre class="has-label"><span class="k">import</span> jwt
+<span class="k">from</span> datetime <span class="k">import</span> datetime, timedelta, timezone
+<span class="k">from</span> pwdlib <span class="k">import</span> PasswordHash
+<span class="k">from</span> app.config <span class="k">import</span> settings
+
+<span class="ann">pwd = PasswordHash.recommended()<sup>1</sup></span>
+
+def hash_password(p: str) -&gt; str:
+    <span class="k">return</span> pwd.hash(p)
+
+def verify_password(p: str, hashed: str) -&gt; bool:
+    <span class="k">return</span> pwd.verify(p, hashed)
+
+def create_token(sub: str) -&gt; str:
+    exp = datetime.now(timezone.utc) + timedelta(minutes=30)
+    payload = <span class="ann">{<span class="s">"sub"</span>: sub, <span class="s">"exp"</span>: exp}<sup>2</sup></span>
+    <span class="k">return</span> <span class="ann">jwt.encode(payload, settings.secret_key, algorithm=<span class="s">"HS256"</span>)<sup>3</sup></span></pre></div>
+<ol class="legend">
+  <li><span class="num">1</span><span class="txt"><code>PasswordHash.recommended()</code> gives an Argon2 hasher with sensible parameters. You store the output of <code>hash()</code>, never the plaintext.</span></li>
+  <li><span class="num">2</span><span class="txt">The JWT payload (its "claims"). <code>sub</code> is the subject (here, the user id). <code>exp</code> is the expiry; the library and verifier both enforce it.</span></li>
+  <li><span class="num">3</span><span class="txt"><code>jwt.encode</code> signs the payload with your secret using HMAC-SHA256. The token is readable by anyone but cannot be forged or altered without the secret. So never put anything sensitive in the payload.</span></li>
+</ol>
+
+<h2>The "current user" dependency</h2>
+<p>This is where DI shines. One dependency extracts the token, verifies it, loads the user, and any protected route just asks for it.</p>
+
+<div class="codewrap"><span class="label">deps.py</span><pre class="has-label"><span class="k">from</span> fastapi.security <span class="k">import</span> OAuth2PasswordBearer
+
+<span class="ann">oauth2 = OAuth2PasswordBearer(tokenUrl=<span class="s">"auth/login"</span>)<sup>1</sup></span>
+
+async def current_user(
+    <span class="ann">token: Annotated[str, Depends(oauth2)]<sup>2</sup></span>,
+    db: SessionDep,
+) -&gt; User:
+    <span class="k">try</span>:
+        payload = jwt.decode(token, settings.secret_key, algorithms=[<span class="s">"HS256"</span>])
+    <span class="ann"><span class="k">except</span> jwt.PyJWTError:<sup>3</sup></span>
+        raise HTTPException(401, <span class="s">"invalid or expired token"</span>)
+    user = await db.get(User, int(payload[<span class="s">"sub"</span>]))
+    <span class="k">if</span> user <span class="k">is None</span>:
+        raise HTTPException(401, <span class="s">"user not found"</span>)
+    <span class="k">return</span> user
+
+<span class="ann">CurrentUser = Annotated[User, Depends(current_user)]<sup>4</sup></span></pre></div>
+<ol class="legend">
+  <li><span class="num">1</span><span class="txt"><code>OAuth2PasswordBearer</code> reads the token from the <code>Authorization: Bearer ...</code> header and tells the docs UI where the login endpoint is, so the "Authorize" button works.</span></li>
+  <li><span class="num">2</span><span class="txt">Declaring <code>Depends(oauth2)</code> means a missing or malformed header is rejected with a 401 before your code runs.</span></li>
+  <li><span class="num">3</span><span class="txt">A single <code>except</code> covers expired, malformed, and bad-signature tokens. <code>jwt.decode</code> verifies the signature and the <code>exp</code> claim and raises on any failure.</span></li>
+  <li><span class="num">4</span><span class="txt">Wrap it as a type alias. Now any route adds <code>user: CurrentUser</code> to require authentication and receive the loaded <code>User</code>.</span></li>
+</ol>
+
+<h2>Login and a protected route</h2>
+<div class="codewrap"><span class="label">routers/auth.py</span><pre class="has-label"><span class="k">from</span> fastapi.security <span class="k">import</span> OAuth2PasswordRequestForm
+
+@router.post(<span class="s">"/login"</span>)
+async def login(
+    <span class="ann">form: Annotated[OAuth2PasswordRequestForm, Depends()]<sup>1</sup></span>,
+    db: SessionDep,
+):
+    user = await find_by_email(db, form.username)
+    <span class="k">if</span> <span class="k">not</span> user <span class="k">or</span> <span class="k">not</span> verify_password(form.password, user.password_hash):
+        raise HTTPException(401, <span class="s">"bad credentials"</span>)
+    <span class="k">return</span> {<span class="s">"access_token"</span>: create_token(str(user.id)), <span class="s">"token_type"</span>: <span class="s">"bearer"</span>}
+
+@router.get(<span class="s">"/me"</span>, response_model=UserOut)
+async def me(<span class="ann">user: CurrentUser<sup>2</sup></span>):
+    <span class="k">return</span> user</pre></div>
+<ol class="legend">
+  <li><span class="num">1</span><span class="txt"><code>OAuth2PasswordRequestForm</code> parses the standard form fields (<code>username</code>, <code>password</code>). The empty <code>Depends()</code> tells FastAPI to build it from the request form.</span></li>
+  <li><span class="num">2</span><span class="txt">The entire auth check is this one parameter. No token-parsing boilerplate in the route. Unauthenticated requests never reach the body.</span></li>
+</ol>
+
+<div class="call warn">
+  <div class="tag">Gotcha &middot; secret and expiry</div>
+  <p>The <code class="ic">secret_key</code> must be long, random, and loaded from the environment, not committed. Keep access tokens short-lived (minutes) and add refresh tokens if you need long sessions. A leaked long-lived token is valid until it expires; you cannot revoke a stateless JWT without extra machinery (a denylist in Redis, for example).</p>
+</div>
+`);
+
+// LESSON 11 ----------------------------------------------------------------
+L("Production","Testing",`
+<p class="lede">FastAPI is built to be tested. An in-process async client calls your app without a running server, and dependency overrides swap the real database and cache for test doubles.</p>
+
+<h2>Install</h2>
+<div class="codewrap"><span class="label">shell</span><pre class="has-label">uv add --dev pytest pytest-asyncio httpx</pre></div>
+<dl class="term">
+  <dt>pytest</dt><dd>The test runner.</dd>
+  <dt>pytest-asyncio</dt><dd>Lets you write <code>async def</code> test functions.</dd>
+  <dt>httpx</dt><dd>Async HTTP client. Its <code>ASGITransport</code> calls your app directly, in memory.</dd>
+</dl>
+
+<h2>A first test</h2>
+<div class="codewrap"><span class="label">tests/test_health.py</span><pre class="has-label"><span class="k">import</span> pytest
+<span class="k">from</span> httpx <span class="k">import</span> AsyncClient, <span class="ann">ASGITransport<sup>1</sup></span>
+<span class="k">from</span> app.main <span class="k">import</span> app
+
+<span class="ann">@pytest.mark.asyncio<sup>2</sup></span>
+async def test_health():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url=<span class="s">"http://test"</span>) as client:
+        <span class="ann">r = await client.get(<span class="s">"/health"</span>)<sup>3</sup></span>
+    assert r.status_code == 200
+    assert r.json() == {<span class="s">"status"</span>: <span class="s">"ok"</span>}</pre></div>
+<ol class="legend">
+  <li><span class="num">1</span><span class="txt"><code>ASGITransport(app=app)</code> wires the client straight to your FastAPI app object. No socket, no port, no live server. Fast and isolated.</span></li>
+  <li><span class="num">2</span><span class="txt"><code>@pytest.mark.asyncio</code> tells pytest this is an async test and to run it on an event loop.</span></li>
+  <li><span class="num">3</span><span class="txt">You call the app exactly like a real HTTP client would, and assert on the real response. This is an end-to-end test of the route, validation, and serialization.</span></li>
+</ol>
+
+<h2>Overriding dependencies</h2>
+<p>This is the payoff of building everything on <code class="ic">Depends</code>. Replace the production database session with a test one for the duration of a test.</p>
+
+<div class="codewrap"><span class="label">tests/conftest.py</span><pre class="has-label"><span class="k">from</span> app.main <span class="k">import</span> app
+<span class="k">from</span> app.db <span class="k">import</span> get_session
+
+async def override_session():
+    async with TestSessionLocal() as s:   <span class="c"># points at a test database</span>
+        <span class="k">yield</span> s
+
+<span class="ann">app.dependency_overrides[get_session] = override_session<sup>1</sup></span></pre></div>
+<ol class="legend">
+  <li><span class="num">1</span><span class="txt"><code>dependency_overrides</code> is a dict mapping a real dependency to a replacement. Every route that used <code>get_session</code> now gets <code>override_session</code> instead, only during tests. The application code does not change at all. Clear the dict in teardown to avoid leaking the override.</span></li>
+</ol>
+
+<div class="call why">
+  <div class="tag">Why this matters for design</div>
+  <p>If you had imported a global session instead of injecting it, this override would be impossible and you would be mocking at the wrong layer. The earlier insistence on <code class="ic">Depends</code> for the database, cache, and current user is what makes the whole app swappable here. Testability is a structural property, decided when you wire dependencies, not something you bolt on later.</p>
+</div>
+
+<h2>Run them</h2>
+<div class="codewrap"><span class="label">shell</span><pre class="has-label">uv run pytest -q</pre></div>
+`);
+
+// LESSON 12 ----------------------------------------------------------------
+L("Production","Background tasks & deploy",`
+<p class="lede">The last mile: pushing slow work off the request path, then running the service for real with multiple workers, a container, and reload turned off.</p>
+
+<h2>Background tasks</h2>
+<p>For light work that should happen after the response is sent (a welcome email, a cache warm), FastAPI has <code class="ic">BackgroundTasks</code> built in.</p>
+
+<div class="codewrap"><span class="label">routers/auth.py</span><pre class="has-label"><span class="k">from</span> fastapi <span class="k">import</span> BackgroundTasks
+
+@router.post(<span class="s">"/signup"</span>, response_model=UserOut, status_code=201)
+async def signup(data: UserIn, <span class="ann">bg: BackgroundTasks<sup>1</sup></span>, db: SessionDep):
+    user = await create(db, data)
+    <span class="ann">bg.add_task(send_welcome_email, user.email)<sup>2</sup></span>
+    <span class="k">return</span> user</pre></div>
+<ol class="legend">
+  <li><span class="num">1</span><span class="txt">Declare a <code>BackgroundTasks</code> parameter and FastAPI injects it. No setup required.</span></li>
+  <li><span class="num">2</span><span class="txt"><code>add_task</code> queues a function (with its arguments) to run after the response is returned to the client. The user gets their <code>201</code> immediately; the email sends a moment later.</span></li>
+</ol>
+
+<div class="call warn">
+  <div class="tag">Gotcha &middot; know the limit</div>
+  <p>Background tasks run inside the same process. They are perfect for short, best-effort work. They are not a job queue: no retries, no persistence, lost on restart. For real workloads (long jobs, retries, scheduling), reach for <code class="ic">arq</code>, <code class="ic">Celery</code>, or <code class="ic">Dramatiq</code> with Redis or RabbitMQ as the broker.</p>
+</div>
+
+<h2>Running in production</h2>
+<p>Drop <code class="ic">--reload</code>, bind to all interfaces, and run multiple workers to use all CPU cores.</p>
+
+<div class="codewrap"><span class="label">shell</span><pre class="has-label">uv run uvicorn app.main:app \\
+    <span class="ann">--host 0.0.0.0<sup>1</sup></span> --port 8000 \\
+    <span class="ann">--workers 4<sup>2</sup></span></pre></div>
+<ol class="legend">
+  <li><span class="num">1</span><span class="txt"><code>--host 0.0.0.0</code> listens on every network interface so the container or VM is reachable from outside. <code>127.0.0.1</code> would only accept local connections.</span></li>
+  <li><span class="num">2</span><span class="txt"><code>--workers 4</code> forks four independent processes behind the scenes. Async handles concurrency <em>within</em> a process; workers spread load <em>across</em> CPU cores. A common starting point is the number of cores.</span></li>
+</ol>
+
+<h2>A container with uv</h2>
+<div class="codewrap"><span class="label">Dockerfile</span><pre class="has-label">FROM python:3.12-slim
+<span class="ann">COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv<sup>1</sup></span>
+
+WORKDIR /app
+COPY pyproject.toml uv.lock ./
+<span class="ann">RUN uv sync --frozen --no-dev<sup>2</sup></span>
+COPY . .
+
+<span class="ann">CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]<sup>3</sup></span></pre></div>
+<ol class="legend">
+  <li><span class="num">1</span><span class="txt">Copy the prebuilt <code>uv</code> binary from its official image. No pip install step needed.</span></li>
+  <li><span class="num">2</span><span class="txt"><code>uv sync --frozen</code> installs exactly what the lockfile says (the build fails if the lock is stale), and <code>--no-dev</code> skips test and lint tools. Copying the lock first, before your source, lets Docker cache this layer so rebuilds are fast when only code changes.</span></li>
+  <li><span class="num">3</span><span class="txt">The production command: no reload, bound to all interfaces. Add <code>--workers</code> here or run one worker per container and scale containers, which is the common pattern under an orchestrator.</span></li>
+</ol>
+
+<h2>Production checklist</h2>
+<ul>
+  <li><strong>No <code class="ic">--reload</code>.</strong> Development only.</li>
+  <li><strong>Secrets from the environment.</strong> Never in the image or the repo.</li>
+  <li><strong>A <code class="ic">/health</code> endpoint.</strong> So load balancers and orchestrators know the app is alive.</li>
+  <li><strong>Run migrations on deploy.</strong> <code class="ic">alembic upgrade head</code> before the new version takes traffic.</li>
+  <li><strong>Structured logging.</strong> JSON logs that your platform can index.</li>
+  <li><strong>Pin everything.</strong> Commit <code class="ic">uv.lock</code>; build from it with <code class="ic">--frozen</code>.</li>
+</ul>
+
+<h2>Where you are now</h2>
+<p>You started with seven lines and a single file. You now have the full shape of a production service: typed validation, Pydantic schemas, dependency injection, an async database with migrations, a Redis cache with invalidation, JWT auth, a test suite that swaps real infrastructure for doubles, and a container that runs the whole thing. That is the standard FastAPI stack in 2026.</p>
+
+<div class="call note">
+  <div class="tag">Note &middot; next steps to go deeper</div>
+  <p>WebSockets and Server-Sent Events for realtime. Streaming responses (FastAPI added JSON Lines streaming this year). Rate limiting at the gateway or with Redis. Observability with OpenTelemetry. And a real task queue (<code class="ic">arq</code> pairs naturally with the async stack) once background tasks stop being enough.</p>
+</div>
+`);
+
+/* =========================================================================
+   RENDER + NAVIGATION
+   ========================================================================= */
+const content = document.getElementById('content');
+const nav = document.getElementById('nav');
+const progress = document.getElementById('progress');
+const topTitle = document.getElementById('topTitle');
+const sidebar = document.getElementById('sidebar');
+const scrim = document.getElementById('scrim');
+const total = lessons.length;
+
+// build sidebar
+let lastGroup = null;
+lessons.forEach((les, i) => {
+  if (les.group !== lastGroup) {
+    const g = document.createElement('div');
+    g.className = 'nav-group';
+    g.textContent = les.group;
+    nav.appendChild(g);
+    lastGroup = les.group;
+  }
+  const btn = document.createElement('button');
+  btn.className = 'nav-item';
+  btn.dataset.i = i;
+  btn.innerHTML = `<span class="n">${String(i+1).padStart(2,'0')}</span><span>${les.title}</span>`;
+  btn.addEventListener('click', () => go(i));
+  nav.appendChild(btn);
+});
+
+// build lesson panels
+lessons.forEach((les, i) => {
+  const sec = document.createElement('section');
+  sec.className = 'lesson';
+  sec.dataset.i = i;
+  sec.innerHTML = `
+    <div class="eyebrow"><span class="bar"></span>${les.group} &middot; Lesson ${String(i+1).padStart(2,'0')} of ${String(total).padStart(2,'0')}</div>
+    <h1>${les.title}</h1>
+    ${les.html}
+    <div class="pager">
+      <button class="prev">
+        <span class="dir">&larr; Previous</span>
+        <span class="ttl">${i>0 ? lessons[i-1].title : ''}</span>
+      </button>
+      <button class="next">
+        <span class="dir">Next &rarr;</span>
+        <span class="ttl">${i<total-1 ? lessons[i+1].title : 'You’re done'}</span>
+      </button>
+    </div>
+    <div class="meta">
+      <span>FastAPI 0.137 &middot; Pydantic v2 &middot; SQLAlchemy 2.0 &middot; uv</span>
+    </div>`;
+  sec.querySelector('.prev').addEventListener('click', () => go(i-1));
+  sec.querySelector('.next').addEventListener('click', () => go(i+1));
+  if (i === 0) sec.querySelector('.prev').disabled = true;
+  if (i === total-1) sec.querySelector('.next').disabled = true;
+  content.appendChild(sec);
+});
+
+// attach copy buttons
+content.querySelectorAll('.codewrap').forEach(w => {
+  const pre = w.querySelector('pre');
+  if (!pre) return;
+  const b = document.createElement('button');
+  b.className = 'copy';
+  b.textContent = 'copy';
+  b.addEventListener('click', () => {
+    navigator.clipboard.writeText(pre.innerText).then(() => {
+      b.textContent = 'copied'; b.classList.add('ok');
+      setTimeout(() => { b.textContent = 'copy'; b.classList.remove('ok'); }, 1400);
+    });
+  });
+  w.appendChild(b);
+});
+
+const visited = new Set();
+function go(i) {
+  if (i < 0 || i >= total) return;
+  visited.add(i);
+  document.querySelectorAll('.lesson').forEach(s => s.classList.toggle('show', +s.dataset.i === i));
+  document.querySelectorAll('.nav-item').forEach(n => {
+    const ni = +n.dataset.i;
+    n.classList.toggle('active', ni === i);
+    n.classList.toggle('done', visited.has(ni) && ni !== i);
+  });
+  progress.style.width = ((i+1)/total*100) + '%';
+  topTitle.textContent = lessons[i].title;
+  if (location.hash !== '#'+(i+1)) history.replaceState(null,'','#'+(i+1));
+  window.scrollTo({top:0, behavior:'instant' in window ? 'instant' : 'auto'});
+  sidebar.classList.remove('open'); scrim.classList.remove('show');
+}
+
+// keyboard arrows
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  const cur = [...document.querySelectorAll('.lesson')].findIndex(s => s.classList.contains('show'));
+  if (e.key === 'ArrowRight') go(cur+1);
+  if (e.key === 'ArrowLeft') go(cur-1);
+});
+
+// mobile sidebar
+document.getElementById('burger').addEventListener('click', () => {
+  sidebar.classList.toggle('open'); scrim.classList.toggle('show');
+});
+scrim.addEventListener('click', () => { sidebar.classList.remove('open'); scrim.classList.remove('show'); });
+
+// start at hash or first lesson
+const startHash = parseInt(location.hash.replace('#',''), 10);
+go(Number.isInteger(startHash) && startHash>=1 && startHash<=total ? startHash-1 : 0);
+</script>
+</body>
+</html>
