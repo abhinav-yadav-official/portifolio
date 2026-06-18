@@ -1,0 +1,3098 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Go Web Engineer — From Syntax to Shipping</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;450;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/base16/black-metal-bathory.min.css">
+<style>
+:root{
+  --bg:#0e151f;
+  --bg-2:#131c28;
+  --bg-3:#0a1019;
+  --surface:#16212e;
+  --surface-2:#1b283750;
+  --text:#e8eef5;
+  --text-dim:#a3b3c4;
+  --text-faint:#6a7c8e;
+  --cyan:#00add8;
+  --cyan-bright:#4fd6f0;
+  --cyan-dim:#0d7ea0;
+  --amber:#f2b85c;
+  --rose:#f87a8c;
+  --green:#6fd99a;
+  --violet:#b69cf0;
+  --line:rgba(255,255,255,.08);
+  --line-strong:rgba(255,255,255,.14);
+  --sidebar-w:300px;
+  --measure:768px;
+  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --display:'Space Grotesk',system-ui,sans-serif;
+  --body:'Inter',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;scroll-padding-top:80px}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--body);
+  font-size:16.5px;
+  line-height:1.7;
+  -webkit-font-smoothing:antialiased;
+  font-feature-settings:"cv05","ss01";
+}
+
+/* ---------- top progress bar ---------- */
+#progress{
+  position:fixed;top:0;left:0;height:3px;width:0%;
+  background:linear-gradient(90deg,var(--cyan),var(--cyan-bright));
+  z-index:200;transition:width .1s linear;
+  box-shadow:0 0 12px var(--cyan);
+}
+
+/* ---------- layout ---------- */
+.shell{display:flex;min-height:100vh}
+
+/* ---------- sidebar ---------- */
+#sidebar{
+  width:var(--sidebar-w);flex-shrink:0;
+  background:var(--bg-3);
+  border-right:1px solid var(--line);
+  position:sticky;top:0;height:100vh;overflow-y:auto;
+  padding:0 0 40px;
+  scrollbar-width:thin;scrollbar-color:var(--cyan-dim) transparent;
+}
+#sidebar::-webkit-scrollbar{width:8px}
+#sidebar::-webkit-scrollbar-thumb{background:var(--cyan-dim);border-radius:8px}
+.brand{
+  padding:22px 24px 18px;border-bottom:1px solid var(--line);
+  position:sticky;top:0;background:var(--bg-3);z-index:5;
+}
+.brand .gopher{
+  display:inline-flex;align-items:center;gap:10px;
+  font-family:var(--display);font-weight:700;font-size:18px;letter-spacing:-.01em;
+}
+.brand .dot{
+  width:13px;height:13px;border-radius:50%;
+  background:var(--cyan);box-shadow:0 0 0 4px rgba(0,173,216,.18),0 0 14px var(--cyan);
+}
+.brand .sub{
+  margin-top:7px;font-size:12px;color:var(--text-faint);
+  font-family:var(--mono);letter-spacing:.02em;
+}
+nav.toc{padding:14px 12px 0}
+.toc .part-label{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--cyan);
+  padding:18px 12px 7px;font-weight:700;
+  display:flex;align-items:center;gap:8px;
+}
+.toc .part-label::before{content:attr(data-n);color:var(--text-faint);font-weight:400}
+.toc a{
+  display:block;color:var(--text-dim);text-decoration:none;
+  font-size:13.5px;padding:6px 12px 6px 14px;border-radius:7px;
+  border-left:2px solid transparent;line-height:1.4;
+  transition:color .12s,background .12s,border-color .12s;
+}
+.toc a:hover{color:var(--text);background:var(--surface-2)}
+.toc a.active{
+  color:var(--cyan-bright);background:rgba(0,173,216,.10);
+  border-left-color:var(--cyan);font-weight:500;
+}
+
+/* ---------- main ---------- */
+main{flex:1;min-width:0;padding:0 5vw 120px;display:flex;flex-direction:column;align-items:center}
+.col{width:100%;max-width:var(--measure)}
+
+/* hero */
+.hero{padding:88px 0 54px;border-bottom:1px solid var(--line)}
+.hero .eyebrow{
+  font-family:var(--mono);font-size:12.5px;color:var(--cyan);
+  letter-spacing:.04em;margin-bottom:20px;
+}
+.hero h1{
+  font-family:var(--display);font-weight:700;
+  font-size:clamp(2.4rem,5.4vw,4rem);line-height:1.04;letter-spacing:-.025em;
+  margin-bottom:22px;
+}
+.hero h1 .accent{
+  background:linear-gradient(120deg,var(--cyan),var(--cyan-bright));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.hero p.lede{font-size:1.18rem;color:var(--text-dim);max-width:620px;line-height:1.6}
+.hero .meta{
+  display:flex;flex-wrap:wrap;gap:10px;margin-top:30px;
+}
+.hero .chip{
+  font-family:var(--mono);font-size:11.5px;color:var(--text-dim);
+  border:1px solid var(--line-strong);border-radius:999px;
+  padding:5px 13px;background:var(--surface);
+}
+.hero .chip b{color:var(--cyan-bright);font-weight:500}
+
+/* sections */
+section.part{padding:54px 0;border-bottom:1px solid var(--line);scroll-margin-top:24px}
+section.part:last-of-type{border-bottom:none}
+.kicker{
+  font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--text-faint);margin-bottom:10px;
+}
+h2{
+  font-family:var(--display);font-weight:600;font-size:2.05rem;
+  letter-spacing:-.02em;line-height:1.12;margin-bottom:8px;scroll-margin-top:24px;
+}
+h2 .num{color:var(--cyan);font-size:1.3rem;font-weight:500;margin-right:12px;font-family:var(--mono)}
+h3{
+  font-family:var(--display);font-weight:600;font-size:1.35rem;
+  letter-spacing:-.01em;margin:38px 0 12px;color:#fff;
+}
+h4{font-family:var(--display);font-weight:600;font-size:1.06rem;margin:26px 0 8px;color:var(--cyan-bright)}
+p{margin:14px 0;color:var(--text)}
+.dim{color:var(--text-dim)}
+a.inline{color:var(--cyan-bright);text-decoration:none;border-bottom:1px solid var(--cyan-dim)}
+a.inline:hover{border-bottom-color:var(--cyan-bright)}
+ul,ol{margin:14px 0 14px 4px;padding-left:24px}
+li{margin:7px 0;color:var(--text)}
+li::marker{color:var(--cyan)}
+strong{color:#fff;font-weight:600}
+em{color:var(--cyan-bright);font-style:normal;font-weight:500}
+
+/* inline code */
+code:not(.hljs){
+  font-family:var(--mono);font-size:.86em;
+  background:var(--surface);color:var(--cyan-bright);
+  padding:2px 6px;border-radius:5px;border:1px solid var(--line);
+  white-space:nowrap;
+}
+
+/* code blocks */
+.code{position:relative;margin:20px 0;border-radius:11px;overflow:hidden;border:1px solid var(--line-strong);background:var(--bg-3)}
+.code .bar{
+  display:flex;align-items:center;gap:8px;
+  padding:9px 14px;background:#0d1620;border-bottom:1px solid var(--line);
+  font-family:var(--mono);font-size:11.5px;color:var(--text-faint);
+}
+.code .bar .lights{display:flex;gap:6px}
+.code .bar .lights i{width:10px;height:10px;border-radius:50%;display:block}
+.code .bar .lights i:nth-child(1){background:#ff5f57}
+.code .bar .lights i:nth-child(2){background:#febc2e}
+.code .bar .lights i:nth-child(3){background:#28c840}
+.code .bar .name{margin-left:6px}
+.code .bar .lang{margin-left:auto;color:var(--cyan);letter-spacing:.06em;text-transform:uppercase;font-size:10px}
+.code pre{margin:0;padding:16px 18px;overflow-x:auto;font-size:13.5px;line-height:1.62;scrollbar-width:thin}
+.code pre code{font-family:var(--mono);background:none;border:none;padding:0;white-space:pre;color:#dbe5ef}
+.code pre::-webkit-scrollbar{height:9px}
+.code pre::-webkit-scrollbar-thumb{background:#2a3a4d;border-radius:9px}
+
+/* highlight.js palette overrides → match brand */
+.hljs{background:transparent;color:#dbe5ef}
+.hljs-keyword,.hljs-built_in{color:#f87a8c}
+.hljs-type,.hljs-class .hljs-title{color:var(--cyan-bright)}
+.hljs-string,.hljs-meta-string{color:var(--green)}
+.hljs-number,.hljs-literal{color:var(--amber)}
+.hljs-comment{color:#5b6c7e;font-style:italic}
+.hljs-function .hljs-title,.hljs-title.function_{color:#86d9ff}
+.hljs-attr,.hljs-attribute{color:var(--violet)}
+.hljs-symbol,.hljs-meta{color:var(--amber)}
+.hljs-variable,.hljs-template-variable{color:#e8eef5}
+.hljs-name,.hljs-section,.hljs-selector-tag{color:var(--cyan)}
+.hljs-params{color:#cdd9e5}
+
+/* callouts */
+.callout{
+  margin:22px 0;border-radius:11px;padding:16px 18px 16px 20px;
+  border:1px solid var(--line);position:relative;background:var(--surface);
+  border-left-width:3px;
+}
+.callout .label{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;
+  text-transform:uppercase;font-weight:700;margin-bottom:6px;
+  display:flex;align-items:center;gap:8px;
+}
+.callout p{margin:6px 0;font-size:.95em;color:var(--text-dim)}
+.callout p:first-of-type{margin-top:0}
+.callout code:not(.hljs){font-size:.84em}
+.callout.why{border-left-color:var(--amber)}
+.callout.why .label{color:var(--amber)}
+.callout.nerd{border-left-color:var(--violet)}
+.callout.nerd .label{color:var(--violet)}
+.callout.gotcha{border-left-color:var(--rose)}
+.callout.gotcha .label{color:var(--rose)}
+.callout.conv{border-left-color:var(--green)}
+.callout.conv .label{color:var(--green)}
+.ico{width:15px;height:15px;display:inline-block;vertical-align:-2px}
+
+/* tables */
+.tbl-wrap{overflow-x:auto;margin:20px 0;border:1px solid var(--line-strong);border-radius:11px}
+table{border-collapse:collapse;width:100%;font-size:13.8px;min-width:480px}
+th{
+  background:#0d1620;text-align:left;padding:11px 14px;
+  font-family:var(--mono);font-size:11px;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--cyan);font-weight:700;border-bottom:1px solid var(--line-strong);
+}
+td{padding:10px 14px;border-bottom:1px solid var(--line);color:var(--text-dim);vertical-align:top}
+tr:last-child td{border-bottom:none}
+td code:not(.hljs){white-space:nowrap}
+td strong{color:var(--text)}
+
+/* key term definition row */
+.deftable td:first-child{color:var(--cyan-bright);font-family:var(--mono);font-size:12.5px;white-space:nowrap;width:1%}
+
+/* prev/next */
+.pager{display:flex;gap:14px;margin-top:46px}
+.pager a{
+  flex:1;text-decoration:none;border:1px solid var(--line-strong);
+  border-radius:12px;padding:16px 18px;background:var(--surface);
+  transition:border-color .15s,transform .15s,background .15s;
+  display:flex;flex-direction:column;gap:4px;min-width:0;
+}
+.pager a:hover{border-color:var(--cyan);background:var(--bg-2);transform:translateY(-2px)}
+.pager a.next{text-align:right;align-items:flex-end}
+.pager .pdir{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-faint)}
+.pager .ptitle{color:var(--cyan-bright);font-weight:600;font-size:15px;font-family:var(--display);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.pager a.disabled{opacity:.32;pointer-events:none}
+
+/* misc helpers */
+.note-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:22px 0}
+.note-grid .cell{border:1px solid var(--line);border-radius:11px;padding:15px 16px;background:var(--surface)}
+.note-grid .cell h4{margin:0 0 6px;font-size:.98rem;color:#fff}
+.note-grid .cell p{margin:0;font-size:.88em;color:var(--text-dim)}
+hr.soft{border:none;border-top:1px solid var(--line);margin:34px 0}
+.lead-in{font-size:1.12rem;color:var(--text-dim);margin:6px 0 20px;line-height:1.6}
+.tag-row{display:flex;flex-wrap:wrap;gap:7px;margin:14px 0}
+.tag{font-family:var(--mono);font-size:11px;padding:3px 9px;border-radius:6px;background:var(--surface);border:1px solid var(--line);color:var(--text-dim)}
+kbd{font-family:var(--mono);font-size:.8em;background:#0d1620;border:1px solid var(--line-strong);border-bottom-width:2px;border-radius:5px;padding:1px 6px;color:var(--text)}
+
+/* mobile nav toggle */
+#menuBtn{
+  display:none;position:fixed;bottom:22px;right:22px;z-index:120;
+  background:var(--cyan);color:#04222b;border:none;border-radius:50%;
+  width:54px;height:54px;font-size:22px;cursor:pointer;
+  box-shadow:0 8px 24px rgba(0,0,0,.5),0 0 0 4px rgba(0,173,216,.2);
+}
+#overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:90}
+
+@media(max-width:1080px){
+  :root{--sidebar-w:268px}
+  main{padding:0 32px 120px}
+}
+@media(max-width:860px){
+  #sidebar{position:fixed;left:0;top:0;z-index:100;transform:translateX(-100%);transition:transform .25s ease}
+  #sidebar.open{transform:translateX(0)}
+  #menuBtn{display:flex;align-items:center;justify-content:center}
+  #sidebar.open ~ #overlay{display:block}
+  main{padding:0 22px 120px}
+  .hero{padding:60px 0 40px}
+  .pager{flex-direction:column}
+}
+.closer{margin-top:40px;padding:28px 30px;border-radius:14px;background:linear-gradient(150deg,var(--bg-2),var(--surface));border:1px solid var(--line);border-top:3px solid var(--cyan)}
+.closer h3{color:var(--cyan-bright);font-family:var(--display)}
+.closer p{color:var(--text-dim)}
+:focus-visible{outline:2px solid var(--cyan-bright);outline-offset:3px;border-radius:4px}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+
+<div class="shell">
+  <aside id="sidebar">
+    <div class="brand">
+      <span class="gopher"><span class="dot"></span>The Go Web Engineer</span>
+      <div class="sub">syntax → concurrency → shipping</div>
+    </div>
+    <nav class="toc" id="toc"><!-- built by JS --></nav>
+  </aside>
+
+  <main>
+    <div class="col" id="content">
+<!-- ===================== CONTENT INJECTED BELOW ===================== -->
+<!-- ============== HERO ============== -->
+<header class="hero">
+  <div class="eyebrow">// a working engineer's tour, not a syntax cheat-sheet</div>
+  <h1>Go, from the <span class="accent">runtime up</span><br>to the load balancer.</h1>
+  <p class="lede">You already write backends. This takes you from Go's syntax to a containerised, Redis-cached, Postgres-backed, gRPC-speaking, React-fronted service behind nginx on Kubernetes — explaining <em>why</em> at every step, and the internals a senior is expected to know cold.</p>
+  <div class="meta">
+    <span class="chip">Go <b>1.23+</b></span>
+    <span class="chip">net/http <b>1.22 router</b></span>
+    <span class="chip">pgx · <b>sqlc</b></span>
+    <span class="chip"><b>proto3</b> + gRPC</span>
+    <span class="chip">React <b>+ Vite</b></span>
+    <span class="chip">Docker · nginx · <b>k8s</b></span>
+  </div>
+  <div class="meta" style="margin-top:18px">
+    <span class="chip" style="border-color:var(--amber)"><b style="color:var(--amber)">WHY</b> the reasoning</span>
+    <span class="chip" style="border-color:var(--violet)"><b style="color:var(--violet)">INTERNALS</b> for nerds</span>
+    <span class="chip" style="border-color:var(--rose)"><b style="color:var(--rose)">GOTCHA</b> the traps</span>
+    <span class="chip" style="border-color:var(--green)"><b style="color:var(--green)">CONVENTION</b> idiomatic Go</span>
+  </div>
+</header>
+
+<!-- ============== 1. WHY GO ============== -->
+<section class="part" id="why-go" data-part="I · Foundations" data-title="Why Go">
+  <div class="kicker">Part I · Foundations</div>
+  <h2><span class="num">01</span>Why Go (and what it deliberately isn't)</h2>
+  <p class="lead-in">Go was built at Google by people who were tired of slow builds, dependency hell, and concurrency that needed a PhD. Every design decision optimises for one thing: <strong>large teams shipping reliable services for a decade</strong>. Understanding that goal explains every "weird" choice you're about to meet.</p>
+
+  <h3>The pitch in one paragraph</h3>
+  <p>Go is a <strong>statically typed, compiled, garbage-collected</strong> language with a runtime that schedules lightweight <em>goroutines</em> across OS threads. It compiles to a single static binary with no external runtime — you <code>scp</code> one file and it runs. It has a famously small spec (you can hold the whole language in your head), a formatter everyone uses without arguing, and a standard library good enough to build a production HTTP server with zero dependencies.</p>
+
+  <div class="callout why">
+    <div class="label">Why this matters for you</div>
+    <p>Coming from Python/Django, the mental shift is: <strong>the compiler and the runtime do work that you used to do at runtime or in review.</strong> Types catch shape errors before deploy; the race detector catches concurrency bugs in CI; <code>go vet</code> and <code>gofmt</code> end style debates. You trade some expressiveness for the machine carrying more of the correctness burden.</p>
+  </div>
+
+  <h3>What Go deliberately leaves out</h3>
+  <ul>
+    <li><strong>No exceptions.</strong> Errors are ordinary values you return and check. This is the single biggest cultural difference — and the source of the <code>if err != nil</code> meme.</li>
+    <li><strong>No classes or inheritance.</strong> You get structs, methods, and interfaces satisfied <em>implicitly</em>. Composition over inheritance isn't a guideline here; it's the only option.</li>
+    <li><strong>No constructors, no overloading, no default args, no ternary.</strong> One obvious way to do things, even when it's more typing.</li>
+    <li><strong>Generics arrived late (1.18, 2022)</strong> and are intentionally limited. The community still prefers concrete code where it reads more clearly.</li>
+  </ul>
+
+  <div class="callout nerd">
+    <div class="label">Internals · the value proposition under the hood</div>
+    <p>A goroutine starts with an ~8&nbsp;KB <em>growable</em> stack (vs ~1–8&nbsp;MB for an OS thread), so you can run hundreds of thousands of them. The runtime multiplexes them onto a small pool of OS threads using an M:N scheduler (the <em>GMP</em> model — §11). That's why "just spawn a goroutine per request" is sane in Go and "spawn a thread per request" is not in most languages.</p>
+  </div>
+
+  <h3>When <em>not</em> to reach for Go</h3>
+  <p>Heavy numerical/ML work (Python's ecosystem wins), hard-real-time systems (GC pauses, though sub-millisecond now), or anything needing a rich expressive type system (Rust/Haskell). Go's sweet spot is <strong>networked services, CLIs, infrastructure tooling, and anything where operational simplicity beats cleverness.</strong> Kubernetes, Docker, Terraform, Prometheus, and etcd are all Go — that's not a coincidence.</p>
+</section>
+
+<!-- ============== 2. TOOLCHAIN ============== -->
+<section class="part" id="toolchain" data-part="I · Foundations" data-title="Toolchain & Modules">
+  <div class="kicker">Part I · Foundations</div>
+  <h2><span class="num">02</span>The toolchain &amp; modules</h2>
+  <p class="lead-in">There is exactly one toolchain, it ships with the language, and you'll use a handful of commands daily. No <code>pip</code> vs <code>poetry</code> vs <code>uv</code> debates — just <code>go</code>.</p>
+
+  <h3>Installing &amp; the one-command tour</h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">terminal</span><span class="lang">bash</span></div>
+    <pre><code class="language-bash"># install via the official tarball, or: brew install go
+go version            # go version go1.23.4 darwin/arm64
+
+go mod init github.com/abhinav/api   # create a module (run once per project)
+go run ./cmd/server                  # compile+run without leaving a binary
+go build -o bin/server ./cmd/server  # produce a static binary
+go test ./...                        # run every test in the module
+go vet ./...                         # static analysis for likely bugs
+gofmt -w .                           # format (or: go fmt ./...)
+go mod tidy                          # add missing + drop unused deps</code></pre>
+  </div>
+
+  <div class="callout conv">
+    <div class="label">Convention · gofmt is law</div>
+    <p>There is no style guide argument in Go because <code>gofmt</code> ends it. Tabs for indentation, specific brace placement, sorted imports — all enforced. Configure your editor to run <code>gofmt</code> (or <code>goimports</code>, which also fixes import lines) on save. A diff that only contains formatting changes signals someone forgot to.</p>
+  </div>
+
+  <h3>Modules: how dependencies actually work</h3>
+  <p>A <strong>module</strong> is a tree of packages versioned together, defined by a <code>go.mod</code> file at its root. The module path (e.g. <code>github.com/abhinav/api</code>) is both its identity and the import prefix for its packages.</p>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">go.mod</span><span class="lang">go.mod</span></div>
+    <pre><code class="language-go">module github.com/abhinav/api
+
+go 1.23
+
+require (
+    github.com/jackc/pgx/v5 v5.7.1     // direct dependency
+    github.com/redis/go-redis/v9 v9.7.0
+)
+
+require golang.org/x/sys v0.28.0 // indirect ; pulled in transitively</code></pre>
+  </div>
+
+  <div class="tbl-wrap"><table class="deftable">
+    <thead><tr><th>Symbol / file</th><th>What it is</th></tr></thead>
+    <tbody>
+      <tr><td>go.mod</td><td>Module path, Go version, and direct/indirect dependency versions. Hand-editable but usually managed by <code>go get</code> / <code>go mod tidy</code>.</td></tr>
+      <tr><td>go.sum</td><td>Cryptographic checksums of every dependency version. Commit it. It's how Go guarantees the bytes you build are the bytes the author published.</td></tr>
+      <tr><td>// indirect</td><td>A dependency not imported directly by your code, but required by something you do import.</td></tr>
+      <tr><td>GOPATH</td><td>Legacy. Pre-modules (before 2019) all code lived under <code>$GOPATH/src</code>. With modules you can put a project anywhere. You'll still see <code>$GOPATH/bin</code> for installed tools.</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="callout why">
+    <div class="label">Why a checksum file?</div>
+    <p>Go fetches the exact source for a version, hashes it, and refuses to build if it doesn't match <code>go.sum</code> — defending against a dependency being re-tagged or tampered with after you vetted it. The public <code>sum.golang.org</code> transparency log makes silent supply-chain swaps detectable. This is reproducibility-by-default, not opt-in.</p>
+  </div>
+
+  <h3>Standard project layout</h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">project tree</span><span class="lang">text</span></div>
+    <pre><code class="language-bash">api/
+├── go.mod
+├── cmd/
+│   └── server/main.go      # entrypoints live here; thin, wires things together
+├── internal/               # packages importable ONLY within this module
+│   ├── http/               # handlers, middleware, routing
+│   ├── store/              # database access
+│   └── cache/              # redis
+├── pkg/                    # (optional) library code meant for external import
+├── api/                    # .proto files, OpenAPI specs
+├── migrations/             # SQL migrations
+└── deploy/                 # Dockerfile, k8s manifests, nginx.conf</code></pre>
+  </div>
+  <div class="callout gotcha">
+    <div class="label">Gotcha · the magic of <code>internal/</code></div>
+    <p><code>internal/</code> is enforced by the compiler, not convention. Any package under an <code>internal/</code> directory can only be imported by code rooted at the directory's parent. Put domain logic there and outsiders <em>physically cannot</em> import it — perfect for keeping your public API surface tiny.</p>
+  </div>
+</section>
+<!-- ============== 3. SYNTAX & TYPES ============== -->
+<section class="part" id="syntax" data-part="I · Foundations" data-title="Syntax, Types, Zero Values">
+  <div class="kicker">Part I · Foundations</div>
+  <h2><span class="num">03</span>Syntax, types &amp; the zero value</h2>
+  <p class="lead-in">Go's syntax is C-family but reads "backwards" in places (type after name) for good reasons. Let's decode every symbol you'll see.</p>
+
+  <h3>Your first program, annotated</h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">main.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">package main          // every file belongs to a package; "main" = an executable
+
+import "fmt"          // pull in the standard formatting package
+
+func main() {         // main() in package main is the program entrypoint
+    msg := "hello"    // := declares AND infers type (string) in one step
+    fmt.Println(msg)  // exported (capitalised) identifier from fmt
+}</code></pre>
+  </div>
+
+  <div class="tbl-wrap"><table class="deftable">
+    <thead><tr><th>Symbol</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td>package</td><td>The compilation unit. Files in the same directory must share one package name. <code>main</code> is special: it builds an executable with an entry <code>func main()</code>.</td></tr>
+      <tr><td>:=</td><td><strong>Short variable declaration.</strong> Declares a new variable and infers its type from the right-hand side. Usable only <em>inside</em> functions.</td></tr>
+      <tr><td>=</td><td>Plain assignment to an already-declared variable.</td></tr>
+      <tr><td>var x int</td><td>Explicit declaration. Required at package scope (where <code>:=</code> is illegal). Initialises to the <em>zero value</em>.</td></tr>
+      <tr><td>Capital letter</td><td><strong>Visibility is encoded in case.</strong> <code>Println</code> is exported (public); <code>println</code> would be package-private. No <code>public</code>/<code>private</code> keywords exist.</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="callout why">
+    <div class="label">Why is the type after the name?</div>
+    <p><code>var x int</code> not <code>int x</code>. Go's declaration syntax reads left-to-right like English ("x is an int") and stays readable for complex types: <code>var f func(int) (string, error)</code> reads cleanly, whereas C's <code>char (*(*x[3])())[5]</code> famously does not. Same reason <code>:=</code> exists — to make the common case (declare+assign) a single, scannable line.</p>
+  </div>
+
+  <h3>The zero value: Go has no <code>null</code> surprises (mostly)</h3>
+  <p>Every type has a <strong>zero value</strong> that a variable takes if you don't initialise it. There is no "uninitialised garbage" and no separate "undefined."</p>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">zero values</span><span class="lang">go</span></div>
+    <pre><code class="language-go">var i int        // 0
+var f float64    // 0.0
+var b bool       // false
+var s string     // ""  (empty, never nil — strings can't be nil)
+var p *int       // nil (pointer)
+var sl []int     // nil (but usable! len/append work on a nil slice)
+var m map[string]int  // nil (reads ok, WRITES PANIC — see §7)
+var err error    // nil</code></pre>
+  </div>
+
+  <div class="callout conv">
+    <div class="label">Convention · make the zero value useful</div>
+    <p>Idiomatic Go designs structs so the zero value already works. <code>sync.Mutex{}</code> is a ready-to-use unlocked mutex; <code>bytes.Buffer{}</code> is a ready-to-use empty buffer — no constructor needed. When you design a type, ask: "does <code>var t MyType</code> do something sensible?"</p>
+  </div>
+
+  <h3>The numeric type zoo</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Group</th><th>Types</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Signed int</strong></td><td><code>int8 int16 int32 int64</code> + <code>int</code></td><td><code>int</code> is platform word size (64-bit on modern machines). Use it for counts/indexes unless you need a fixed width.</td></tr>
+      <tr><td><strong>Unsigned</strong></td><td><code>uint8…uint64</code> + <code>uint uintptr</code></td><td><code>byte</code> is an alias for <code>uint8</code>; <code>rune</code> is an alias for <code>int32</code> (a Unicode code point).</td></tr>
+      <tr><td><strong>Float</strong></td><td><code>float32 float64</code></td><td>No bare <code>float</code>. Default float literal is <code>float64</code>.</td></tr>
+      <tr><td><strong>Other</strong></td><td><code>complex64/128 bool string</code></td><td>Strings are immutable UTF-8 byte sequences.</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="callout gotcha">
+    <div class="label">Gotcha · no implicit numeric conversion</div>
+    <p>Go will <em>not</em> auto-convert between numeric types. <code>var i int = 3; var f float64 = i</code> is a compile error. You must write <code>float64(i)</code>. Annoying at first, but it eliminates a whole class of silent precision/overflow bugs. The same rule means <code>int32</code> and <code>int</code> are distinct types even on a 32-bit machine.</p>
+  </div>
+
+  <h3>Constants &amp; <code>iota</code></h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">constants</span><span class="lang">go</span></div>
+    <pre><code class="language-go">const Pi = 3.14159          // untyped constant: adapts to context
+
+type Weekday int
+const (
+    Sunday Weekday = iota   // iota starts at 0 in each const block
+    Monday                  // 1  (expression repeats: = iota implied)
+    Tuesday                 // 2
+)
+// bit flags via iota shifting
+const (
+    Read  = 1 << iota       // 1
+    Write                   // 2
+    Exec                    // 4
+)</code></pre>
+  </div>
+  <div class="callout nerd">
+    <div class="label">Internals · untyped constants</div>
+    <p><code>const Pi = 3.14159</code> has no type until used. Constants live with arbitrary precision at compile time, so <code>const Big = 1 &lt;&lt; 62</code> is fine even though it'd overflow in some contexts — the type is assigned (and overflow checked) only at the point of use. This is why you can write <code>var x float64 = Pi</code> and <code>var y float32 = Pi</code> from the same constant.</p>
+  </div>
+</section>
+
+<!-- ============== 4. CONTROL FLOW & LOOPS ============== -->
+<section class="part" id="control-flow" data-part="I · Foundations" data-title="Control Flow & Loops">
+  <div class="kicker">Part I · Foundations</div>
+  <h2><span class="num">04</span>Control flow &amp; loops</h2>
+  <p class="lead-in">One loop keyword. A <code>switch</code> that does more than C's. And an <code>if</code> that can scope a variable to the branch. Small surface, lots of leverage.</p>
+
+  <h3><code>for</code> is the only loop</h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">loops.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">// classic three-clause
+for i := 0; i < 10; i++ { }
+
+// while-style (no "while" keyword)
+for n > 1 { n /= 2 }
+
+// infinite loop
+for { /* break out when done */ }
+
+// range over slice: index, value
+for i, v := range nums { fmt.Println(i, v) }
+
+// range over map: key, value (ORDER IS RANDOMISED — see gotcha)
+for k, v := range m { }
+
+// range over channel: receive until closed
+for msg := range ch { }
+
+// Go 1.22+: range over an integer
+for i := range 5 { fmt.Println(i) }   // 0,1,2,3,4
+
+// Go 1.23+: range over a function (iterators)
+for v := range myIterator { }</code></pre>
+  </div>
+
+  <div class="callout gotcha">
+    <div class="label">Gotcha · map iteration order is intentionally random</div>
+    <p>Go <em>randomises</em> map iteration order on every run — by design, to stop you accidentally depending on it. If you need deterministic order, collect keys into a slice and <code>sort</code> them. Tests that iterate a map and assert order will flake.</p>
+  </div>
+
+  <div class="callout gotcha">
+    <div class="label">Gotcha (historical) · the loop variable trap — fixed in Go 1.22</div>
+    <p>Before Go 1.22, the loop variable was <em>shared</em> across iterations. <code>for _, v := range items { go func(){ use(v) }() }</code> would print the last item N times because every goroutine closed over the same <code>v</code>. <strong>Go 1.22 changed the semantics</strong> so each iteration gets a fresh variable. If you read older code or run with an older <code>go</code> directive, the old behaviour applies — this is the single most famous Go footgun, now mostly defused.</p>
+  </div>
+
+  <h3><code>if</code> with an init statement</h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">if-init</span><span class="lang">go</span></div>
+    <pre><code class="language-go">// the workhorse error pattern: scope err to just this if
+if v, err := strconv.Atoi(s); err != nil {
+    return fmt.Errorf("parsing %q: %w", s, err)
+} else {
+    use(v)  // v and err only exist inside this if/else
+}
+
+// guard clause style (preferred — flat, not nested)
+v, err := strconv.Atoi(s)
+if err != nil {
+    return err
+}
+use(v)</code></pre>
+  </div>
+  <div class="callout conv">
+    <div class="label">Convention · return early, keep the happy path un-indented</div>
+    <p>Idiomatic Go handles errors with guard clauses and returns immediately, so the "success" code marches down the left margin with no nesting. If you find yourself writing <code>} else {</code> after a block that returns, delete the <code>else</code> — the linter <code>golangci-lint</code> will flag it.</p>
+  </div>
+
+  <h3><code>switch</code> — no fallthrough, no break needed</h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">switch.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">switch day {
+case Saturday, Sunday:        // multiple values per case
+    return "weekend"
+case Monday:
+    return "ugh"
+default:
+    return "weekday"
+}                              // cases do NOT fall through by default
+
+// expression-less switch = clean if/else-if ladder
+switch {
+case score >= 90: grade = "A"
+case score >= 80: grade = "B"
+default:          grade = "F"
+}
+
+// type switch (covered fully in §9)
+switch x := any.(type) {
+case int:    fmt.Println("int", x)
+case string: fmt.Println("string", x)
+}</code></pre>
+  </div>
+  <div class="callout why">
+    <div class="label">Why no automatic fallthrough?</div>
+    <p>In C, forgetting <code>break</code> is a classic bug. Go inverts the default: each case breaks automatically. If you genuinely want C-style fallthrough, you opt in with the explicit <code>fallthrough</code> keyword — making the rare case visible and the common case safe.</p>
+  </div>
+</section>
+
+<!-- ============== 5. FUNCTIONS & DEFER ============== -->
+<section class="part" id="functions" data-part="I · Foundations" data-title="Functions, Multiple Returns, defer">
+  <div class="kicker">Part I · Foundations</div>
+  <h2><span class="num">05</span>Functions, multiple returns &amp; <code>defer</code></h2>
+  <p class="lead-in">Functions are first-class values. Multiple return values are everywhere (it's how errors travel). And <code>defer</code> is Go's answer to "make sure cleanup happens."</p>
+
+  <h3>Signatures &amp; multiple returns</h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">functions.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">// (T1, T2) return — the idiomatic (value, error) pair
+func divide(a, b float64) (float64, error) {
+    if b == 0 {
+        return 0, errors.New("divide by zero")
+    }
+    return a / b, nil
+}
+
+// named return values — declared in the signature, returned by bare "return"
+func split(sum int) (x, y int) {
+    x = sum * 4 / 9
+    y = sum - x
+    return            // "naked return" returns the named x, y
+}
+
+// variadic parameters: zero or more ints
+func sum(nums ...int) int {
+    total := 0
+    for _, n := range nums { total += n }
+    return total
+}
+sum(1, 2, 3)          // call with args
+sum(slice...)         // spread a slice with ...</code></pre>
+  </div>
+
+  <div class="callout gotcha">
+    <div class="label">Gotcha · naked returns hurt readability</div>
+    <p>Named returns are handy with <code>defer</code> (you can mutate the result in a deferred func), but <em>naked</em> returns in long functions make it hard to see what's actually returned. Convention: use named returns for documentation and defer-mutation, but still write explicit <code>return x, y</code> in anything longer than a few lines.</p>
+  </div>
+
+  <h3>Functions as values &amp; closures</h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">closures.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">// a function type
+type HandlerFunc func(w http.ResponseWriter, r *http.Request)
+
+// closure: captures `count` by reference
+func counter() func() int {
+    count := 0
+    return func() int {
+        count++          // mutates the captured variable
+        return count
+    }
+}
+next := counter()
+next(); next()           // 1, then 2 — state lives in the closure</code></pre>
+  </div>
+  <div class="callout nerd">
+    <div class="label">Internals · closures cause heap escape</div>
+    <p>When a closure captures a local variable, that variable can no longer live on the stack (the stack frame disappears when the function returns, but the closure outlives it). Go's <em>escape analysis</em> detects this at compile time and silently allocates <code>count</code> on the heap. Run <code>go build -gcflags='-m'</code> to see escape decisions printed — useful when chasing allocations in hot paths (§8).</p>
+  </div>
+
+  <h3><code>defer</code>: cleanup that can't be forgotten</h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">defer.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">func readFile(path string) ([]byte, error) {
+    f, err := os.Open(path)
+    if err != nil {
+        return nil, err
+    }
+    defer f.Close()      // runs when readFile returns, no matter HOW it returns
+
+    return io.ReadAll(f)
+}
+
+// multiple defers run LIFO (last-in, first-out)
+func order() {
+    defer fmt.Println("1")
+    defer fmt.Println("2")
+    defer fmt.Println("3")
+}                        // prints 3, 2, 1</code></pre>
+  </div>
+
+  <div class="callout why">
+    <div class="label">Why defer instead of try/finally?</div>
+    <p>You put the cleanup <em>right next to</em> the acquisition — <code>os.Open</code> then immediately <code>defer f.Close()</code> — so the reader sees the lifecycle in one place, and you can't forget to close on an early <code>return</code>. There's no separate <code>finally</code> block far below that someone might not update when adding a new exit path.</p>
+  </div>
+
+  <div class="callout gotcha">
+    <div class="label">Gotcha · deferred arguments evaluate immediately</div>
+    <p><code>defer fmt.Println(i)</code> captures <code>i</code>'s value <em>now</em>, but the call runs later. So <code>i := 1; defer fmt.Println(i); i = 2</code> prints <strong>1</strong>. If you want the late value, defer a closure: <code>defer func(){ fmt.Println(i) }()</code>. Also: deferring inside a loop stacks up all the defers until the function returns — don't <code>defer f.Close()</code> inside a 10k-iteration loop or you'll hold 10k files open. Extract the body into its own function.</p>
+  </div>
+</section>
+<!-- ============== 6. SLICES & ARRAYS ============== -->
+<section class="part" id="slices" data-part="II · Types & Memory" data-title="Slices & Arrays (internals)">
+  <div class="kicker">Part II · Types &amp; Memory</div>
+  <h2><span class="num">06</span>Slices &amp; arrays — the internals that bite</h2>
+  <p class="lead-in">Slices are <em>the</em> Go data structure, and the place experienced engineers from other languages get tripped up. Understanding the three-word header explains every surprise.</p>
+
+  <h3>Arrays vs slices</h3>
+  <p>An <strong>array</strong> has a fixed length that's part of its type: <code>[3]int</code> and <code>[4]int</code> are different types, and arrays are <em>value types</em> — copying one copies all elements. You'll rarely use them directly. A <strong>slice</strong> is a flexible, growable view <em>into</em> an underlying array.</p>
+
+  <div class="callout nerd">
+    <div class="label">Internals · a slice is a 3-word header</div>
+    <p>A slice value is literally this struct (from the runtime):</p>
+    <p style="margin-top:8px"><code>type slice struct { ptr *T; len int; cap int }</code></p>
+    <p><strong>ptr</strong> → start of the backing array, <strong>len</strong> → how many elements are visible, <strong>cap</strong> → how many fit before a reallocation. When you pass a slice to a function, you copy these <em>three words</em> — not the data. That's why the function sees the same backing array (and can mutate your elements) but can't make your slice longer.</p>
+  </div>
+
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">slices.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">s := []int{2, 3, 5, 7}        // literal; len=4 cap=4
+s = make([]int, 0, 10)        // make([]T, len, cap): empty but cap for 10
+
+s = append(s, 11)             // append returns a (possibly new) slice — ALWAYS reassign
+s = append(s, more...)        // spread another slice in
+
+sub := s[1:3]                 // slicing: [low:high] → len=2, SHARES backing array
+sub = s[1:3:3]                // three-index [low:high:max] caps the new slice
+
+fmt.Println(len(s), cap(s))   // length and capacity</code></pre>
+  </div>
+
+  <div class="callout gotcha">
+    <div class="label">Gotcha · append can alias — or not — and that's the bug</div>
+    <p><code>append</code> writes into the existing backing array <em>if there's spare capacity</em>; otherwise it allocates a new, bigger array and copies. So whether two slices sharing a backing array affect each other depends on <code>cap</code> at runtime — a Heisenbug. The fix: when you slice-then-append and need isolation, use the three-index slice <code>s[a:b:b]</code> (forces the next append to reallocate) or copy explicitly. <strong>Always reassign the result of append</strong> (<code>s = append(s, x)</code>) — ignoring the return is the #1 slice mistake.</p>
+  </div>
+
+  <h3>The classic sharing bug, made concrete</h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">aliasing.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">original := []int{1, 2, 3, 4, 5}
+view := original[1:3]          // [2 3], but cap=4 (reaches to end of original)
+
+view = append(view, 99)        // cap available! writes into original[3]
+// original is now [1 2 3 99 5]  ← surprise! you mutated original
+
+// SAFE: cut off the capacity
+view := original[1:3:3]        // cap=2 now
+view = append(view, 99)        // forced to allocate; original untouched</code></pre>
+  </div>
+
+  <div class="callout nerd">
+    <div class="label">Internals · how append grows capacity</div>
+    <p>When capacity runs out, Go grows the backing array — historically "double until 1024 elements, then grow ~1.25×." The exact factor changed in Go 1.18 to a smoother curve, but the takeaway holds: growth is <em>amortised O(1)</em>, and if you know the final size, <code>make([]T, 0, n)</code> avoids all the intermediate copies. In a hot loop that builds a big slice, pre-sizing is a real, measurable win.</p>
+  </div>
+
+  <div class="callout gotcha">
+    <div class="label">Gotcha · the memory-leak slice</div>
+    <p>Slicing a huge slice down to a tiny view keeps the <em>entire</em> backing array alive — the GC can't free it while any slice references it. If you extract a 10-byte header from a 10&nbsp;MB buffer and keep it around, you've pinned 10&nbsp;MB. Fix: <code>append([]byte(nil), small...)</code> or <code>bytes.Clone</code> to copy just what you need.</p>
+  </div>
+
+  <h3>copy &amp; iterating</h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">copy.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">dst := make([]int, len(src))
+n := copy(dst, src)           // copies min(len(dst),len(src)) elements
+
+// delete element i preserving order (the idiom)
+s = append(s[:i], s[i+1:]...)
+// Go 1.21+: cleaner with the slices package
+s = slices.Delete(s, i, i+1)
+slices.Sort(s)                // generic sort, no boilerplate
+i, found := slices.BinarySearch(s, 7)</code></pre>
+  </div>
+</section>
+
+<!-- ============== 7. MAPS & STRUCTS ============== -->
+<section class="part" id="maps-structs" data-part="II · Types & Memory" data-title="Maps & Structs">
+  <div class="kicker">Part II · Types &amp; Memory</div>
+  <h2><span class="num">07</span>Maps &amp; structs</h2>
+
+  <h3>Maps: hash tables with sharp edges</h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">maps.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">m := make(map[string]int)     // create (nil map can be READ but not written)
+m["a"] = 1                    // set
+
+v := m["a"]                   // get; MISSING KEY RETURNS ZERO VALUE, not an error
+v, ok := m["x"]               // comma-ok: ok==false if key absent
+delete(m, "a")                // remove
+n := len(m)                   // size
+
+// literal
+prices := map[string]float64{"coffee": 3.5, "tea": 2.0}</code></pre>
+  </div>
+
+  <div class="callout gotcha">
+    <div class="label">Gotcha · writing to a nil map panics</div>
+    <p><code>var m map[string]int</code> gives you a nil map. Reads return the zero value silently, but <code>m["x"] = 1</code> <strong>panics</strong> at runtime. Always initialise with <code>make</code> or a literal before writing. This asymmetry catches everyone once.</p>
+  </div>
+
+  <div class="callout gotcha">
+    <div class="label">Gotcha · you can't take the address of a map element</div>
+    <p><code>&m["k"]</code> is a compile error, and you can't mutate a struct field in place: <code>m["k"].Field = 1</code> won't compile. Reason: maps may rehash and move entries, so a pointer into one would dangle. Fix: read the value out, modify, write it back — or store <code>map[K]*V</code> (pointers to structs) when you need in-place mutation.</p>
+  </div>
+
+  <div class="callout nerd">
+    <div class="label">Internals · maps are not concurrency-safe</div>
+    <p>Concurrent map read+write triggers a deliberate runtime panic ("concurrent map writes") — the runtime detects it and crashes you rather than corrupting memory silently. For concurrent access use a <code>sync.RWMutex</code> around the map, or <code>sync.Map</code> for specific read-heavy patterns. The race detector (<code>go test -race</code>) will also flag it. Don't reach for <code>sync.Map</code> by default — a plain map + mutex is usually faster and clearer.</p>
+  </div>
+
+  <h3>Structs: aggregate types</h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">structs.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">type User struct {
+    ID        int64
+    Name      string
+    Email     string    `json:"email"`        // struct tag (metadata, §18)
+    CreatedAt time.Time `json:"created_at"`
+    internal  bool      // lowercase = unexported field
+}
+
+u := User{ID: 1, Name: "Abhinav"}   // field-keyed literal (preferred)
+u2 := User{1, "A", "a@x.com", time.Now(), false} // positional (fragile — avoid)
+
+u.Name = "Updated"                  // dot access
+p := &u                             // pointer to struct
+p.Name = "Via pointer"              // Go auto-derefs: (*p).Name not needed
+
+// anonymous struct — handy for one-off shapes (e.g. JSON responses)
+resp := struct {
+    OK   bool   `json:"ok"`
+    Data string `json:"data"`
+}{OK: true, Data: "hi"}</code></pre>
+  </div>
+
+  <div class="callout nerd">
+    <div class="label">Internals · struct field ordering affects size</div>
+    <p>Structs are laid out in declaration order with alignment padding. <code>struct{ a bool; b int64; c bool }</code> can be <strong>24 bytes</strong> (1+7pad+8+1+7pad) while <code>struct{ b int64; a bool; c bool }</code> is <strong>16</strong>. For millions of structs this matters; tools like <code>fieldalignment</code> (in <code>golang.org/x/tools</code>) auto-detect and reorder. Don't micro-optimise prematurely, but know the lever exists.</p>
+  </div>
+
+  <h3>Embedding: composition, not inheritance</h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">embedding.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">type Base struct {
+    ID        int64
+    CreatedAt time.Time
+}
+func (b Base) Age() time.Duration { return time.Since(b.CreatedAt) }
+
+type Article struct {
+    Base               // embedded (no field name) — "promotes" its fields/methods
+    Title string
+}
+
+a := Article{Base: Base{ID: 1, CreatedAt: time.Now()}, Title: "Hi"}
+a.ID        // promoted field — reach in directly
+a.Age()     // promoted method — Article "has" Base's behaviour</code></pre>
+  </div>
+  <div class="callout why">
+    <div class="label">Why embedding instead of inheritance?</div>
+    <p>Embedding gives you method/field promotion (the convenience of inheritance) without the fragile base-class problem. <code>Article</code> doesn't <em>extend</em> <code>Base</code> — it <em>contains</em> one and forwards to it. There's no virtual dispatch surprise: if both <code>Article</code> and <code>Base</code> define <code>Age()</code>, the outer one wins and the inner is still reachable as <code>a.Base.Age()</code>. Explicit, no magic.</p>
+  </div>
+</section>
+
+<!-- ============== 8. POINTERS & MEMORY ============== -->
+<section class="part" id="pointers" data-part="II · Types & Memory" data-title="Pointers, Stack vs Heap, Escape Analysis">
+  <div class="kicker">Part II · Types &amp; Memory</div>
+  <h2><span class="num">08</span>Pointers, stack vs heap &amp; escape analysis</h2>
+  <p class="lead-in">Go has pointers but no pointer arithmetic. The interesting part isn't the syntax — it's that the compiler, not you, decides what lives on the stack vs the heap.</p>
+
+  <h3>The two operators</h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">pointers.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">x := 42
+p := &x        // & "address of" → p is *int, points at x
+fmt.Println(*p) // * "dereference" → reads through the pointer: 42
+*p = 99        // writes through the pointer; x is now 99
+
+// pointers let a function mutate its caller's value
+func increment(n *int) { *n++ }
+increment(&x)  // x becomes 100
+
+// new(T) allocates a zeroed T and returns *T
+ptr := new(int)  // *int pointing at a fresh 0</code></pre>
+  </div>
+
+  <div class="callout why">
+    <div class="label">Why no pointer arithmetic?</div>
+    <p>You can't do <code>p++</code> to walk memory. That removes an entire category of buffer-overrun and use-after-free bugs, and lets the garbage collector know exactly where every pointer is. <code>unsafe.Pointer</code> exists as an escape hatch for the 0.1% of cases (zero-copy conversions, syscalls), and the name is a warning label.</p>
+  </div>
+
+  <h3>Value vs pointer: when to use which</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Pass by value</th><th>Pass by pointer</th></tr></thead>
+    <tbody>
+      <tr><td>Small structs (a few words)</td><td>Large structs (avoid copying)</td></tr>
+      <tr><td>You want immutability / a copy</td><td>You need to mutate the caller's value</td></tr>
+      <tr><td><code>time.Time</code>, small value types</td><td>Anything with a <code>sync.Mutex</code> (must not be copied)</td></tr>
+      <tr><td>Slices/maps/channels (already reference-like)</td><td>When "no value" is meaningful (nil pointer)</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout gotcha">
+    <div class="label">Gotcha · never copy a type containing a Mutex</div>
+    <p>Copying a struct that embeds <code>sync.Mutex</code> copies the lock's internal state — now two "different" locks guard the same data and neither protects anything. <code>go vet</code> catches this ("copies lock value"). Rule of thumb: types with a mutex are passed and stored <em>by pointer</em>, always.</p>
+  </div>
+
+  <h3>Stack vs heap — decided by escape analysis</h3>
+  <p>In C you choose <code>malloc</code> vs stack. In Go you don't — the compiler runs <strong>escape analysis</strong>: if a value's lifetime is provably bounded by the function, it goes on the (fast, auto-freed) stack; if it "escapes" (returned, captured by a closure, stored in something that outlives the call, or too large), it goes on the heap and the GC manages it.</p>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">escape</span><span class="lang">bash</span></div>
+    <pre><code class="language-go">func stackAlloc() int {
+    x := 42        // stays on stack — never escapes
+    return x       // returns a COPY
+}
+
+func heapAlloc() *int {
+    x := 42        // escapes! a pointer to x outlives the function
+    return &x      // → compiler moves x to the heap
+}</code></pre>
+  </div>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">terminal</span><span class="lang">bash</span></div>
+    <pre><code class="language-bash">go build -gcflags='-m' ./...
+# ./main.go:8:2: moved to heap: x        ← escape analysis report
+# ./main.go:3:2: x does not escape</code></pre>
+  </div>
+
+  <div class="callout nerd">
+    <div class="label">Internals · returning a pointer to a local is safe (and idiomatic)</div>
+    <p>In C, <code>return &x</code> for a local is a dangling-pointer bug. In Go it's fine and common — escape analysis guarantees <code>x</code> is heap-allocated when needed, so the pointer stays valid. This is why Go constructors return <code>*T</code> without ceremony. The cost is a heap allocation + GC pressure, which is why hot paths sometimes pass values or use <code>sync.Pool</code> to recycle objects.</p>
+  </div>
+
+  <div class="callout nerd">
+    <div class="label">Internals · the garbage collector</div>
+    <p>Go uses a <strong>concurrent, tri-color mark-and-sweep</strong> collector tuned for low latency over throughput. It runs alongside your program with sub-millisecond stop-the-world pauses, typically targeting &lt;1&nbsp;ms. You tune it with <code>GOGC</code> (default 100 = collect when heap doubles) or the newer <code>GOMEMLIMIT</code> (a soft memory ceiling — invaluable in containers to avoid OOM-kills). For latency-sensitive services, set <code>GOMEMLIMIT</code> to ~90% of the pod's memory limit and the GC will pace itself instead of being killed by the OOM killer.</p>
+  </div>
+</section>
+<!-- ============== 9. METHODS & INTERFACES ============== -->
+<section class="part" id="interfaces" data-part="II · Types & Memory" data-title="Methods & Interfaces (internals)">
+  <div class="kicker">Part II · Types &amp; Memory</div>
+  <h2><span class="num">09</span>Methods &amp; interfaces — Go's superpower</h2>
+  <p class="lead-in">Interfaces are how Go does polymorphism, dependency injection, and testability. They're satisfied <em>implicitly</em>, which feels strange for a day and then feels like a gift.</p>
+
+  <h3>Methods: functions with a receiver</h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">methods.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">type Counter struct{ n int }
+
+// value receiver — operates on a COPY, can't mutate the original
+func (c Counter) Value() int { return c.n }
+
+// pointer receiver — can mutate; required to change state
+func (c *Counter) Inc() { c.n++ }
+
+c := Counter{}
+c.Inc()        // Go auto-takes &c → (&c).Inc()
+c.Value()      // 1</code></pre>
+  </div>
+  <div class="callout conv">
+    <div class="label">Convention · pick one receiver type per type</div>
+    <p>If <em>any</em> method needs a pointer receiver (to mutate, or because the struct is large), make <em>all</em> methods pointer receivers for consistency. Mixing value and pointer receivers on one type leads to subtle method-set bugs (below). The community rule: "when in doubt, use a pointer receiver."</p>
+  </div>
+
+  <h3>Interfaces: behaviour, satisfied implicitly</h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">interfaces.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">// an interface is a set of method signatures
+type Stringer interface {
+    String() string
+}
+
+type Point struct{ X, Y int }
+
+// Point satisfies Stringer just by HAVING the method —
+// no "implements" keyword, no declaration of intent
+func (p Point) String() string {
+    return fmt.Sprintf("(%d, %d)", p.X, p.Y)
+}
+
+var s Stringer = Point{1, 2}   // works automatically
+fmt.Println(s.String())        // (1, 2)</code></pre>
+  </div>
+
+  <div class="callout why">
+    <div class="label">Why implicit satisfaction?</div>
+    <p>Because the <em>consumer</em> defines the interface it needs, not the producer. You can write an interface that <code>os.File</code> satisfies <em>without modifying the os package</em>. This decouples packages completely: your code depends on a tiny <code>interface{ Read(p []byte) (int, error) }</code>, and anything with a matching method fits — files, network connections, in-memory buffers, your test mock. It's structural typing with compile-time checking.</p>
+  </div>
+
+  <div class="callout conv">
+    <div class="label">Convention · accept interfaces, return structs; keep them small</div>
+    <p>"The bigger the interface, the weaker the abstraction." The standard library's most-used interfaces have <em>one</em> method: <code>io.Reader</code>, <code>io.Writer</code>, <code>fmt.Stringer</code>, <code>error</code>. Define interfaces in the package that <em>uses</em> them, sized to exactly what that function needs — not a giant "Repository" interface with 30 methods.</p>
+  </div>
+
+  <h3>The empty interface &amp; <code>any</code></h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">any.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">var x any = 42        // any == interface{} (alias since Go 1.18); holds anything
+
+// type assertion: pull the concrete type back out
+n, ok := x.(int)      // ok==true, n==42 ; comma-ok form never panics
+n := x.(int)          // panics if x isn't an int — use only when certain
+
+// type switch: branch on dynamic type
+switch v := x.(type) {
+case int:    fmt.Println("int:", v)
+case string: fmt.Println("string:", v)
+case nil:    fmt.Println("nil")
+default:     fmt.Printf("unknown: %T\n", v)
+}</code></pre>
+  </div>
+
+  <div class="callout nerd">
+    <div class="label">Internals · an interface value is two words (the iface)</div>
+    <p>An interface value is a pair: <strong>(type pointer, data pointer)</strong>. The type pointer references an <em>itab</em> (interface table) holding the concrete type's info and a function pointer for each method — this is Go's vtable, built once per (interface, concrete-type) pair. Method calls through an interface are an indirect jump through that table, which is why interface dispatch is slightly slower than a direct call and can't be inlined. For empty interfaces, it's (type, data); for typed interfaces, (itab, data).</p>
+  </div>
+
+  <div class="callout gotcha">
+    <div class="label">Gotcha · the typed-nil interface trap</div>
+    <p>An interface is nil only when <em>both</em> its type and data words are nil. If you store a nil pointer of a concrete type in an interface, the interface is <strong>not nil</strong> — its type word is set:</p>
+    <p style="margin-top:8px"><code>var p *MyError = nil; var err error = p; err != nil // TRUE!</code></p>
+    <p>This bites hard with error returns: returning a nil <code>*MyError</code> as an <code>error</code> makes <code>if err != nil</code> true even though "there's no error." Fix: return a literal <code>nil</code>, or check and return <code>nil</code> explicitly. This is one of the most infamous Go interview questions.</p>
+  </div>
+
+  <h3>Method sets &amp; the pointer-receiver subtlety</h3>
+  <div class="callout nerd">
+    <div class="label">Internals · who satisfies the interface — T or *T?</div>
+    <p>If a method has a <em>pointer</em> receiver <code>func (c *Counter) Inc()</code>, then only <code>*Counter</code> satisfies an interface requiring <code>Inc()</code> — a plain <code>Counter</code> value does <em>not</em>. (A value's address isn't always available, e.g. a map element, so the language can't auto-take it for interface satisfaction.) Value-receiver methods are in the method set of both <code>T</code> and <code>*T</code>. Practical effect: <code>var w io.Writer = myBuf</code> may fail while <code>var w io.Writer = &myBuf</code> works. When an interface assignment mysteriously won't compile, this is almost always why.</p>
+  </div>
+</section>
+
+<!-- ============== 10. GENERICS ============== -->
+<section class="part" id="generics" data-part="II · Types & Memory" data-title="Generics">
+  <div class="kicker">Part II · Types &amp; Memory</div>
+  <h2><span class="num">10</span>Generics (type parameters)</h2>
+  <p class="lead-in">Added in Go 1.18 after a decade of debate. Use them for genuinely type-agnostic containers and algorithms — not as a hammer for everything.</p>
+
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">generics.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">// [T any] declares a type parameter T constrained to "any type"
+func Map[T, U any](s []T, f func(T) U) []U {
+    out := make([]U, len(s))
+    for i, v := range s {
+        out[i] = f(v)
+    }
+    return out
+}
+
+doubled := Map([]int{1, 2, 3}, func(n int) int { return n * 2 })
+// T and U inferred from the arguments — no explicit Map[int,int] needed
+
+// constraints restrict what operations are allowed
+type Number interface {
+    ~int | ~int64 | ~float64    // | is a union ; ~ means "underlying type"
+}
+func Sum[T Number](nums []T) T {
+    var total T
+    for _, n := range nums { total += n }   // + is allowed because Number permits it
+    return total
+}</code></pre>
+  </div>
+
+  <div class="tbl-wrap"><table class="deftable">
+    <thead><tr><th>Symbol</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td>[T any]</td><td>Type parameter list. <code>T</code> is a placeholder; <code>any</code> is its constraint (here, no restriction).</td></tr>
+      <tr><td>constraints</td><td>An interface used as a constraint defines which types are permitted and which operations are legal on values of <code>T</code>.</td></tr>
+      <tr><td><code>|</code></td><td>Type union — "any of these types."</td></tr>
+      <tr><td><code>~int</code></td><td>"Any type whose <em>underlying</em> type is int" — so a <code>type Celsius int</code> also satisfies it.</td></tr>
+      <tr><td><code>comparable</code></td><td>Built-in constraint for types usable with <code>==</code> (valid as map keys).</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="callout why">
+    <div class="label">Why so cautious with generics?</div>
+    <p>Before 1.18, type-agnostic code meant <code>interface{}</code> + runtime assertions (unsafe) or code generation (clunky). Generics fix that for containers (<code>slices</code>, <code>maps</code> packages are now generic) and algorithms. But Go's philosophy is "a little copying is better than a little dependency" — if a concrete <code>[]string</code> version reads more clearly than a generic one, write the concrete one. Generics are a tool for library authors more than application code.</p>
+  </div>
+
+  <div class="callout nerd">
+    <div class="label">Internals · GC-shape stenciling</div>
+    <p>Go doesn't fully monomorphise like C++ (which would bloat binaries) nor fully box like Java. It uses <em>GC-shape stenciling</em>: one compiled instance is shared across all types with the same memory layout/pointer-shape (e.g. all pointer types share one stencil), passing a hidden dictionary of type info at runtime. The upshot: small binary growth, but generic code over pointer types has a slight dictionary-lookup overhead vs hand-written concrete code. Rarely matters; occasionally does in tight loops.</p>
+  </div>
+
+  <div class="callout conv">
+    <div class="label">Convention · the standard generic helpers</div>
+    <p>Reach for the stdlib first: <code>slices.Sort</code>, <code>slices.Contains</code>, <code>slices.Index</code>, <code>maps.Keys</code>, <code>maps.Clone</code>, <code>cmp.Compare</code>, and <code>min</code>/<code>max</code> (builtins since 1.21). These cover 90% of what people used to write generics for.</p>
+  </div>
+</section>
+<!-- ============== 11. GOROUTINES & SCHEDULER ============== -->
+<section class="part" id="goroutines" data-part="III · Concurrency" data-title="Goroutines & the Scheduler (GMP)">
+  <div class="kicker">Part III · Concurrency</div>
+  <h2><span class="num">11</span>Goroutines &amp; the scheduler (GMP)</h2>
+  <p class="lead-in">"Don't communicate by sharing memory; share memory by communicating." Concurrency is Go's headline feature, and the runtime scheduler is the machinery that makes "spawn a goroutine per request" actually work.</p>
+
+  <h3>Spawning concurrency is one keyword</h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">goroutines.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">go doWork()              // launch doWork concurrently; main does NOT wait
+go func() {              // anonymous goroutine
+    fmt.Println("hi")
+}()
+
+// the catch: main returning kills all goroutines instantly
+func main() {
+    go fmt.Println("might never print")
+    // main exits → program exits → goroutine may not run
+}</code></pre>
+  </div>
+
+  <div class="callout gotcha">
+    <div class="label">Gotcha · goroutines need a reason to be waited for</div>
+    <p>A bare <code>go f()</code> with nothing synchronising it is almost always a bug. When <code>main</code> returns, the process exits and every goroutine is killed mid-flight — no cleanup, no defers. You need a <code>sync.WaitGroup</code>, a channel, or <code>errgroup</code> to wait. <code>time.Sleep</code> "to let it finish" is the canonical beginner mistake and a flaky-test generator.</p>
+  </div>
+
+  <h3>Concurrency ≠ parallelism</h3>
+  <p><strong>Concurrency</strong> is structuring a program as independently executing pieces. <strong>Parallelism</strong> is actually running them simultaneously on multiple cores. Go gives you concurrency as a language feature; the runtime delivers parallelism when cores are available. You write the same code either way.</p>
+
+  <div class="callout nerd">
+    <div class="label">Internals · the GMP scheduler</div>
+    <p>The runtime schedules goroutines onto OS threads with three entities:</p>
+    <ul style="margin:8px 0">
+      <li><strong>G</strong> — a goroutine: its stack, instruction pointer, and state. Cheap (~2&nbsp;KB start, grows/shrinks).</li>
+      <li><strong>M</strong> — a machine: an actual OS thread that executes code.</li>
+      <li><strong>P</strong> — a processor: a scheduling context holding a local run-queue of Gs. The number of P's = <code>GOMAXPROCS</code> (default = CPU cores).</li>
+    </ul>
+    <p>An M must hold a P to run Go code. The scheduler is <em>M:N</em> — many goroutines multiplexed onto few threads. Each P has a local queue (lock-free fast path); when empty, it <em>work-steals</em> from other P's queues. A global queue and a <em>netpoller</em> (epoll/kqueue/IOCP) round it out.</p>
+  </div>
+
+  <div class="callout nerd">
+    <div class="label">Internals · why blocking I/O doesn't block your threads</div>
+    <p>This is the magic. When a goroutine does network I/O, the runtime parks it on the <strong>netpoller</strong> and frees the M to run other goroutines — the OS thread is never blocked waiting on a socket. When the I/O is ready, the netpoller wakes the goroutine. For a blocking <em>syscall</em> (e.g. file read), the runtime detaches the M+G from the P and spins up/reuses another M so the P keeps scheduling. Result: 100k goroutines doing network I/O cost a handful of threads, not 100k. This is why Go web servers handle massive concurrency without an explicit event loop — the runtime <em>is</em> the event loop.</p>
+  </div>
+
+  <div class="callout nerd">
+    <div class="label">Internals · preemption</div>
+    <p>Originally Go was cooperatively scheduled — a goroutine yielded only at function calls/allocations, so a tight loop with no calls could hog a P forever. Since Go 1.14 the scheduler is <strong>asynchronously preemptive</strong>: it sends a signal to interrupt long-running goroutines at safe points. This is why a CPU-bound goroutine no longer starves others. You rarely think about it, but it's why <code>for {}</code> won't wedge your whole program anymore.</p>
+  </div>
+
+  <div class="callout conv">
+    <div class="label">Convention · GOMAXPROCS in containers</div>
+    <p><code>GOMAXPROCS</code> defaults to the <em>machine's</em> core count, which in a CPU-limited container (e.g. a 0.5-CPU k8s pod on a 64-core node) means Go thinks it has 64 P's — causing excessive context-switching and GC threads. Set it to your CPU limit, or use <code>go.uber.org/automaxprocs</code> (a blank import that reads cgroup limits). Go 1.25+ is making this cgroup-aware by default; until you're on it, set it explicitly.</p>
+  </div>
+
+  <h3>WaitGroup: wait for N goroutines</h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">waitgroup.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">var wg sync.WaitGroup
+for _, url := range urls {
+    wg.Add(1)                // increment BEFORE starting the goroutine
+    go func(u string) {
+        defer wg.Done()      // decrement when this goroutine finishes
+        fetch(u)
+    }(url)                   // pass url as arg (pre-1.22 capture safety)
+}
+wg.Wait()                    // blocks until counter hits 0</code></pre>
+  </div>
+  <div class="callout gotcha">
+    <div class="label">Gotcha · Add inside the goroutine is a race</div>
+    <p>Call <code>wg.Add(1)</code> <em>before</em> <code>go</code>, on the parent goroutine. If you call it inside the new goroutine, <code>wg.Wait()</code> might run before the Add and return early. Also: a WaitGroup must not be copied after first use — pass it by pointer.</p>
+  </div>
+</section>
+
+<!-- ============== 12. CHANNELS & SELECT ============== -->
+<section class="part" id="channels" data-part="III · Concurrency" data-title="Channels & select">
+  <div class="kicker">Part III · Concurrency</div>
+  <h2><span class="num">12</span>Channels &amp; <code>select</code></h2>
+  <p class="lead-in">Channels are typed pipes that also synchronise. They're how goroutines hand off data and coordinate without explicit locks.</p>
+
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">channels.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">ch := make(chan int)        // unbuffered: send blocks until a receiver is ready
+buf := make(chan int, 100)  // buffered: send blocks only when full
+
+ch <- 42                    // send (arrow points INTO the channel)
+v := <-ch                   // receive (arrow points OUT)
+v, ok := <-ch               // ok==false if channel is closed AND drained
+
+close(ch)                   // close: signals "no more values" (sender's job)
+for v := range ch {         // range receives until the channel is closed
+    use(v)
+}</code></pre>
+  </div>
+
+  <div class="tbl-wrap"><table class="deftable">
+    <thead><tr><th>Direction / op</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>chan&nbsp;int</code></td><td>Bidirectional channel of ints.</td></tr>
+      <tr><td><code>chan&lt;-&nbsp;int</code></td><td>Send-only (used in function params to restrict usage).</td></tr>
+      <tr><td><code>&lt;-chan&nbsp;int</code></td><td>Receive-only.</td></tr>
+      <tr><td>unbuffered</td><td>A send <em>rendezvous</em>: sender and receiver meet — a synchronisation point.</td></tr>
+      <tr><td>buffered</td><td>Decouples sender/receiver up to capacity; send blocks only when full.</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="callout why">
+    <div class="label">Why channels instead of locks?</div>
+    <p>Locks protect <em>state</em>; channels transfer <em>ownership</em>. When you send a value on a channel, you're conceptually handing it off — only one goroutine "owns" it at a time, so there's no shared mutable state to race over. This makes data-flow pipelines (producer → worker → consumer) natural to express and reason about. That said, sometimes a plain mutex around a counter <em>is</em> the right tool — Go gives you both and the idiom is "use whichever is simpler for the problem."</p>
+  </div>
+
+  <h3><code>select</code>: wait on multiple channels</h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">select.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">select {
+case msg := <-ch1:
+    handle(msg)
+case ch2 <- value:           // a send can be a case too
+    sent()
+case <-time.After(2 * time.Second):
+    return errors.New("timeout")     // timeout pattern
+case <-ctx.Done():
+    return ctx.Err()                 // cancellation pattern
+default:
+    // runs if NO case is ready — makes the select non-blocking
+}</code></pre>
+  </div>
+  <div class="callout nerd">
+    <div class="label">Internals · select is fair-random, not ordered</div>
+    <p>If multiple cases are ready simultaneously, <code>select</code> picks one <em>uniformly at random</em> — not top-to-bottom. This prevents starvation of later cases. A <code>default</code> case makes the whole select non-blocking (it's chosen only when nothing else is ready). Don't put a <code>default</code> in a loop that should block, or you'll busy-spin and burn a CPU.</p>
+  </div>
+
+  <h3>Channel deadlocks &amp; closing rules</h3>
+  <div class="callout gotcha">
+    <div class="label">Gotcha · the close rules that cause panics</div>
+    <ul style="margin:6px 0">
+      <li>Sending on a <strong>closed</strong> channel → <strong>panic</strong>.</li>
+      <li>Closing a <strong>closed</strong> channel → <strong>panic</strong>.</li>
+      <li>Closing a <strong>nil</strong> channel → <strong>panic</strong>.</li>
+      <li>Receiving from a closed channel → returns zero value immediately, <code>ok=false</code> (safe).</li>
+      <li>Send/receive on a <strong>nil</strong> channel → blocks <em>forever</em> (useful trick to disable a select case).</li>
+    </ul>
+    <p><strong>Rule: the sender closes, never the receiver</strong>, and only one goroutine should close. With multiple senders, coordinate close via a separate "done" channel or <code>sync.Once</code> — never let senders race to close.</p>
+  </div>
+  <div class="callout gotcha">
+    <div class="label">Gotcha · "all goroutines are asleep — deadlock!"</div>
+    <p>An unbuffered <code>ch &lt;- 1</code> with no receiver, or <code>&lt;-ch</code> with no sender, blocks forever. If <em>every</em> goroutine is blocked, the runtime detects it and panics with this message — a gift, because it surfaces the bug instead of hanging. (It can't detect partial deadlocks where some goroutines still run, e.g. a leaked goroutine waiting on a channel nobody will ever send to — those just leak silently. Watch your goroutine count in metrics.)</p>
+  </div>
+</section>
+
+<!-- ============== 13. SYNC, CONTEXT, PATTERNS ============== -->
+<section class="part" id="sync-context" data-part="III · Concurrency" data-title="sync, context & Patterns">
+  <div class="kicker">Part III · Concurrency</div>
+  <h2><span class="num">13</span><code>sync</code>, <code>context</code> &amp; the patterns that matter</h2>
+
+  <h3>The sync toolbox</h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">sync.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">var mu sync.Mutex            // mutual exclusion
+mu.Lock(); count++; mu.Unlock()
+
+var rw sync.RWMutex          // many readers OR one writer
+rw.RLock(); _ = data; rw.RUnlock()   // concurrent reads allowed
+
+var once sync.Once           // run exactly once (lazy init, singletons)
+once.Do(func() { initExpensiveThing() })
+
+// sync.Pool — recycle allocations to cut GC pressure in hot paths
+var bufPool = sync.Pool{New: func() any { return new(bytes.Buffer) }}
+b := bufPool.Get().(*bytes.Buffer)
+defer func() { b.Reset(); bufPool.Put(b) }()
+
+// atomic — lock-free counters
+var n atomic.Int64
+n.Add(1); n.Load()</code></pre>
+  </div>
+  <div class="callout conv">
+    <div class="label">Convention · guard the lock with defer, scope it tight</div>
+    <p>Pattern: <code>mu.Lock(); defer mu.Unlock()</code> at the top of a critical section so the unlock can't be skipped on an early return or panic. But keep critical sections short — never do I/O or call out to unknown code while holding a lock, or you'll serialise your whole service behind one slow call.</p>
+  </div>
+
+  <h3><code>context</code>: cancellation, deadlines &amp; request scope</h3>
+  <p>Every Go web service is built around <code>context.Context</code>. It carries deadlines, cancellation signals, and request-scoped values across API boundaries and goroutines. The HTTP server gives you one per request; you thread it down to the database, the cache, the gRPC call.</p>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">context.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">// derive a context with a 5s deadline
+ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+defer cancel()               // ALWAYS call cancel to release resources
+
+// pass ctx as the FIRST argument, by convention
+rows, err := db.QueryContext(ctx, "SELECT ...")
+
+// inside a long operation, watch for cancellation
+select {
+case <-ctx.Done():
+    return ctx.Err()         // context.Canceled or context.DeadlineExceeded
+case result := <-work:
+    return result
+}
+
+// request-scoped values (use sparingly — for request IDs, auth, not config)
+ctx = context.WithValue(ctx, userKey{}, user)
+u, _ := ctx.Value(userKey{}).(*User)</code></pre>
+  </div>
+  <div class="callout why">
+    <div class="label">Why thread context everywhere?</div>
+    <p>When a client disconnects or a request times out, you want the cancellation to <em>propagate</em> — the DB query should stop, the downstream HTTP call should abort, goroutines should wind down. Context is the wire that carries "stop now" through every layer. A service that ignores context keeps doing expensive work for requests nobody is waiting for anymore — a classic cause of cascading overload.</p>
+  </div>
+  <div class="callout gotcha">
+    <div class="label">Gotcha · context anti-patterns vet/linters flag</div>
+    <ul style="margin:6px 0">
+      <li>Don't store a Context in a struct field — pass it as the first <em>argument</em>.</li>
+      <li>Don't pass <code>nil</code> Context — use <code>context.TODO()</code> if you genuinely don't have one yet.</li>
+      <li>Don't use <code>context.WithValue</code> for optional function params — it's untyped and invisible. Reserve it for request-scoped cross-cutting data (trace IDs, auth principal).</li>
+      <li>Always <code>defer cancel()</code> — leaking a cancel func leaks a goroutine and a timer.</li>
+    </ul>
+  </div>
+
+  <h3>errgroup: the modern fan-out pattern</h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">errgroup.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">import "golang.org/x/sync/errgroup"
+
+// run N tasks concurrently, cancel all if any fails, collect first error
+g, ctx := errgroup.WithContext(ctx)
+g.SetLimit(8)                       // bound concurrency (worker-pool-ish)
+for _, id := range ids {
+    g.Go(func() error {             // Go 1.22+: id captured safely
+        return process(ctx, id)
+    })
+}
+if err := g.Wait(); err != nil {    // waits for all; returns first error
+    return err
+}</code></pre>
+  </div>
+  <div class="callout conv">
+    <div class="label">Convention · prefer errgroup over raw WaitGroup for fallible work</div>
+    <p>Raw <code>WaitGroup</code> can't propagate errors or cancel siblings. <code>errgroup.WithContext</code> gives you both: the first error cancels the shared context, the rest see <code>ctx.Done()</code> and bail, and <code>Wait()</code> returns that error. <code>SetLimit(n)</code> turns it into a bounded worker pool in one line. This is the default pattern for "do these N things concurrently and fail fast."</p>
+  </div>
+
+  <div class="callout nerd">
+    <div class="label">Internals · the race detector is non-negotiable in CI</div>
+    <p><code>go test -race ./...</code> instruments memory accesses to detect data races at runtime (two goroutines touching the same memory, one writing, with no synchronisation). It has ~5–10× CPU/memory overhead so it's not for production, but it catches bugs that are otherwise invisible until they corrupt data in prod at 3am. Run your full test suite with <code>-race</code> in CI. It only catches races on code paths your tests actually exercise — so coverage of concurrent paths matters.</p>
+  </div>
+</section>
+<!-- ============== 14. ERRORS ============== -->
+<section class="part" id="errors" data-part="IV · Errors & Idiom" data-title="Errors, panic & recover">
+  <div class="kicker">Part IV · Errors &amp; Idiom</div>
+  <h2><span class="num">14</span>Errors, <code>panic</code> &amp; <code>recover</code></h2>
+  <p class="lead-in">Errors are values. This one design choice shapes how every Go program is written. Master the wrapping/inspection idioms and your services become debuggable.</p>
+
+  <h3>The error interface is tiny</h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">errors.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">type error interface {        // the entire definition
+    Error() string
+}
+
+// create errors
+errors.New("not found")
+fmt.Errorf("user %d: %w", id, err)   // %w WRAPS err, preserving the chain
+
+// sentinel errors — comparable package-level values
+var ErrNotFound = errors.New("not found")
+
+// custom error types carry structured data
+type ValidationError struct {
+    Field string
+    Msg   string
+}
+func (e *ValidationError) Error() string {
+    return fmt.Sprintf("%s: %s", e.Field, e.Msg)
+}</code></pre>
+  </div>
+
+  <div class="callout why">
+    <div class="label">Why <code>%w</code> matters</div>
+    <p><code>%w</code> (wrap) embeds the original error inside a new one, building a <em>chain</em> you can later unwrap and inspect — while <code>%v</code> just flattens it to text and loses the structure. Wrap with context at each layer ("querying user: scanning row: connection reset") so the final message reads like a stack trace of <em>what you were doing</em>, not just where it failed.</p>
+  </div>
+
+  <h3>Inspecting wrapped errors</h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">inspect.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">// errors.Is — does the chain contain this sentinel?
+if errors.Is(err, sql.ErrNoRows) {
+    return http.StatusNotFound
+}
+
+// errors.As — extract a specific error TYPE from the chain
+var ve *ValidationError
+if errors.As(err, &ve) {
+    fmt.Println("bad field:", ve.Field)
+}
+
+// errors.Join — combine multiple errors (Go 1.20+)
+err := errors.Join(err1, err2)   // Is/As see both</code></pre>
+  </div>
+  <div class="callout gotcha">
+    <div class="label">Gotcha · stop comparing errors with <code>==</code></div>
+    <p><code>if err == ErrNotFound</code> breaks the moment someone wraps the error with <code>%w</code> upstream — the wrapped error isn't <code>==</code> the sentinel. Always use <code>errors.Is(err, ErrNotFound)</code>, which walks the chain. Same for type checks: use <code>errors.As</code>, not a type assertion. Linters (<code>errorlint</code>) flag direct comparisons.</p>
+  </div>
+
+  <h3>panic &amp; recover — for the truly exceptional</h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">panic.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">// panic unwinds the stack, running deferred funcs, then crashes the program
+panic("unrecoverable: corrupt invariant")
+
+// recover stops a panic — ONLY works inside a deferred function
+func safeHandler(next http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        defer func() {
+            if rec := recover(); rec != nil {
+                log.Printf("panic: %v\n%s", rec, debug.Stack())
+                http.Error(w, "internal error", 500)
+            }
+        }()
+        next.ServeHTTP(w, r)
+    })
+}</code></pre>
+  </div>
+  <div class="callout conv">
+    <div class="label">Convention · panic is not exceptions</div>
+    <p>Use <code>panic</code> only for programmer errors and truly impossible states (a corrupt invariant, a nil that "can't" be nil). Normal failures — bad input, missing record, network blip — are <em>errors you return</em>, not panics. The one legitimate <code>recover</code> in a typical service is a top-level middleware that turns an unexpected panic in one handler into a 500 instead of crashing the whole process. A panicking goroutine that nobody recovers takes down the <em>entire program</em>.</p>
+  </div>
+</section>
+
+<!-- ============== 15. PROJECT IDIOMS ============== -->
+<section class="part" id="idioms" data-part="IV · Errors & Idiom" data-title="Project Layout & Idioms">
+  <div class="kicker">Part IV · Errors &amp; Idiom</div>
+  <h2><span class="num">15</span>Project layout, idioms &amp; tooling</h2>
+
+  <h3>The idiom checklist seniors enforce in review</h3>
+  <div class="note-grid">
+    <div class="cell"><h4>Errors last, checked</h4><p>Return <code>(T, error)</code>; check <code>err</code> before using <code>T</code>. Never ignore an error with <code>_</code> unless you genuinely mean it (and comment why).</p></div>
+    <div class="cell"><h4>Context first</h4><p>If a func does I/O, its first param is <code>ctx context.Context</code>.</p></div>
+    <div class="cell"><h4>Accept interfaces</h4><p>Take the smallest interface you need; return concrete types.</p></div>
+    <div class="cell"><h4>Zero value works</h4><p>Design types so <code>var t T</code> is usable.</p></div>
+    <div class="cell"><h4>No naked globals</h4><p>Pass dependencies explicitly (a <code>Server</code> struct holding deps) — easier to test than package-level singletons.</p></div>
+    <div class="cell"><h4>Small packages, clear names</h4><p>Package name + type reads well: <code>http.Server</code>, not <code>http.HTTPServer</code>. Avoid stutter.</p></div>
+  </div>
+
+  <h3>The tooling every Go shop runs</h3>
+  <div class="tbl-wrap"><table class="deftable">
+    <thead><tr><th>Tool</th><th>What it does</th></tr></thead>
+    <tbody>
+      <tr><td>gofmt / goimports</td><td>Format + organise imports. Non-negotiable, on save.</td></tr>
+      <tr><td>go vet</td><td>Built-in static checks (printf args, lock copies, unreachable code).</td></tr>
+      <tr><td>golangci-lint</td><td>The meta-linter: bundles 50+ linters (staticcheck, errcheck, revive, gosec…). The de-facto CI gate.</td></tr>
+      <tr><td>staticcheck</td><td>The best single linter; catches real bugs and dead code. Included in golangci-lint.</td></tr>
+      <tr><td>go test -race -cover</td><td>Tests with race detection and coverage.</td></tr>
+      <tr><td>pprof</td><td>CPU/heap/goroutine profiler — <code>import _ "net/http/pprof"</code> and hit <code>/debug/pprof</code>.</td></tr>
+      <tr><td>govulncheck</td><td>Scans your deps for known CVEs that your code actually reaches.</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="callout conv">
+    <div class="label">Convention · structured logging with <code>slog</code></div>
+    <p>Since Go 1.21 the stdlib has <code>log/slog</code> — structured, leveled logging with JSON output for production. Prefer it over the old <code>log</code> package and over third-party loggers for new code.</p>
+  </div>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">slog.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+slog.SetDefault(logger)
+
+slog.Info("request handled",
+    "method", r.Method,
+    "path", r.URL.Path,
+    "status", 200,
+    "duration_ms", 42,
+)
+// {"time":"...","level":"INFO","msg":"request handled","method":"GET",...}</code></pre>
+  </div>
+</section>
+
+<!-- ============== 16. NET/HTTP ============== -->
+<section class="part" id="net-http" data-part="V · Web Services" data-title="net/http Deep Dive">
+  <div class="kicker">Part V · Web Services</div>
+  <h2><span class="num">16</span><code>net/http</code> — a production server in the stdlib</h2>
+  <p class="lead-in">No framework required. Go's <code>net/http</code> is a fully capable, production-grade HTTP server and client. Frameworks add ergonomics, not capability.</p>
+
+  <h3>The smallest real server</h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">main.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">func main() {
+    mux := http.NewServeMux()                 // a request router (multiplexer)
+    mux.HandleFunc("GET /health", health)     // 1.22: method + path patterns
+
+    srv := &http.Server{
+        Addr:              ":8080",
+        Handler:           mux,
+        ReadHeaderTimeout: 5 * time.Second,    // mitigate Slowloris attacks
+        ReadTimeout:       10 * time.Second,
+        WriteTimeout:      15 * time.Second,
+        IdleTimeout:       60 * time.Second,
+    }
+    log.Fatal(srv.ListenAndServe())
+}
+
+func health(w http.ResponseWriter, r *http.Request) {
+    w.WriteHeader(http.StatusOK)
+    w.Write([]byte("ok"))
+}</code></pre>
+  </div>
+
+  <div class="tbl-wrap"><table class="deftable">
+    <thead><tr><th>Type</th><th>Role</th></tr></thead>
+    <tbody>
+      <tr><td>http.Handler</td><td>The core interface: one method, <code>ServeHTTP(w, r)</code>. Everything routable is a Handler.</td></tr>
+      <tr><td>http.HandlerFunc</td><td>An adapter so a plain <code>func(w, r)</code> satisfies <code>Handler</code>. This is the "func as interface" trick from §9.</td></tr>
+      <tr><td>http.ResponseWriter</td><td>Where you write the response: set headers, status, body. <em>Not</em> safe for concurrent use within one request.</td></tr>
+      <tr><td>*http.Request</td><td>The incoming request: method, URL, headers, body, and crucially <code>r.Context()</code>.</td></tr>
+      <tr><td>http.ServeMux</td><td>The stdlib router. Greatly upgraded in 1.22 (methods + path wildcards).</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="callout gotcha">
+    <div class="label">Gotcha · always set server timeouts</div>
+    <p><code>http.ListenAndServe(":8080", mux)</code> (the one-liner) has <strong>no timeouts</strong> — a slow or malicious client can hold a connection open forever and exhaust your server. <em>Always</em> build an explicit <code>http.Server</code> with <code>ReadHeaderTimeout</code> at minimum. This is the single most common production omission in Go services.</p>
+  </div>
+
+  <div class="callout why">
+    <div class="label">Why a "ResponseWriter" interface and not return a response?</div>
+    <p>Streaming. Because you <em>write</em> to <code>w</code> rather than returning a response object, you can stream gigabytes, flush partial responses (SSE, chunked), and hijack the connection (WebSockets) — all without buffering the whole body in memory. The trade-off: once you call <code>w.WriteHeader</code> or write a body, the status is locked in; you can't change it later. Order matters: set headers → <code>WriteHeader(status)</code> → write body.</p>
+  </div>
+
+  <h3>Graceful shutdown</h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">shutdown.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">// listen in a goroutine so main can wait for a signal
+go func() {
+    if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+        log.Fatal(err)
+    }
+}()
+
+// block until SIGINT/SIGTERM (k8s sends SIGTERM on pod stop)
+stop := make(chan os.Signal, 1)
+signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
+<-stop
+
+// give in-flight requests 30s to finish, then force-close
+ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+defer cancel()
+srv.Shutdown(ctx)   // stops accepting new conns, drains existing ones</code></pre>
+  </div>
+  <div class="callout conv">
+    <div class="label">Convention · graceful shutdown is mandatory in k8s</div>
+    <p>When Kubernetes rolls a deployment it sends <code>SIGTERM</code> and waits <code>terminationGracePeriodSeconds</code> before <code>SIGKILL</code>. Without <code>srv.Shutdown</code>, in-flight requests get cut off mid-response. Drain time should be less than the grace period. Pair this with a readiness probe that starts failing on shutdown so the load balancer stops sending new traffic first.</p>
+  </div>
+</section>
+<!-- ============== 17. ROUTING ============== -->
+<section class="part" id="routing" data-part="V · Web Services" data-title="Routing (1.22 mux + chi)">
+  <div class="kicker">Part V · Web Services</div>
+  <h2><span class="num">17</span>Routing — the 1.22 mux &amp; when to reach for chi</h2>
+  <p class="lead-in">For years the stdlib router couldn't match on method or path variables, so everyone used a third-party router. Go 1.22 fixed the big gaps. Here's what each gives you.</p>
+
+  <h3>The enhanced stdlib mux (Go 1.22+)</h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">stdmux.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">mux := http.NewServeMux()
+
+mux.HandleFunc("GET /users/{id}", getUser)        // method + path wildcard
+mux.HandleFunc("POST /users", createUser)
+mux.HandleFunc("GET /files/{path...}", serveFile) // {path...} matches the rest
+mux.HandleFunc("DELETE /users/{id}", deleteUser)
+
+func getUser(w http.ResponseWriter, r *http.Request) {
+    id := r.PathValue("id")     // extract the {id} wildcard — new in 1.22
+    // ...
+}</code></pre>
+  </div>
+  <div class="callout why">
+    <div class="label">Why this changed the game</div>
+    <p>Before 1.22, <code>mux.HandleFunc("/users/", h)</code> matched <em>all</em> methods and you parsed the ID out of the path by hand. Now method-aware patterns, <code>{id}</code> wildcards, <code>{rest...}</code> catch-alls, and precedence rules (most-specific wins) are built in. For many services you no longer need a routing dependency at all — which means one fewer thing to keep updated and audit.</p>
+  </div>
+
+  <h3>chi — when you want middleware ergonomics &amp; sub-routers</h3>
+  <p>The stdlib mux still lacks first-class middleware chaining and route groups. <a class="inline" href="#">chi</a> is the popular, idiomatic choice that's 100% compatible with <code>net/http</code> (its handlers are plain <code>http.Handler</code>s — no lock-in).</p>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">chi.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">import "github.com/go-chi/chi/v5"
+import "github.com/go-chi/chi/v5/middleware"
+
+r := chi.NewRouter()
+r.Use(middleware.RequestID)       // middleware stack, applied in order
+r.Use(middleware.RealIP)
+r.Use(middleware.Recoverer)       // panic → 500, like our §14 handler
+r.Use(middleware.Timeout(60 * time.Second))
+
+r.Route("/api/v1", func(r chi.Router) {   // grouped sub-router
+    r.Use(authMiddleware)                 // auth only on this group
+    r.Get("/users/{id}", getUser)
+    r.Post("/users", createUser)
+    r.Mount("/admin", adminRouter())      // mount another router
+})
+
+id := chi.URLParam(r, "id")       // chi's path-param accessor</code></pre>
+  </div>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Choice</th><th>Pick it when</th></tr></thead>
+    <tbody>
+      <tr><td><strong>stdlib mux</strong></td><td>Simple services, minimal deps, you're on Go 1.22+. The default starting point now.</td></tr>
+      <tr><td><strong>chi</strong></td><td>You want middleware groups, sub-routers, and a big middleware ecosystem — but to stay on idiomatic <code>net/http</code>.</td></tr>
+      <tr><td><strong>echo / gin</strong></td><td>You want a batteries-included framework (binding, validation, rendering) and accept a non-stdlib handler signature. Fine, but you've left the <code>http.Handler</code> world.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout conv">
+    <div class="label">Convention · start stdlib, graduate to chi</div>
+    <p>The current idiomatic advice: begin with the 1.22 stdlib mux; adopt chi the moment you need middleware groups or nested routers. Avoid gin/echo unless you specifically want their full framework — staying on <code>http.Handler</code> keeps every piece of middleware in the ecosystem compatible.</p>
+  </div>
+</section>
+
+<!-- ============== 18. JSON, MIDDLEWARE, VALIDATION ============== -->
+<section class="part" id="json-middleware" data-part="V · Web Services" data-title="JSON, Middleware & Validation">
+  <div class="kicker">Part V · Web Services</div>
+  <h2><span class="num">18</span>JSON, middleware &amp; validation</h2>
+
+  <h3>JSON: struct tags drive everything</h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">json.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">type User struct {
+    ID        int64     `json:"id"`
+    Name      string    `json:"name"`
+    Email     string    `json:"email"`
+    Password  string    `json:"-"`                  // "-" = never marshal this
+    Bio       string    `json:"bio,omitempty"`      // omit if empty/zero
+    CreatedAt time.Time `json:"created_at"`
+}
+
+// encode (marshal)
+json.NewEncoder(w).Encode(user)        // streams straight to the ResponseWriter
+
+// decode (unmarshal)
+var in User
+dec := json.NewDecoder(r.Body)
+dec.DisallowUnknownFields()            // reject typos / extra fields (strict)
+if err := dec.Decode(&in); err != nil {
+    http.Error(w, "bad json", http.StatusBadRequest)
+    return
+}</code></pre>
+  </div>
+  <div class="tbl-wrap"><table class="deftable">
+    <thead><tr><th>Tag</th><th>Effect</th></tr></thead>
+    <tbody>
+      <tr><td><code>json:"name"</code></td><td>Use "name" as the JSON key instead of the Go field name.</td></tr>
+      <tr><td><code>json:"-"</code></td><td>Skip this field entirely (great for passwords, internal flags).</td></tr>
+      <tr><td><code>json:",omitempty"</code></td><td>Omit the key when the value is the zero value.</td></tr>
+      <tr><td><code>json:"id,string"</code></td><td>Encode a number as a JSON string (for JS bigint safety).</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout gotcha">
+    <div class="label">Gotcha · unexported fields are invisible to JSON</div>
+    <p><code>encoding/json</code> uses reflection and can only see <strong>exported</strong> (capitalised) fields. A lowercase <code>field</code> is silently skipped in both directions — no error, just missing data. If your JSON output is missing a field, check its capitalisation first. Also: decoding into a field that's missing from the JSON leaves it at its zero value, so you can't distinguish "absent" from "explicitly zero" without a pointer or <code>*T</code>/<code>sql.Null*</code> type.</p>
+  </div>
+
+  <h3>Middleware: <code>http.Handler</code> wrapping <code>http.Handler</code></h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">middleware.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">// middleware is a function: Handler in, Handler out
+func Logging(next http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        start := time.Now()
+        // wrap w to capture the status code
+        rec := &statusRecorder{ResponseWriter: w, status: 200}
+        next.ServeHTTP(rec, r)              // call the next handler in the chain
+        slog.Info("http",
+            "method", r.Method, "path", r.URL.Path,
+            "status", rec.status, "dur", time.Since(start))
+    })
+}
+
+type statusRecorder struct {
+    http.ResponseWriter
+    status int
+}
+func (r *statusRecorder) WriteHeader(c int) {
+    r.status = c
+    r.ResponseWriter.WriteHeader(c)
+}
+
+// compose: outermost wraps innermost
+handler := Logging(Auth(mux))</code></pre>
+  </div>
+  <div class="callout nerd">
+    <div class="label">Internals · why wrapping ResponseWriter is fiddly</div>
+    <p>To log the status code you must intercept <code>WriteHeader</code>, because the status isn't stored anywhere readable after the fact. The embedding trick (<code>statusRecorder</code> embeds <code>http.ResponseWriter</code>) forwards every method except the one you override. But beware: if the underlying writer implements <code>http.Flusher</code> or <code>http.Hijacker</code>, your wrapper hides those interfaces unless you forward them too — which breaks SSE/WebSockets. Production wrappers (chi's <code>middleware.WrapResponseWriter</code>) handle this for you; reach for those rather than hand-rolling.</p>
+  </div>
+
+  <h3>Validation</h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">validate.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">// option A: hand-written (explicit, no deps, idiomatic for small APIs)
+func (in CreateUser) Validate() error {
+    var errs []error
+    if in.Name == "" { errs = append(errs, errors.New("name required")) }
+    if !strings.Contains(in.Email, "@") { errs = append(errs, errors.New("bad email")) }
+    return errors.Join(errs...)   // nil if no errors
+}
+
+// option B: struct tags via go-playground/validator (popular for bigger APIs)
+type CreateUser struct {
+    Name  string `json:"name"  validate:"required,min=2,max=50"`
+    Email string `json:"email" validate:"required,email"`
+    Age   int    `json:"age"   validate:"gte=0,lte=130"`
+}
+err := validator.New().Struct(in)</code></pre>
+  </div>
+  <div class="callout why">
+    <div class="label">Why validate at the edge?</div>
+    <p>Parse, don't validate-deep-in-the-stack. Decode and validate the request body once, at the handler boundary, into a typed struct — so the rest of your code can trust the data is well-formed and work with concrete types instead of re-checking everywhere. This keeps your domain logic clean and your error responses consistent.</p>
+  </div>
+</section>
+
+<!-- ============== 19. REST API ============== -->
+<section class="part" id="rest-api" data-part="V · Web Services" data-title="Building a Real REST API">
+  <div class="kicker">Part V · Web Services</div>
+  <h2><span class="num">19</span>Building a real REST API</h2>
+  <p class="lead-in">Let's assemble the pieces into the structure used by production Go services: a server struct holding dependencies, handlers as methods, helpers for JSON in/out.</p>
+
+  <h3>The dependency-holding server struct</h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">server.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">type Server struct {
+    store  *store.Queries     // database (sqlc-generated, §20)
+    cache  *cache.Redis       // redis (§21)
+    logger *slog.Logger
+}
+
+// NewServer wires dependencies — explicit, testable, no globals
+func NewServer(s *store.Queries, c *cache.Redis, l *slog.Logger) *Server {
+    return &Server{store: s, cache: c, logger: l}
+}
+
+// routes() centralises the URL map — one place to read the whole API
+func (s *Server) routes() http.Handler {
+    mux := http.NewServeMux()
+    mux.HandleFunc("GET /users/{id}", s.handleGetUser)
+    mux.HandleFunc("POST /users", s.handleCreateUser)
+    // wrap the whole mux in middleware
+    return Logging(Recover(mux))
+}</code></pre>
+  </div>
+  <div class="callout why">
+    <div class="label">Why methods on a Server struct?</div>
+    <p>Handlers need access to the database, cache, logger, config. Making them <em>methods on a struct that holds those dependencies</em> (instead of reaching for package globals) means each handler gets its deps via <code>s.</code>, and your tests construct a <code>Server</code> with fakes/mocks. This "handler-as-method + explicit deps" pattern is the backbone of idiomatic Go web services — no DI framework needed.</p>
+  </div>
+
+  <h3>JSON helpers (write these once, reuse everywhere)</h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">respond.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">func writeJSON(w http.ResponseWriter, status int, v any) {
+    w.Header().Set("Content-Type", "application/json")
+    w.WriteHeader(status)
+    json.NewEncoder(w).Encode(v)
+}
+
+func writeError(w http.ResponseWriter, status int, msg string) {
+    writeJSON(w, status, map[string]string{"error": msg})
+}
+
+func (s *Server) handleGetUser(w http.ResponseWriter, r *http.Request) {
+    id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+    if err != nil {
+        writeError(w, http.StatusBadRequest, "invalid id")
+        return
+    }
+
+    // try cache first, fall through to db (cache-aside, §21)
+    user, err := s.getUserCached(r.Context(), id)
+    if errors.Is(err, sql.ErrNoRows) {
+        writeError(w, http.StatusNotFound, "user not found")
+        return
+    }
+    if err != nil {
+        s.logger.Error("get user", "id", id, "err", err)
+        writeError(w, http.StatusInternalServerError, "internal error")
+        return
+    }
+    writeJSON(w, http.StatusOK, user)
+}</code></pre>
+  </div>
+
+  <div class="callout conv">
+    <div class="label">Convention · map errors to status codes in one place</div>
+    <p>Notice how <code>sql.ErrNoRows</code> becomes 404 and everything else becomes 500 — and the real error is logged server-side but <em>never</em> leaked to the client (no DB error strings in responses; they reveal schema and aid attackers). For larger APIs, centralise this mapping in a single error-rendering helper so every handler responds consistently and you never accidentally echo an internal error to the wire.</p>
+  </div>
+  <div class="callout gotcha">
+    <div class="label">Gotcha · check the Encode error in real handlers</div>
+    <p><code>json.NewEncoder(w).Encode(v)</code> can fail (e.g. client disconnected mid-write). For brevity it's ignored above, but in production wrap it and log — a silently dropped encode error hides client-disconnect storms and broken-pipe issues.</p>
+  </div>
+</section>
+<!-- ============== 20. DATABASES ============== -->
+<section class="part" id="databases" data-part="VI · Data" data-title="Databases (sql, pgx, sqlc)">
+  <div class="kicker">Part VI · Data</div>
+  <h2><span class="num">20</span>Databases — <code>database/sql</code>, pgx &amp; sqlc</h2>
+  <p class="lead-in">Go has no dominant ORM by design — the community leans toward writing SQL and generating type-safe Go from it. Here's the modern stack.</p>
+
+  <h3>The standard library: <code>database/sql</code></h3>
+  <p><code>database/sql</code> is a thin, driver-agnostic abstraction over SQL databases. It manages a <strong>connection pool</strong> for you; you bring a driver (Postgres, MySQL, SQLite).</p>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">sql.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">import (
+    "database/sql"
+    _ "github.com/jackc/pgx/v5/stdlib"   // blank import registers the driver
+)
+
+db, err := sql.Open("pgx", os.Getenv("DATABASE_URL"))  // does NOT connect yet
+if err != nil { log.Fatal(err) }
+defer db.Close()
+
+// configure the pool — critical for production
+db.SetMaxOpenConns(25)                  // hard cap (match your DB's limit)
+db.SetMaxIdleConns(25)
+db.SetConnMaxLifetime(5 * time.Minute)  // recycle conns (helps with failovers)
+db.SetConnMaxIdleTime(5 * time.Minute)
+
+if err := db.PingContext(ctx); err != nil {  // NOW actually connect
+    log.Fatal(err)
+}</code></pre>
+  </div>
+  <div class="callout gotcha">
+    <div class="label">Gotcha · the blank import and <code>sql.Open</code> lies</div>
+    <p>The <code>_ "driver"</code> import looks unused but runs the driver's <code>init()</code> which registers it — remove it and <code>sql.Open("pgx", …)</code> fails at runtime with "unknown driver." And <code>sql.Open</code> doesn't connect; it just validates arguments and returns a pool handle. Always follow it with <code>db.PingContext</code> to fail fast on a bad DSN at startup rather than on the first query.</p>
+  </div>
+  <div class="callout gotcha">
+    <div class="label">Gotcha · you MUST close rows or leak connections</div>
+    <p>Every <code>Query</code> that returns <code>*sql.Rows</code> holds a connection until you <code>rows.Close()</code> <em>and</em> fully drain it. Forgetting <code>defer rows.Close()</code> leaks pool connections until the pool is exhausted and every request hangs. Also always check <code>rows.Err()</code> after the loop — iteration can stop early on a network error that <code>rows.Next()</code> swallows.</p>
+  </div>
+
+  <h3>Querying by hand (what generators automate)</h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">query.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">// single row
+var u User
+err := db.QueryRowContext(ctx,
+    `SELECT id, name, email FROM users WHERE id = $1`, id,
+).Scan(&u.ID, &u.Name, &u.Email)   // $1 is a PLACEHOLDER — never string-concat!
+
+// multiple rows
+rows, err := db.QueryContext(ctx, `SELECT id, name FROM users LIMIT 100`)
+if err != nil { return nil, err }
+defer rows.Close()
+var users []User
+for rows.Next() {
+    var u User
+    if err := rows.Scan(&u.ID, &u.Name); err != nil { return nil, err }
+    users = append(users, u)
+}
+return users, rows.Err()           // don't forget rows.Err()!</code></pre>
+  </div>
+  <div class="callout why">
+    <div class="label">Why <code>$1</code> placeholders, always</div>
+    <p>Parameterised queries (<code>$1</code> for Postgres, <code>?</code> for MySQL) send the SQL and the values <em>separately</em> to the database, so user input can never be interpreted as SQL — this is the definitive defence against SQL injection. <strong>Never</strong> build queries with <code>fmt.Sprintf</code> or string concatenation. There are no exceptions to this rule.</p>
+  </div>
+
+  <h3>The modern stack: pgx + sqlc</h3>
+  <div class="note-grid">
+    <div class="cell"><h4>pgx</h4><p>The best Postgres driver. Use it directly (its native API, <code>pgxpool</code>) for full Postgres features, or via <code>database/sql</code> for portability.</p></div>
+    <div class="cell"><h4>sqlc</h4><p>You write SQL; sqlc <em>generates</em> type-safe Go functions from it at build time. No reflection, no runtime surprises, full SQL power.</p></div>
+    <div class="cell"><h4>golang-migrate</h4><p>Versioned schema migrations as plain <code>.up.sql</code>/<code>.down.sql</code> files. Run in CI or at deploy.</p></div>
+  </div>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">query.sql → generated Go</span><span class="lang">sql</span></div>
+    <pre><code class="language-sql">-- query.sql : you write this
+-- name: GetUser :one
+SELECT id, name, email FROM users WHERE id = $1;
+
+-- name: CreateUser :one
+INSERT INTO users (name, email) VALUES ($1, $2)
+RETURNING id, name, email;</code></pre>
+  </div>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">usage of generated code</span><span class="lang">go</span></div>
+    <pre><code class="language-go">// sqlc generates this — fully typed, no manual Scan:
+user, err := s.store.GetUser(ctx, id)              // returns (User, error)
+created, err := s.store.CreateUser(ctx, store.CreateUserParams{
+    Name:  in.Name,
+    Email: in.Email,
+})</code></pre>
+  </div>
+  <div class="callout conv">
+    <div class="label">Convention · SQL-first beats ORMs in Go</div>
+    <p>GORM exists and is popular, but the prevailing senior preference is sqlc (or plain <code>database/sql</code>): you keep full control of your SQL, get compile-time-checked types, zero reflection overhead, and queries you can read and <code>EXPLAIN</code>. ORMs hide the query that's actually slow. For a search/perf-focused engineer, SQL-first is the natural fit — you already think in query plans.</p>
+  </div>
+
+  <h3>Transactions</h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">tx.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">tx, err := db.BeginTx(ctx, nil)
+if err != nil { return err }
+defer tx.Rollback()                 // no-op if already committed; safety net
+
+if _, err := tx.ExecContext(ctx, `UPDATE accounts SET bal = bal - $1 WHERE id=$2`, amt, from); err != nil {
+    return err                      // defer rollback fires
+}
+if _, err := tx.ExecContext(ctx, `UPDATE accounts SET bal = bal + $1 WHERE id=$2`, amt, to); err != nil {
+    return err
+}
+return tx.Commit()                  // commit; the deferred Rollback becomes a no-op</code></pre>
+  </div>
+  <div class="callout conv">
+    <div class="label">Convention · defer Rollback, return Commit</div>
+    <p><code>defer tx.Rollback()</code> immediately after <code>BeginTx</code> guarantees the transaction is cleaned up on any early return or panic. After a successful <code>Commit</code>, the rollback is a harmless no-op. This pairing means you never leak an open transaction — which otherwise holds locks and pool connections until it times out.</p>
+  </div>
+</section>
+
+<!-- ============== 21. REDIS ============== -->
+<section class="part" id="redis" data-part="VI · Data" data-title="Redis & Caching">
+  <div class="kicker">Part VI · Data</div>
+  <h2><span class="num">21</span>Redis &amp; caching patterns</h2>
+  <p class="lead-in">Redis is the default cache, rate-limiter, and ephemeral store for Go services. The canonical client is <code>redis/go-redis</code>.</p>
+
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">redis.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">import "github.com/redis/go-redis/v9"
+
+rdb := redis.NewClient(&redis.Options{
+    Addr:         "localhost:6379",
+    Password:     os.Getenv("REDIS_PASSWORD"),
+    DB:           0,
+    PoolSize:     20,                  // connection pool
+    MinIdleConns: 5,
+})
+if err := rdb.Ping(ctx).Err(); err != nil { log.Fatal(err) }
+
+// basic ops — note ctx threads through, like everything else
+rdb.Set(ctx, "key", "value", 10*time.Minute)   // with TTL
+val, err := rdb.Get(ctx, "key").Result()
+if err == redis.Nil { /* key does not exist */ }
+rdb.Del(ctx, "key")
+rdb.Incr(ctx, "counter")</code></pre>
+  </div>
+  <div class="callout gotcha">
+    <div class="label">Gotcha · <code>redis.Nil</code> is not an error condition</div>
+    <p>A cache miss returns the sentinel <code>redis.Nil</code> as the error. That's the <em>normal</em> "key absent" signal — check <code>errors.Is(err, redis.Nil)</code> and treat it as a miss, not a failure. Logging it as an error will flood your logs with noise on every cache miss.</p>
+  </div>
+
+  <h3>Cache-aside: the workhorse pattern</h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">cache_aside.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">func (s *Server) getUserCached(ctx context.Context, id int64) (User, error) {
+    key := fmt.Sprintf("user:%d", id)
+
+    // 1. try cache
+    if data, err := s.cache.Get(ctx, key).Bytes(); err == nil {
+        var u User
+        if json.Unmarshal(data, &u) == nil {
+            return u, nil                        // HIT
+        }
+    }
+
+    // 2. miss → read source of truth
+    u, err := s.store.GetUser(ctx, id)
+    if err != nil {
+        return User{}, err                       // includes sql.ErrNoRows
+    }
+
+    // 3. populate cache (best-effort; a cache write failure shouldn't fail the request)
+    if data, err := json.Marshal(u); err == nil {
+        s.cache.Set(ctx, key, data, 5*time.Minute)
+    }
+    return u, nil
+}
+
+// invalidate on write
+func (s *Server) updateUser(ctx context.Context, u User) error {
+    if err := s.store.UpdateUser(ctx, u); err != nil { return err }
+    s.cache.Del(ctx, fmt.Sprintf("user:%d", u.ID))   // bust the cache
+    return nil
+}</code></pre>
+  </div>
+  <div class="callout why">
+    <div class="label">Why cache-aside and not write-through?</div>
+    <p>Cache-aside (lazy loading) keeps the cache and DB decoupled: the cache only holds what's actually been read, a cache outage degrades to "slower" not "broken," and invalidation is a simple delete. The cost is the first read after a write/expiry is a miss. For most read-heavy services this is the right default — and it's exactly the pattern behind sub-100ms p95s when paired with a fast source of truth.</p>
+  </div>
+  <div class="callout nerd">
+    <div class="label">Internals · the three cache stampede problems</div>
+    <ul style="margin:6px 0">
+      <li><strong>Thundering herd / stampede:</strong> a hot key expires and 10k requests all miss and hit the DB simultaneously. Fix: <code>singleflight</code> (<code>golang.org/x/sync/singleflight</code>) collapses concurrent identical loads into one DB call; the rest wait and share the result.</li>
+      <li><strong>Cache penetration:</strong> requests for keys that don't exist bypass the cache every time. Fix: cache the negative result (a "not found" marker) with a short TTL.</li>
+      <li><strong>Cache avalanche:</strong> many keys expire at the same instant. Fix: add jitter to TTLs (<code>5*time.Minute + rand jitter</code>).</li>
+    </ul>
+  </div>
+  <div class="callout conv">
+    <div class="label">Convention · Redis as rate limiter &amp; lock</div>
+    <p>Beyond caching, Redis powers distributed rate limiting (<code>INCR</code> + <code>EXPIRE</code>, or the token-bucket via <code>redis_rate</code>) and distributed locks (<code>SET key val NX PX ttl</code>, or Redlock for stricter needs). Keep lock TTLs short and always set them — a lock without a TTL is a deadlock waiting for a crashed holder.</p>
+  </div>
+</section>
+
+<!-- ============== 22. PROTOBUF — FULL PROTO3 SYNTAX ============== -->
+<section class="part" id="protobuf" data-part="VII · Protobuf & gRPC" data-title="Protobuf — full proto3 syntax">
+  <div class="kicker">Part VII · Protobuf &amp; gRPC</div>
+  <h2><span class="num">22</span>Protocol Buffers — the complete proto3 syntax</h2>
+  <p class="lead-in">Protobuf is a language-neutral, binary serialization format plus an IDL (interface definition language). You write <code>.proto</code> files describing your data and services once, then generate type-safe code for Go, TypeScript, Python, and a dozen other languages. It's the wire format behind gRPC. This section is the full reference — every keyword, every rule.</p>
+
+  <h3>Anatomy of a <code>.proto</code> file</h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">user/v1/user.proto</span><span class="lang">protobuf</span></div>
+    <pre><code class="language-protobuf">// Every proto3 file starts by declaring the syntax. Without this line,
+// protoc assumes proto2 — a different, older dialect.
+syntax = "proto3";
+
+// The logical namespace for this file's symbols. Prevents name clashes
+// when many protos are compiled together. Convention: company.product.version
+package user.v1;
+
+// Language-specific code-gen options. go_package tells protoc-gen-go the
+// import path AND the package name (after the semicolon) for generated Go.
+option go_package = "github.com/acme/api/gen/user/v1;userv1";
+
+// Pull in definitions from other proto files. Paths are relative to the
+// import roots passed to protoc (-I / buf's roots).
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/field_mask.proto";
+
+// A message is a structured record — the core building block.
+message User {
+  // Each field has: type, name, and a UNIQUE field number.
+  // Field numbers (not names) are what's encoded on the wire.
+  uint64 id        = 1;
+  string email     = 2;
+  string full_name = 3;
+  bool   is_active = 4;
+
+  // Enums are fully-qualified within the message when nested.
+  Role role = 5;
+
+  // A nested enum. Proto3 enums MUST have a zero value (the default).
+  enum Role {
+    ROLE_UNSPECIFIED = 0;   // always define 0 = UNSPECIFIED
+    ROLE_MEMBER      = 1;
+    ROLE_ADMIN       = 2;
+  }
+
+  // Well-known type for timestamps — maps to time.Time in Go.
+  google.protobuf.Timestamp created_at = 6;
+
+  repeated string tags = 7;            // a list/slice of strings
+  map&lt;string, string&gt; metadata = 8;    // a hash map
+}</code></pre>
+  </div>
+
+  <div class="callout why">
+    <div class="label">Why field numbers, not names?</div>
+    <p>The binary wire format encodes each field as a <code>(field_number, wire_type)</code> tag followed by the value — the field <em>name</em> never travels. That's why renaming a field is a safe, backward-compatible change, but <strong>changing or reusing a field number breaks every old client</strong>. Field numbers are the contract.</p>
+  </div>
+
+  <h3>Scalar types — the full table</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>.proto type</th><th>Go type</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td><code>double</code> / <code>float</code></td><td><code>float64</code> / <code>float32</code></td><td>IEEE-754 floating point.</td></tr>
+      <tr><td><code>int32</code> / <code>int64</code></td><td><code>int32</code> / <code>int64</code></td><td>Variable-length. <strong>Inefficient for negatives</strong> (always 10 bytes for a negative int64).</td></tr>
+      <tr><td><code>uint32</code> / <code>uint64</code></td><td><code>uint32</code> / <code>uint64</code></td><td>Variable-length, unsigned.</td></tr>
+      <tr><td><code>sint32</code> / <code>sint64</code></td><td><code>int32</code> / <code>int64</code></td><td>Uses ZigZag encoding — use these when values are <em>often negative</em>.</td></tr>
+      <tr><td><code>fixed32</code> / <code>fixed64</code></td><td><code>uint32</code> / <code>uint64</code></td><td>Always 4/8 bytes. Faster when values are usually large.</td></tr>
+      <tr><td><code>sfixed32</code> / <code>sfixed64</code></td><td><code>int32</code> / <code>int64</code></td><td>Signed fixed-width.</td></tr>
+      <tr><td><code>bool</code></td><td><code>bool</code></td><td>1 byte on the wire.</td></tr>
+      <tr><td><code>string</code></td><td><code>string</code></td><td>Must be UTF-8 / 7-bit ASCII.</td></tr>
+      <tr><td><code>bytes</code></td><td><code>[]byte</code></td><td>Arbitrary binary data.</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="callout nerd">
+    <div class="label">Internals · the wire format (varint &amp; ZigZag)</div>
+    <ul style="margin:6px 0">
+      <li><strong>Varint:</strong> integers are encoded 7 bits per byte, with the high bit signaling "more bytes follow." Small numbers take 1 byte; that's why <strong>you assign field numbers 1–15 to your hottest fields</strong> — their tag fits in a single byte (numbers 16–2047 take two).</li>
+      <li><strong>ZigZag (sint):</strong> maps signed ints to unsigned so small magnitudes stay small: 0→0, -1→1, 1→2, -2→3. Without it, <code>-1</code> as an <code>int64</code> varint is the maximum 10 bytes.</li>
+      <li><strong>Wire types:</strong> 0=varint, 1=64-bit, 2=length-delimited (strings, bytes, embedded messages, packed repeated), 5=32-bit. The tag byte is <code>(field_number &lt;&lt; 3) | wire_type</code>.</li>
+    </ul>
+  </div>
+
+  <h3>Field numbers — the rules that bite you</h3>
+  <div class="callout gotcha">
+    <div class="label">Gotcha · reserved ranges &amp; the 19000–19999 hole</div>
+    <ul style="margin:6px 0">
+      <li>Valid range is <strong>1 to 536,870,911</strong> (2²⁹−1).</li>
+      <li><strong>19000–19999 are reserved</strong> by the protobuf implementation — you can't use them.</li>
+      <li>When you delete a field, <code>reserve</code> its number and name so nobody reuses them and silently misreads old data.</li>
+    </ul>
+  </div>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">reserved.proto</span><span class="lang">protobuf</span></div>
+    <pre><code class="language-protobuf">message Account {
+  reserved 2, 5, 9 to 11;            // numbers no one may reuse
+  reserved "old_field", "legacy_id"; // names no one may reuse
+  uint64 id = 1;
+  string name = 3;
+}</code></pre>
+  </div>
+
+  <h3>repeated, map, oneof &amp; optional</h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">composite.proto</span><span class="lang">protobuf</span></div>
+    <pre><code class="language-protobuf">message Order {
+  // repeated → a slice. Scalar numeric repeateds are "packed" by default
+  // in proto3 (encoded contiguously, no per-element tag) → compact.
+  repeated string item_ids = 1;
+  repeated LineItem line_items = 2;   // repeated message
+
+  // map&lt;K,V&gt; → Go map. K must be an integral or string type; V can be
+  // anything except another map. Order is NOT preserved on the wire.
+  map&lt;string, int32&gt; quantities = 3;
+
+  // oneof → at most ONE of these fields is set at a time (a tagged union).
+  // Setting one clears the others. Great for "A or B" payloads.
+  oneof payment {
+    CardPayment card   = 4;
+    BankPayment bank   = 5;
+    string      coupon = 6;
+  }
+
+  // proto3 'optional' re-introduces field presence: you can tell apart
+  // "set to zero/empty" from "never set" (generates a *type pointer / Has()).
+  optional string note = 7;
+}</code></pre>
+  </div>
+  <div class="callout why">
+    <div class="label">Why <code>optional</code> matters in proto3</div>
+    <p>By default proto3 scalar fields have <em>no presence</em>: a field set to <code>0</code>, <code>""</code>, or <code>false</code> is indistinguishable from "unset" — both simply aren't serialized. That breaks PATCH semantics ("did the client mean to clear this, or omit it?"). Marking a field <code>optional</code> brings back explicit presence: in Go you get a pointer (<code>*string</code>) and a <code>nil</code> means truly unset. Use it whenever the difference between "zero" and "absent" is meaningful.</p>
+  </div>
+
+  <div class="callout nerd">
+    <div class="label">Internals · how each maps to Go</div>
+    <ul style="margin:6px 0">
+      <li><code>oneof payment</code> → a Go interface field <code>Payment isOrder_Payment</code> with wrapper structs <code>Order_Card</code>, <code>Order_Bank</code>, <code>Order_Coupon</code>; you type-switch on it.</li>
+      <li><code>optional string note</code> → <code>*string</code> plus generated <code>GetNote()</code> returning the deref or zero value.</li>
+      <li><code>map&lt;string,int32&gt;</code> → <code>map[string]int32</code>.</li>
+      <li><code>repeated LineItem</code> → <code>[]*LineItem</code> (messages are always pointers).</li>
+    </ul>
+  </div>
+
+  <h3>Enums, nested types &amp; reserved enum values</h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">enums.proto</span><span class="lang">protobuf</span></div>
+    <pre><code class="language-protobuf">enum Status {
+  // proto3 requires the first enum value to be 0 — it's the default.
+  STATUS_UNSPECIFIED = 0;
+  STATUS_PENDING     = 1;
+  STATUS_SHIPPED     = 2;
+  STATUS_DELIVERED   = 3;
+
+  // Two names sharing a number requires allow_alias.
+  option allow_alias = true;
+  STATUS_DONE        = 3;   // alias of DELIVERED
+
+  reserved 4, 5;            // reserve numbers
+  reserved "STATUS_OLD";    // and names
+}</code></pre>
+  </div>
+  <div class="callout conv">
+    <div class="label">Convention · enum naming</div>
+    <p>Prefix every value with the enum name (<code>STATUS_</code>) because proto enum values live in the <em>enclosing</em> scope, not the enum's — two enums in one file with a bare <code>PENDING</code> would collide. And always make <code>0</code> the <code>_UNSPECIFIED</code> sentinel so an unset enum is detectably "not chosen" rather than accidentally meaning your first real state.</p>
+  </div>
+
+  <h3>Services &amp; the four RPC kinds</h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">service.proto</span><span class="lang">protobuf</span></div>
+    <pre><code class="language-protobuf">service UserService {
+  // 1. Unary: one request → one response (the common case).
+  rpc GetUser(GetUserRequest) returns (User);
+
+  // 2. Server streaming: one request → a stream of responses.
+  rpc ListUsers(ListUsersRequest) returns (stream User);
+
+  // 3. Client streaming: a stream of requests → one response.
+  rpc ImportUsers(stream User) returns (ImportSummary);
+
+  // 4. Bidirectional streaming: both sides stream independently.
+  rpc Chat(stream ChatMessage) returns (stream ChatMessage);
+}
+
+message GetUserRequest { uint64 id = 1; }
+message ListUsersRequest { uint32 page_size = 1; string page_token = 2; }
+message ImportSummary { uint32 imported = 1; uint32 failed = 2; }
+message ChatMessage { string from = 1; string body = 2; }</code></pre>
+  </div>
+
+  <h3>Well-known types (WKTs)</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Import</th><th>Type</th><th>Go mapping / use</th></tr></thead>
+    <tbody>
+      <tr><td><code>timestamp.proto</code></td><td><code>Timestamp</code></td><td>An instant; <code>timestamppb.New(t)</code> ↔ <code>.AsTime()</code>.</td></tr>
+      <tr><td><code>duration.proto</code></td><td><code>Duration</code></td><td>A span; ↔ <code>time.Duration</code>.</td></tr>
+      <tr><td><code>empty.proto</code></td><td><code>Empty</code></td><td>For RPCs with no request or response.</td></tr>
+      <tr><td><code>wrappers.proto</code></td><td><code>StringValue</code>, <code>Int32Value</code>…</td><td>Nullable scalars (pre-<code>optional</code> idiom; prefer <code>optional</code> now).</td></tr>
+      <tr><td><code>field_mask.proto</code></td><td><code>FieldMask</code></td><td>Lists which fields a PATCH/Update touches.</td></tr>
+      <tr><td><code>any.proto</code></td><td><code>Any</code></td><td>A type-erased embedded message + its type URL.</td></tr>
+      <tr><td><code>struct.proto</code></td><td><code>Struct</code>, <code>Value</code></td><td>Arbitrary JSON-like dynamic data.</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="callout nerd">
+    <div class="label">Internals · proto3 ↔ JSON &amp; the proto2 differences</div>
+    <ul style="margin:6px 0">
+      <li><strong>Canonical JSON:</strong> protobuf has a defined JSON mapping (field names become <code>lowerCamelCase</code> unless you set <code>json_name</code>). This is how gRPC-Gateway and Connect expose JSON.</li>
+      <li><strong>vs proto2:</strong> proto3 dropped <code>required</code> (everything is optional), dropped custom field defaults, and made every field have an implicit zero default. <code>required</code> was removed because it makes schema evolution dangerous — you can never safely remove a required field.</li>
+      <li><strong>Editions:</strong> the newest protobuf ("editions" replacing the proto2/proto3 split) is rolling out; <code>edition = "2023";</code> unifies the dialects via per-feature options. proto3 remains the mainstream choice today.</li>
+    </ul>
+  </div>
+
+  <div class="callout conv">
+    <div class="label">Convention · file &amp; package layout</div>
+    <p>Put protos under a versioned path: <code>proto/user/v1/user.proto</code> with <code>package user.v1</code>. Version in the package (<code>v1</code>, <code>v2</code>) so breaking changes become a new package rather than a silent break. One top-level message/service concern per file. This is exactly the layout <a class="inline" href="#grpc">buf</a> expects.</p>
+  </div>
+</section>
+
+<!-- ============== 23. gRPC IN GO ============== -->
+<section class="part" id="grpc" data-part="VII · Protobuf & gRPC" data-title="gRPC services in Go">
+  <div class="kicker">Part VII · Protobuf &amp; gRPC</div>
+  <h2><span class="num">23</span>gRPC in Go — codegen, servers, clients &amp; interceptors</h2>
+  <p class="lead-in">gRPC is an RPC framework that runs your protobuf-defined services over HTTP/2 with binary framing, multiplexing, and streaming. In Go it's first-class: you generate strongly-typed server interfaces and client stubs, then just implement an interface.</p>
+
+  <h3>The toolchain &amp; codegen</h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">install &amp; generate</span><span class="lang">bash</span></div>
+    <pre><code class="language-bash"># 1. The two code generators (installed as Go tools):
+go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+
+# 2a. The classic way — invoke protoc directly:
+protoc \
+  --go_out=. --go_opt=paths=source_relative \
+  --go-grpc_out=. --go-grpc_opt=paths=source_relative \
+  proto/user/v1/user.proto
+
+# 2b. The MODERN way — buf (linting, breaking-change detection, deps):
+buf generate          # reads buf.gen.yaml + buf.yaml
+buf lint              # style + best-practice checks
+buf breaking --against '.git#branch=main'   # CI: block breaking changes</code></pre>
+  </div>
+  <div class="callout conv">
+    <div class="label">Convention · use buf, not raw protoc</div>
+    <p><a class="inline" href="#">buf</a> is the current standard. It replaces fragile <code>protoc</code> command lines with a <code>buf.gen.yaml</code> config, manages remote dependencies (no vendoring <code>.proto</code> files by hand), lints for the conventions above, and — critically — <strong>detects breaking changes in CI</strong> before they ship. Most new gRPC projects in 2025 start with buf.</p>
+  </div>
+
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">buf.gen.yaml</span><span class="lang">yaml</span></div>
+    <pre><code class="language-yaml">version: v2
+plugins:
+  - remote: buf.build/protocolbuffers/go      # no local install needed
+    out: gen
+    opt: paths=source_relative
+  - remote: buf.build/grpc/go
+    out: gen
+    opt: paths=source_relative</code></pre>
+  </div>
+
+  <h3>Implementing the server</h3>
+  <p>Codegen produces a <code>UserServiceServer</code> interface and an <code>UnimplementedUserServiceServer</code> you embed for forward-compatibility. You implement only the methods you need.</p>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">server.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">type userServer struct {
+    userv1.UnimplementedUserServiceServer   // embed → future-proof
+    store *Store
+}
+
+// Unary handler: signature is dictated by the generated interface.
+func (s *userServer) GetUser(ctx context.Context, req *userv1.GetUserRequest) (*userv1.User, error) {
+    u, err := s.store.User(ctx, req.GetId())
+    if errors.Is(err, ErrNotFound) {
+        // Return a gRPC status code, NOT a bare error.
+        return nil, status.Errorf(codes.NotFound, "user %d not found", req.GetId())
+    }
+    if err != nil {
+        return nil, status.Error(codes.Internal, "lookup failed")
+    }
+    return &userv1.User{Id: u.ID, Email: u.Email, FullName: u.Name}, nil
+}
+
+// Server-streaming handler: push messages via stream.Send.
+func (s *userServer) ListUsers(req *userv1.ListUsersRequest, stream userv1.UserService_ListUsersServer) error {
+    for _, u := range s.store.All(stream.Context()) {
+        if err := stream.Send(&userv1.User{Id: u.ID, Email: u.Email}); err != nil {
+            return err   // client went away
+        }
+    }
+    return nil
+}
+
+func main() {
+    lis, _ := net.Listen("tcp", ":50051")
+    srv := grpc.NewServer(
+        grpc.ChainUnaryInterceptor(loggingUnary, recoveryUnary),
+    )
+    userv1.RegisterUserServiceServer(srv, &userServer{store: NewStore()})
+    reflection.Register(srv)             // enables grpcurl / introspection
+    log.Fatal(srv.Serve(lis))
+}</code></pre>
+  </div>
+  <div class="callout why">
+    <div class="label">Why embed <code>UnimplementedUserServiceServer</code>?</div>
+    <p>When you add a new RPC to the <code>.proto</code> and regenerate, your server struct suddenly doesn't satisfy the bigger interface — a compile error. By embedding the generated <code>Unimplemented…</code> stub (which returns <code>codes.Unimplemented</code> for everything), new methods get a safe default and your code keeps compiling. It turns "forgot to implement" from a build break into a clean runtime <code>Unimplemented</code> status you can roll out gradually.</p>
+  </div>
+
+  <h3>The client</h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">client.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">conn, err := grpc.NewClient(
+    "localhost:50051",
+    grpc.WithTransportCredentials(insecure.NewCredentials()), // TLS off for local
+)
+if err != nil { log.Fatal(err) }
+defer conn.Close()
+
+client := userv1.NewUserServiceClient(conn)
+
+ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+defer cancel()
+
+u, err := client.GetUser(ctx, &userv1.GetUserRequest{Id: 42})
+if err != nil {
+    st := status.Convert(err)           // unpack the gRPC status
+    log.Printf("code=%s msg=%s", st.Code(), st.Message())
+    return
+}
+fmt.Println(u.GetEmail())</code></pre>
+  </div>
+  <div class="callout gotcha">
+    <div class="label">Gotcha · <code>grpc.Dial</code> is deprecated</div>
+    <p>Older tutorials use <code>grpc.Dial(...)</code> which connected eagerly and blocked. The current API is <code>grpc.NewClient(...)</code>, which is lazy (connects on first RPC) and is the recommended constructor. Also: a <code>*grpc.ClientConn</code> is expensive and concurrency-safe — <strong>create one and share it</strong>, don't dial per request.</p>
+  </div>
+
+  <h3>Interceptors (gRPC middleware)</h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">interceptor.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">// A unary interceptor wraps every unary call — like HTTP middleware.
+func loggingUnary(ctx context.Context, req any, info *grpc.UnaryServerInfo,
+    handler grpc.UnaryHandler) (any, error) {
+
+    start := time.Now()
+    resp, err := handler(ctx, req)       // call the actual RPC
+    slog.Info("grpc",
+        "method", info.FullMethod,
+        "code", status.Code(err),
+        "dur", time.Since(start),
+    )
+    return resp, err
+}
+
+func recoveryUnary(ctx context.Context, req any, info *grpc.UnaryServerInfo,
+    handler grpc.UnaryHandler) (resp any, err error) {
+    defer func() {
+        if r := recover(); r != nil {
+            err = status.Errorf(codes.Internal, "panic: %v", r)
+        }
+    }()
+    return handler(ctx, req)
+}</code></pre>
+  </div>
+
+  <div class="callout conv">
+    <div class="label">Convention · status codes, deadlines, and Connect</div>
+    <p>Map your domain errors onto the standard <a class="inline" href="#">gRPC codes</a> (<code>NotFound</code>, <code>InvalidArgument</code>, <code>PermissionDenied</code>, <code>Unavailable</code>…) — clients and load balancers act on them. Always set a client deadline via <code>context.WithTimeout</code>; gRPC propagates it across hops. And consider <strong>Connect (connectrpc.com)</strong>: a newer framework that speaks gRPC, gRPC-Web, <em>and</em> plain HTTP/JSON from one handler — increasingly popular when you need browser-callable RPCs without a separate gateway.</p>
+  </div>
+</section>
+
+<!-- ============== 24. REACT INTEGRATION ============== -->
+<section class="part" id="react" data-part="VIII · Frontend" data-title="React integration">
+  <div class="kicker">Part VIII · Frontend</div>
+  <h2><span class="num">24</span>Integrating a React frontend</h2>
+  <p class="lead-in">There are two common topologies for a Go + React app: <strong>serve them separately</strong> (React on a CDN/Vite dev server, Go as a pure JSON API) or <strong>embed the built SPA into the Go binary</strong> and ship one artifact. We'll cover both, plus the CORS and type-sharing details that trip people up.</p>
+
+  <h3>Topology A — separate origins (dev) with CORS</h3>
+  <p>During development Vite runs on <code>:5173</code> and your API on <code>:8080</code>. Different origin → the browser enforces CORS. Handle it explicitly:</p>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">cors.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">func cors(next http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
+        w.Header().Set("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS")
+        w.Header().Set("Access-Control-Allow-Headers", "Content-Type,Authorization")
+        w.Header().Set("Access-Control-Allow-Credentials", "true")
+        // Preflight: the browser sends OPTIONS first for non-simple requests.
+        if r.Method == http.MethodOptions {
+            w.WriteHeader(http.StatusNoContent)
+            return
+        }
+        next.ServeHTTP(w, r)
+    })
+}</code></pre>
+  </div>
+  <div class="callout why">
+    <div class="label">Why the preflight <code>OPTIONS</code>?</div>
+    <p>For any "non-simple" request (custom headers like <code>Authorization</code>, or methods like <code>PUT</code>/<code>DELETE</code>), the browser first sends an <code>OPTIONS</code> "preflight" asking the server what's allowed. If you don't answer it with the right <code>Allow-*</code> headers and a 2xx, the real request never fires and you get the classic "blocked by CORS policy" console error. In production prefer the <code>github.com/rs/cors</code> package over hand-rolling — it handles edge cases (Vary headers, wildcards) correctly.</p>
+  </div>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">vite.config.ts (proxy — avoids CORS entirely)</span><span class="lang">javascript</span></div>
+    <pre><code class="language-javascript">// Vite dev-server proxy: browser talks only to :5173, Vite forwards /api
+// to Go. Same-origin from the browser's view → no CORS needed in dev.
+export default defineConfig({
+  server: {
+    proxy: { "/api": { target: "http://localhost:8080", changeOrigin: true } },
+  },
+});</code></pre>
+  </div>
+
+  <h3>Topology B — embed the SPA in the Go binary</h3>
+  <p>For production simplicity, build the React app and bake the static files into the binary with <code>embed.FS</code>. One binary, one deploy, no separate web server for assets.</p>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">embed.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">import (
+    "embed"
+    "io/fs"
+    "net/http"
+)
+
+//go:embed all:dist
+var dist embed.FS   // the //go:embed directive bakes ./dist into the binary
+
+func spaHandler() http.Handler {
+    sub, _ := fs.Sub(dist, "dist")        // treat dist/ as the FS root
+    fileServer := http.FileServer(http.FS(sub))
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        // Serve the asset if it exists; otherwise fall back to index.html
+        // so client-side routes (e.g. /users/42) work on hard refresh.
+        if _, err := fs.Stat(sub, strings.TrimPrefix(r.URL.Path, "/")); err != nil {
+            r.URL.Path = "/"
+        }
+        fileServer.ServeHTTP(w, r)
+    })
+}
+
+func main() {
+    mux := http.NewServeMux()
+    mux.Handle("/api/", apiRouter())   // JSON API
+    mux.Handle("/", spaHandler())      // everything else → the SPA
+    http.ListenAndServe(":8080", mux)
+}</code></pre>
+  </div>
+  <div class="callout nerd">
+    <div class="label">Internals · what <code>//go:embed</code> actually does</div>
+    <p><code>//go:embed</code> is a compiler directive (note: no space after <code>//</code> — it must be a contiguous comment touching the <code>var</code>). At build time the toolchain reads the named files and stores their bytes in the binary's read-only data segment, exposed as an <code>embed.FS</code> implementing <code>fs.FS</code>. The <code>all:</code> prefix includes files that start with <code>_</code> or <code>.</code> (which Vite emits). Zero runtime I/O, no missing-file-in-prod surprises.</p>
+  </div>
+
+  <h3>Sharing types end-to-end</h3>
+  <div class="callout conv">
+    <div class="label">Convention · generate the client, don't hand-write it</div>
+    <p>Keeping TypeScript types in sync with Go structs by hand rots fast. Three current approaches: (1) <strong>OpenAPI</strong> — annotate handlers (e.g. with <code>swaggo</code>) and generate a typed TS client with <code>openapi-typescript</code> + <code>openapi-fetch</code>; (2) <strong>gRPC/Connect</strong> — your <code>.proto</code> is the single source of truth and <code>buf</code> generates both Go and TS (<code>connect-es</code>) clients; (3) <strong>tRPC-style</strong> tools if you're full-stack TS. For a Go backend, (1) or (2) are the standard, with the proto approach giving you the strongest guarantee that client and server can't drift.</p>
+  </div>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">api.ts (typed fetch client)</span><span class="lang">javascript</span></div>
+    <pre><code class="language-javascript">// A thin, typed wrapper. In React, call from TanStack Query for caching,
+// retries, and request dedupe — the current standard for server state.
+export async function getUser(id: number): Promise&lt;User&gt; {
+  const res = await fetch(`/api/v1/users/${id}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json() as Promise&lt;User&gt;;
+}
+
+// useQuery(['user', id], () => getUser(id))  ← in your component</code></pre>
+  </div>
+</section>
+
+<!-- ============== 25. DOCKER ============== -->
+<section class="part" id="docker" data-part="IX · Deployment" data-title="Docker multi-stage builds">
+  <div class="kicker">Part IX · Deployment</div>
+  <h2><span class="num">25</span>Docker — tiny, secure multi-stage images</h2>
+  <p class="lead-in">Go's superpower for ops: it compiles to a single static binary. That means your production image can be almost nothing — no interpreter, no OS packages, just your binary. A naive image is ~900MB; a good one is ~10MB.</p>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">Dockerfile</span><span class="lang">dockerfile</span></div>
+    <pre><code class="language-dockerfile"># ---------- Stage 1: build ----------
+FROM golang:1.23 AS build
+WORKDIR /src
+
+# Copy go.mod/go.sum FIRST and download deps. This layer is cached as long
+# as your dependencies don't change → fast rebuilds when only code changes.
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+# CGO_ENABLED=0 → a fully static binary with no libc dependency, so it runs
+# in 'scratch'. -ldflags "-s -w" strips debug info → smaller binary.
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /app ./cmd/server
+
+# ---------- Stage 2: runtime ----------
+# 'scratch' is the empty image — literally nothing. Or use distroless for
+# CA certs + tzdata + a non-root user already set up.
+FROM gcr.io/distroless/static-debian12:nonroot
+COPY --from=build /app /app
+USER nonroot:nonroot       # never run as root
+EXPOSE 8080
+ENTRYPOINT ["/app"]</code></pre>
+  </div>
+  <div class="callout why">
+    <div class="label">Why multi-stage + distroless?</div>
+    <p>The <code>golang:1.23</code> image (~800MB) has the whole compiler toolchain — you need it to <em>build</em> but not to <em>run</em>. Multi-stage lets you build in the fat image and copy <em>only</em> the binary into a near-empty final image. <strong>distroless/static</strong> adds just what a static Go binary actually needs at runtime: CA certificates (for outbound TLS), timezone data, and <code>/etc/passwd</code> with a non-root user. Smaller image = faster pulls, smaller attack surface, fewer CVEs to patch.</p>
+  </div>
+  <div class="callout gotcha">
+    <div class="label">Gotcha · scratch &amp; the three things it's missing</div>
+    <ul style="margin:6px 0">
+      <li><strong>CA certs:</strong> outbound HTTPS fails with x509 errors. Fix: <code>COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/</code>, or use distroless.</li>
+      <li><strong>tzdata:</strong> <code>time.LoadLocation</code> fails. Embed via the <code>time/tzdata</code> import or copy the zoneinfo.</li>
+      <li><strong>CGO:</strong> if you forget <code>CGO_ENABLED=0</code>, the binary dynamically links libc and crashes in scratch with "no such file or directory" (a confusing error — the file is the missing loader).</li>
+    </ul>
+  </div>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">docker-compose.yml (local stack)</span><span class="lang">yaml</span></div>
+    <pre><code class="language-yaml">services:
+  api:
+    build: .
+    ports: ["8080:8080"]
+    environment:
+      DATABASE_URL: postgres://app:secret@db:5432/app?sslmode=disable
+      REDIS_ADDR: redis:6379
+    depends_on:
+      db:    { condition: service_healthy }
+      redis: { condition: service_started }
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: app
+    healthcheck:                       # so 'depends_on' waits for real readiness
+      test: ["CMD-SHELL", "pg_isready -U app"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+  redis:
+    image: redis:7-alpine</code></pre>
+  </div>
+  <div class="callout conv">
+    <div class="label">Convention · <code>.dockerignore</code> &amp; reproducible builds</div>
+    <p>Add a <code>.dockerignore</code> (<code>.git</code>, <code>dist</code> outside the build, local env files) so the build context stays small and secrets don't leak in. Pin base image versions (<code>golang:1.23</code>, not <code>golang:latest</code>) for reproducible builds. For releases, stamp the binary with version info via <code>-ldflags "-X main.version=$(git describe)"</code>.</p>
+  </div>
+</section>
+
+<!-- ============== 26. NGINX ============== -->
+<section class="part" id="nginx" data-part="IX · Deployment" data-title="nginx reverse proxy">
+  <div class="kicker">Part IX · Deployment</div>
+  <h2><span class="num">26</span>nginx as a reverse proxy &amp; TLS terminator</h2>
+  <p class="lead-in">A Go server can serve HTTP directly, but in front of it you usually want a reverse proxy for TLS termination, compression, static caching, and load-balancing across replicas. nginx is the workhorse.</p>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">/etc/nginx/conf.d/app.conf</span><span class="lang">nginx</span></div>
+    <pre><code class="language-nginx"># Define a pool of backend instances → nginx load-balances across them.
+upstream go_app {
+    least_conn;                 # send to the backend with fewest active conns
+    server 127.0.0.1:8080;
+    server 127.0.0.1:8081;
+    keepalive 32;               # reuse upstream connections (perf)
+}
+
+server {
+    listen 443 ssl http2;       # HTTP/2 on, TLS terminated here
+    server_name api.example.com;
+
+    ssl_certificate     /etc/letsencrypt/live/api.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/api.example.com/privkey.pem;
+
+    gzip on;
+    gzip_types application/json text/plain application/javascript text/css;
+
+    location /api/ {
+        proxy_pass http://go_app;
+        proxy_http_version 1.1;             # required for keepalive to upstream
+        # Pass the REAL client info — without this your Go app sees nginx's IP.
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
+    }
+
+    # WebSocket / SSE upgrade support (needed for streaming endpoints).
+    location /ws/ {
+        proxy_pass http://go_app;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade    $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+}
+
+# Redirect plain HTTP → HTTPS.
+server {
+    listen 80;
+    server_name api.example.com;
+    return 301 https://$host$request_uri;
+}</code></pre>
+  </div>
+  <div class="callout why">
+    <div class="label">Why <code>X-Forwarded-For</code> matters in Go</div>
+    <p>Once nginx fronts your app, <code>r.RemoteAddr</code> is always nginx's address — useless for rate-limiting or audit logs. nginx injects the real client IP into <code>X-Forwarded-For</code>; your Go middleware must read it (validating that the immediate peer is your trusted proxy, so clients can't spoof the header). The stdlib doesn't trust these headers automatically by design — you opt in deliberately. Many use the <code>realip</code> middleware from chi for this.</p>
+  </div>
+  <div class="callout conv">
+    <div class="label">Convention · what terminates TLS</div>
+    <p>Common setups: nginx (shown), Caddy (automatic Let's Encrypt, simplest config), or a cloud load balancer (ALB/GCLB) that terminates TLS and forwards plain HTTP inside the VPC. In Kubernetes this job usually moves to an <strong>Ingress controller</strong> (ingress-nginx) or the newer <strong>Gateway API</strong> — same idea, declarative. Pick one place to own certs and HTTP/2.</p>
+  </div>
+</section>
+
+<!-- ============== 27. KUBERNETES ============== -->
+<section class="part" id="kubernetes" data-part="IX · Deployment" data-title="Kubernetes manifests & probes">
+  <div class="kicker">Part IX · Deployment</div>
+  <h2><span class="num">27</span>Kubernetes — deployments, probes &amp; autoscaling</h2>
+  <p class="lead-in">Kubernetes runs your container across a cluster, restarts it when it dies, scales it under load, and routes traffic to healthy replicas. A Go service needs surprisingly little to be a good K8s citizen — mostly the right health endpoints and resource limits.</p>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">deployment.yaml</span><span class="lang">yaml</span></div>
+    <pre><code class="language-yaml">apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+spec:
+  replicas: 3                          # desired number of pods
+  selector:
+    matchLabels: { app: api }
+  template:
+    metadata:
+      labels: { app: api }
+    spec:
+      containers:
+        - name: api
+          image: ghcr.io/acme/api:1.4.2   # pin a tag, never :latest in prod
+          ports:
+            - containerPort: 8080
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef: { name: api-secrets, key: database-url }
+          resources:
+            requests:                   # what the scheduler reserves
+              cpu: "100m"
+              memory: "64Mi"
+            limits:                     # hard ceiling; OOM-killed if exceeded
+              cpu: "500m"
+              memory: "256Mi"
+          # Liveness: "is it alive?" Fail → kubelet restarts the container.
+          livenessProbe:
+            httpGet: { path: /healthz, port: 8080 }
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          # Readiness: "can it serve traffic?" Fail → pulled from the Service
+          # endpoints (no traffic) but NOT restarted. Use for warm-up / deps.
+          readinessProbe:
+            httpGet: { path: /readyz, port: 8080 }
+            periodSeconds: 5
+          # Startup: gives slow-booting apps time before liveness kicks in.
+          startupProbe:
+            httpGet: { path: /healthz, port: 8080 }
+            failureThreshold: 30
+            periodSeconds: 2
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+spec:
+  selector: { app: api }
+  ports:
+    - port: 80
+      targetPort: 8080</code></pre>
+  </div>
+  <div class="callout why">
+    <div class="label">Why three different probes?</div>
+    <p>They answer different questions and have different consequences. <strong>Readiness</strong> = "route traffic to me?" — failing it pulls you out of the load balancer <em>without</em> a restart, perfect for "my DB connection is down, hold traffic." <strong>Liveness</strong> = "am I wedged?" — failing it <em>restarts</em> the container, for unrecoverable deadlocks. Mixing them up is a classic outage: if your liveness probe checks the database and the DB blips, K8s restart-loops every replica simultaneously and turns a brief dependency hiccup into a full outage. <strong>Keep liveness dumb</strong> (process responds at all); put dependency checks in readiness.</p>
+  </div>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">health.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">// Liveness: trivially returns 200 if the process can serve HTTP at all.
+mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
+    w.WriteHeader(http.StatusOK)
+})
+
+// Readiness: checks real dependencies. Returns 503 when not ready.
+mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
+    ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+    defer cancel()
+    if err := db.PingContext(ctx); err != nil {
+        http.Error(w, "db down", http.StatusServiceUnavailable)
+        return
+    }
+    w.WriteHeader(http.StatusOK)
+})</code></pre>
+  </div>
+  <div class="callout gotcha">
+    <div class="label">Gotcha · graceful shutdown &amp; SIGTERM</div>
+    <p>On a rolling update, K8s sends <code>SIGTERM</code>, waits <code>terminationGracePeriodSeconds</code> (default 30), then <code>SIGKILL</code>s. If your Go server ignores SIGTERM it gets killed mid-request → 502s for users. Catch it and call <code>srv.Shutdown(ctx)</code> to drain in-flight requests. Also: K8s removes the pod from endpoints and sends SIGTERM <em>concurrently</em>, so sleep briefly (or fail readiness first) before shutting down to avoid a race where traffic still arrives.</p>
+  </div>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">shutdown.go + hpa.yaml</span><span class="lang">go</span></div>
+    <pre><code class="language-go">srv := &http.Server{Addr: ":8080", Handler: mux}
+go func() { srv.ListenAndServe() }()
+
+stop := make(chan os.Signal, 1)
+signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
+<-stop                                  // block until a termination signal
+
+ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
+defer cancel()
+srv.Shutdown(ctx)                       // stop accepting, drain in-flight</code></pre>
+  </div>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">hpa.yaml (autoscaling)</span><span class="lang">yaml</span></div>
+    <pre><code class="language-yaml">apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata: { name: api }
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: api
+  minReplicas: 3
+  maxReplicas: 20
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: { type: Utilization, averageUtilization: 70 }</code></pre>
+  </div>
+  <div class="callout conv">
+    <div class="label">Convention · set <code>GOMAXPROCS</code> to your CPU limit</div>
+    <p>Go defaults <code>GOMAXPROCS</code> to the <em>node's</em> core count, not your pod's CPU limit. On a 64-core node with a 500m limit, Go spins up 64 scheduler threads and gets throttled hard. Import <code>go.uber.org/automaxprocs</code> (a blank import) to auto-set <code>GOMAXPROCS</code> from the cgroup CPU quota. Pair it with <code>GOMEMLIMIT</code> set near your memory limit so the GC backs off before the kernel OOM-kills you. Both are essential, frequently-missed K8s tuning for Go.</p>
+  </div>
+</section>
+
+<!-- ============== 28. OBSERVABILITY & TESTING ============== -->
+<section class="part" id="observability" data-part="IX · Deployment" data-title="Observability & Testing">
+  <div class="kicker">Part IX · Deployment</div>
+  <h2><span class="num">28</span>Observability &amp; testing in production</h2>
+  <p class="lead-in">A service you can't see into is a service you can't operate. Go has excellent built-in tooling for the three pillars — logs, metrics, traces — plus a famously good testing story. Here's the modern stack.</p>
+
+  <h3>Structured logging with <code>slog</code></h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">logging.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">// slog (stdlib since 1.21) — structured, leveled logging. JSON in prod so
+// log aggregators (Loki, ELK, Datadog) can index fields.
+logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+    Level: slog.LevelInfo,
+}))
+slog.SetDefault(logger)
+
+// Attach request-scoped fields once, reuse everywhere.
+reqLog := slog.With("request_id", rid, "user_id", uid)
+reqLog.Info("order created", "order_id", o.ID, "amount", o.Total)
+// → {"time":"...","level":"INFO","msg":"order created","request_id":"...",...}</code></pre>
+  </div>
+
+  <h3>Metrics with Prometheus</h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">metrics.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">var httpDuration = prometheus.NewHistogramVec(
+    prometheus.HistogramOpts{
+        Name:    "http_request_duration_seconds",
+        Buckets: prometheus.DefBuckets,    // for p50/p95/p99 via histogram_quantile
+    },
+    []string{"method", "route", "status"},
+)
+func init() { prometheus.MustRegister(httpDuration) }
+
+func metricsMW(next http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        start := time.Now()
+        rec := &statusRecorder{ResponseWriter: w, status: 200}
+        next.ServeHTTP(rec, r)
+        httpDuration.WithLabelValues(
+            r.Method, r.Pattern, strconv.Itoa(rec.status),
+        ).Observe(time.Since(start).Seconds())
+    })
+}
+
+// Expose /metrics for Prometheus to scrape.
+mux.Handle("GET /metrics", promhttp.Handler())</code></pre>
+  </div>
+  <div class="callout why">
+    <div class="label">Why a histogram, not a gauge?</div>
+    <p>Averages lie. A 50ms <em>average</em> latency can hide a p99 of 3 seconds that's wrecking a fraction of users. A Prometheus <strong>histogram</strong> buckets every observation, so you can compute <code>histogram_quantile(0.95, ...)</code> at query time and watch the <em>tail</em> — which is what actually matters for SLOs. This is the same p95-driven mindset behind real latency work: you optimize the distribution's tail, not its mean.</p>
+  </div>
+
+  <h3>Tracing with OpenTelemetry</h3>
+  <div class="callout conv">
+    <div class="label">Convention · OTel is the standard</div>
+    <p>OpenTelemetry (OTel) is the vendor-neutral standard for traces (and increasingly metrics/logs). Wrap your <code>http.Handler</code> with <code>otelhttp.NewHandler</code> and your DB/gRPC clients with their otel instrumentations; spans propagate across services via the <code>traceparent</code> header. Export to Jaeger, Tempo, or any OTLP backend. The win: one request's journey across N microservices becomes a single waterfall you can actually debug.</p>
+  </div>
+
+  <h3>The built-in profiler — <code>pprof</code></h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">pprof.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">import _ "net/http/pprof"   // registers /debug/pprof/* on the DefaultServeMux
+
+// Expose on a SEPARATE, internal-only port — never public.
+go func() { log.Println(http.ListenAndServe("localhost:6060", nil)) }()
+
+// Then, live, against production:
+//   go tool pprof http://localhost:6060/debug/pprof/heap        ← memory
+//   go tool pprof http://localhost:6060/debug/pprof/profile?seconds=30  ← CPU
+//   go tool pprof http://localhost:6060/debug/pprof/goroutine   ← goroutine leaks</code></pre>
+  </div>
+  <div class="callout nerd">
+    <div class="label">Internals · pprof is sampling, and it's cheap</div>
+    <p>The CPU profiler interrupts ~100×/sec and records the stack — statistically finding where time goes with &lt;5% overhead, safe to run in prod. The heap profiler samples allocations. <code>go tool pprof</code> then renders flame graphs (<code>-http=:8080</code>) so you literally see the hot path. Combined with the goroutine dump, this is how you catch the classic leak: a goroutine blocked forever on a channel because its <code>context</code> was never cancelled.</p>
+  </div>
+
+  <h3>Testing — table-driven, the Go way</h3>
+  <div class="code">
+    <div class="bar"><span class="lights"><i></i><i></i><i></i></span><span class="name">handler_test.go</span><span class="lang">go</span></div>
+    <pre><code class="language-go">func TestDivide(t *testing.T) {
+    // Table-driven: one test function, many cases. The idiomatic Go pattern.
+    tests := []struct {
+        name    string
+        a, b    int
+        want    int
+        wantErr bool
+    }{
+        {"basic", 6, 2, 3, false},
+        {"div by zero", 1, 0, 0, true},
+        {"negative", -6, 2, -3, false},
+    }
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {   // subtests → granular output
+            got, err := Divide(tt.a, tt.b)
+            if (err != nil) != tt.wantErr {
+                t.Fatalf("err = %v, wantErr %v", err, tt.wantErr)
+            }
+            if got != tt.want {
+                t.Errorf("got %d, want %d", got, tt.want)
+            }
+        })
+    }
+}
+
+// httptest spins up your handler with no real network.
+func TestGetUser(t *testing.T) {
+    req := httptest.NewRequest("GET", "/users/42", nil)
+    rec := httptest.NewRecorder()
+    handler(rec, req)
+    if rec.Code != http.StatusOK {
+        t.Fatalf("status = %d", rec.Code)
+    }
+}</code></pre>
+  </div>
+  <div class="callout conv">
+    <div class="label">Convention · testcontainers for real integration tests</div>
+    <p>Mocking a database hides bugs that only real SQL reveals. <strong>testcontainers-go</strong> spins up a throwaway Postgres/Redis in Docker for the duration of your test, so you test against the real engine and tear it down automatically. Combine with <code>t.Parallel()</code> for speed, <code>go test -race</code> to catch data races (run it in CI, always), and <code>go test -cover</code> for coverage. The race detector alone has saved more production incidents than any amount of code review.</p>
+  </div>
+  <div class="callout gotcha">
+    <div class="label">Gotcha · always run <code>-race</code> in CI</div>
+    <p>Data races in Go are undefined behavior — they may work 10,000 times then corrupt memory under load. The race detector instruments memory access at runtime and reports the exact two goroutines + stacks involved. It's ~2–10× slower so you don't ship with it, but <code>go test -race ./...</code> on every CI run is non-negotiable for concurrent code. A passing test suite <em>without</em> <code>-race</code> tells you very little about a concurrent program's correctness.</p>
+  </div>
+</section>
+
+<!-- ============== 29. GOTCHAS ROUNDUP ============== -->
+<section class="part" id="gotchas" data-part="IX · Deployment" data-title="Senior gotchas roundup">
+  <div class="kicker">Part IX · The Finish Line</div>
+  <h2><span class="num">29</span>The senior's gotcha roundup &amp; checklist</h2>
+  <p class="lead-in">Everything a reviewer expects you to already know, condensed. If you can explain <em>why</em> each of these is true, you understand Go at a senior level. Many were covered in depth above — this is your fast-recall sheet.</p>
+
+  <h3>Concurrency landmines</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Trap</th><th>What goes wrong</th><th>Fix</th></tr></thead>
+    <tbody>
+      <tr><td>Goroutine leaks</td><td>A goroutine blocks forever on a channel/lock; memory and the goroutine never freed.</td><td>Always give goroutines an exit path — a <code>context</code>, a <code>done</code> channel, or a closed channel to range over.</td></tr>
+      <tr><td>Unbuffered send with no receiver</td><td>Deadlock — the sender blocks forever.</td><td>Ensure a receiver exists, or buffer, or <code>select</code> with <code>ctx.Done()</code>.</td></tr>
+      <tr><td>Closing a channel twice / sending on closed</td><td><code>panic</code>.</td><td>The <em>sender</em> owns closing; never close from the receiver side; close once.</td></tr>
+      <tr><td>Data race on a map</td><td>Concurrent map read+write → fatal runtime crash (not catchable).</td><td><code>sync.Mutex</code>, <code>sync.RWMutex</code>, or <code>sync.Map</code> for specific patterns.</td></tr>
+      <tr><td>Copying a <code>sync.Mutex</code>/<code>WaitGroup</code></td><td>Copies the lock state → broken mutual exclusion.</td><td>Pass by pointer; <code>go vet</code> catches this.</td></tr>
+      <tr><td>WaitGroup <code>Add</code> inside the goroutine</td><td>Race between <code>Add</code> and <code>Wait</code>.</td><td>Call <code>wg.Add(1)</code> <em>before</em> <code>go func()</code>.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Slice, map &amp; value semantics</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Trap</th><th>What goes wrong</th><th>Fix</th></tr></thead>
+    <tbody>
+      <tr><td>Slice aliasing after <code>append</code></td><td>Two slices share a backing array — a write to one mutates the other; until a growth reallocates and they silently diverge.</td><td><code>slices.Clone</code>, or full-slice expr <code>s[low:high:max]</code> to cap capacity.</td></tr>
+      <tr><td>Appending to a sliced sub-slice</td><td>Overwrites elements of the parent beyond <code>len</code>.</td><td>Three-index slice to force a copy on next append.</td></tr>
+      <tr><td>Holding a giant array via a small slice</td><td>The whole backing array stays alive — memory "leak."</td><td>Copy the few elements you need into a fresh slice.</td></tr>
+      <tr><td>Map iteration order</td><td>Randomized per run — relying on order gives flaky tests.</td><td>Collect keys, <code>slices.Sort</code> them, iterate sorted.</td></tr>
+      <tr><td>Taking the address of a map element</td><td>Not allowed — map values aren't addressable.</td><td>Use a map of pointers, or read-modify-write the whole value.</td></tr>
+      <tr><td>Mutating a struct in a <code>range</code> loop</td><td><code>for _, v := range</code> gives a <em>copy</em>; edits are lost.</td><td>Index with <code>for i := range s { s[i].X = … }</code>.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>The famous interface &amp; error traps</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Trap</th><th>What goes wrong</th><th>Fix</th></tr></thead>
+    <tbody>
+      <tr><td>Typed-nil interface</td><td>Returning a <code>nil *T</code> as an <code>error</code> makes <code>err != nil</code> TRUE — the interface holds a type.</td><td>Return a literal <code>nil</code>; never <code>var e *myErr; return e</code>.</td></tr>
+      <tr><td><code>==</code> on errors</td><td>Wrapped errors (<code>%w</code>) won't match by value.</td><td><code>errors.Is</code> / <code>errors.As</code> to unwrap the chain.</td></tr>
+      <tr><td>Ignoring errors with <code>_</code></td><td>Silent failures, especially <code>w.Write</code>, <code>defer f.Close()</code>.</td><td>Check them; for deferred close on writes, capture the error in a named return.</td></tr>
+      <tr><td>panic across a goroutine boundary</td><td>A panic in a goroutine crashes the <em>whole process</em>; a <code>recover</code> in the parent won't catch it.</td><td><code>recover</code> inside <em>that</em> goroutine.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>The classics that bite everyone</h3>
+  <div class="callout gotcha">
+    <div class="label">Gotcha · the pre-1.22 loop variable (know the history)</div>
+    <p>Before Go 1.22, the loop variable was shared across all iterations, so <code>for _, v := range xs { go func(){ use(v) }() }</code> captured the <em>same</em> <code>v</code> — every goroutine saw the last value. Go 1.22 made the loop variable per-iteration, fixing it. You'll still see the old <code>v := v</code> shadow trick in pre-1.22 code; know why it existed. (Reviewers love asking this.)</p>
+  </div>
+  <div class="callout gotcha">
+    <div class="label">Gotcha · <code>defer</code> in a loop</div>
+    <p><code>defer</code> runs at <em>function</em> return, not loop-iteration end. <code>for ... { f, _ := os.Open(x); defer f.Close() }</code> holds every file open until the function exits → fd exhaustion. Move the work into a helper function, or close explicitly inside the loop.</p>
+  </div>
+  <div class="callout gotcha">
+    <div class="label">Gotcha · <code>time.After</code> in a hot <code>select</code></div>
+    <p><code>time.After</code> allocates a new timer each call and doesn't get GC'd until it fires. In a tight <code>select</code> loop that's a slow leak. Use a single <code>time.NewTimer</code> you <code>Reset</code>, or <code>context.WithTimeout</code>.</p>
+  </div>
+  <div class="callout gotcha">
+    <div class="label">Gotcha · forgetting <code>resp.Body.Close()</code></div>
+    <p>Every <code>http.Get/Do</code> response body must be closed or you leak connections (the pool can't reuse them) and eventually file descriptors. <code>defer resp.Body.Close()</code> — and read the body to EOF (or <code>io.Copy(io.Discard, body)</code>) so the connection can be reused, not dropped.</p>
+  </div>
+
+  <h3>The pre-deploy checklist</h3>
+  <div class="callout conv">
+    <div class="label">Convention · before you ship a Go service</div>
+    <ul style="margin:6px 0">
+      <li><strong>Context everywhere:</strong> every blocking call (DB, HTTP, gRPC) takes a <code>ctx</code> with a deadline, propagated from the request.</li>
+      <li><strong>Graceful shutdown:</strong> SIGTERM → <code>srv.Shutdown</code>, drain in-flight, close pools.</li>
+      <li><strong>Timeouts on the server:</strong> set <code>ReadHeaderTimeout</code> (and ideally Read/Write/Idle) — the zero-value <code>http.Server</code> has none and is Slowloris-vulnerable.</li>
+      <li><strong>Resource limits:</strong> connection pool caps (<code>SetMaxOpenConns</code>), <code>GOMAXPROCS</code> + <code>GOMEMLIMIT</code> matched to container limits.</li>
+      <li><strong>Observability:</strong> structured logs, <code>/metrics</code>, traces, <code>/healthz</code> + <code>/readyz</code>.</li>
+      <li><strong>Tested with <code>-race</code></strong> and real dependencies (testcontainers).</li>
+      <li><strong>Static, non-root container</strong> with pinned base images and a <code>.dockerignore</code>.</li>
+    </ul>
+  </div>
+
+  <div class="closer">
+    <h3 style="border:0;margin-top:0">You've reached the end.</h3>
+    <p>You now have the full arc: the language and its memory model, the concurrency machinery and its scheduler, idiomatic web services, data and caching, protobuf and gRPC, a React frontend, and a production deployment story with Docker, nginx, and Kubernetes — plus the gotchas a senior is expected to carry in their head.</p>
+    <p style="margin-bottom:0">The Go ethos is consistency over cleverness: a small language, a great standard library, and tools (<code>go vet</code>, <code>-race</code>, <code>pprof</code>, <code>gofmt</code>) that make the right thing the easy thing. Build something, run it under load, read the profiles, and the rest becomes muscle memory.</p>
+  </div>
+</section>
+
+    </div><!-- /#content -->
+  </main>
+  <div id="overlay"></div>
+</div><!-- /.shell -->
+
+<button id="menuBtn" aria-label="Toggle navigation">☰</button>
+
+<!-- ============== highlight.js (syntax highlighting) ============== -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/base16/black-metal-bathory.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/go.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/sql.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/yaml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/dockerfile.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/nginx.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/protobuf.min.js"></script>
+
+<script>
+(function () {
+  "use strict";
+
+  var sections = Array.prototype.slice.call(document.querySelectorAll("section.part"));
+  var toc      = document.getElementById("toc");
+  var progress = document.getElementById("progress");
+  var content  = document.getElementById("content");
+
+  /* ---------- 1. Build the sidebar TOC, grouped by data-part ---------- */
+  var linkFor = {};            // id -> <a> (for scroll-spy)
+  var lastGroup = null;
+  var romanCount = 0;
+  sections.forEach(function (sec) {
+    var group = sec.getAttribute("data-part") || "";
+    var title = sec.getAttribute("data-title") || sec.id;
+
+    if (group !== lastGroup) {
+      var label = document.createElement("div");
+      label.className = "part-label";
+      label.setAttribute("data-n", "▸");
+      label.textContent = group;
+      toc.appendChild(label);
+      lastGroup = group;
+    }
+    var a = document.createElement("a");
+    a.href = "#" + sec.id;
+    a.textContent = title;
+    toc.appendChild(a);
+    linkFor[sec.id] = a;
+  });
+
+  /* ---------- 2. Prev / Next pager at the end of every section ---------- */
+  sections.forEach(function (sec, i) {
+    var pager = document.createElement("nav");
+    pager.className = "pager";
+
+    var prev = document.createElement("a");
+    prev.className = "prev";
+    if (i > 0) {
+      prev.href = "#" + sections[i - 1].id;
+      prev.innerHTML = '<span class="pdir">‹ Previous</span>' +
+        '<span class="ptitle">' + (sections[i - 1].getAttribute("data-title") || "") + '</span>';
+    } else {
+      prev.className = "prev disabled";
+      prev.innerHTML = '<span class="pdir">‹ Previous</span><span class="ptitle">The beginning</span>';
+    }
+
+    var next = document.createElement("a");
+    next.className = "next";
+    if (i < sections.length - 1) {
+      next.href = "#" + sections[i + 1].id;
+      next.innerHTML = '<span class="pdir">Next ›</span>' +
+        '<span class="ptitle">' + (sections[i + 1].getAttribute("data-title") || "") + '</span>';
+    } else {
+      next.className = "next disabled";
+      next.innerHTML = '<span class="pdir">Next ›</span><span class="ptitle">You\u2019re done</span>';
+    }
+
+    pager.appendChild(prev);
+    pager.appendChild(next);
+    sec.appendChild(pager);
+  });
+
+  /* ---------- 3. Scroll-spy: highlight the active TOC link ---------- */
+  var activeId = null;
+  function setActive(id) {
+    if (id === activeId || !linkFor[id]) return;
+    if (activeId && linkFor[activeId]) linkFor[activeId].classList.remove("active");
+    activeId = id;
+    var a = linkFor[id];
+    a.classList.add("active");
+    // keep the active link in view within the sidebar
+    if (a.scrollIntoView) {
+      var r = a.getBoundingClientRect();
+      if (r.top < 80 || r.bottom > window.innerHeight - 40) {
+        a.scrollIntoView({ block: "nearest" });
+      }
+    }
+  }
+
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function (entries) {
+      // pick the entry nearest the top that is intersecting
+      var best = null;
+      entries.forEach(function (e) {
+        if (e.isIntersecting) {
+          if (!best || e.boundingClientRect.top < best.boundingClientRect.top) best = e;
+        }
+      });
+      if (best) setActive(best.target.id);
+    }, { rootMargin: "-12% 0px -70% 0px", threshold: 0 });
+    sections.forEach(function (s) { io.observe(s); });
+  }
+
+  /* ---------- 4. Reading-progress bar + scroll-spy fallback ---------- */
+  function onScroll() {
+    var h = document.documentElement;
+    var scrolled = h.scrollTop;
+    var height = h.scrollHeight - h.clientHeight;
+    progress.style.width = (height > 0 ? (scrolled / height) * 100 : 0) + "%";
+
+    // fallback active detection (covers browsers without IO / edge cases)
+    var mid = scrolled + window.innerHeight * 0.28;
+    var current = sections[0];
+    for (var i = 0; i < sections.length; i++) {
+      if (sections[i].offsetTop <= mid) current = sections[i];
+    }
+    if (current) setActive(current.id);
+  }
+  var ticking = false;
+  window.addEventListener("scroll", function () {
+    if (!ticking) {
+      window.requestAnimationFrame(function () { onScroll(); ticking = false; });
+      ticking = true;
+    }
+  }, { passive: true });
+  onScroll();
+
+  /* ---------- 5. Smooth-scroll + mobile nav close on TOC click ---------- */
+  toc.addEventListener("click", function (e) {
+    var a = e.target.closest("a");
+    if (!a) return;
+    closeNav();
+  });
+
+  /* ---------- 6. Mobile off-canvas nav ---------- */
+  var sidebar = document.getElementById("sidebar");
+  var menuBtn = document.getElementById("menuBtn");
+  var overlay = document.getElementById("overlay");
+  function closeNav() { sidebar.classList.remove("open"); }
+  menuBtn.addEventListener("click", function () { sidebar.classList.toggle("open"); });
+  overlay.addEventListener("click", closeNav);
+
+  /* ---------- 7. Syntax highlighting ---------- */
+  if (window.hljs) {
+    document.querySelectorAll("pre code").forEach(function (block) {
+      try { window.hljs.highlightElement(block); } catch (err) {}
+    });
+  }
+})();
+</script>
+</body>
+</html>
