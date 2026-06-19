@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" type="image/svg+xml" href="/assets/icons/fastapi.svg">
 <title>FastAPI Field Guide</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -204,9 +206,31 @@ pre.has-label{padding-top:26px}
 @media(prefers-reduced-motion:reduce){
   *{animation:none!important;transition:none!important;scroll-behavior:auto}
 }
+
+/* ===== theme toggle + light/dark ===== */
+.theme-toggle{position:fixed;top:14px;right:14px;z-index:120;width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;border-radius:10px;cursor:pointer;background:var(--surface);border:1px solid var(--line);color:var(--muted);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);transition:color .15s,border-color .15s,transform .15s}
+.theme-toggle:hover{color:var(--accent);border-color:var(--accent);transform:translateY(-1px)}
+.theme-toggle svg{display:block;width:18px;height:18px}
+html[data-theme="dark"] .theme-toggle .i-moon{display:none}
+html[data-theme="light"] .theme-toggle .i-sun{display:none}
+@media print{.theme-toggle{display:none}}
+html[data-theme="dark"]{--bg:#0e1116;--surface:#161b22;--ink:#e7edf4;--muted:#9aa6b3;--faint:#69727e;--line:#262c35;--accent-soft:#12302e;--warm-soft:#2c2114;--red-soft:#2e1a18}
+html[data-theme="dark"] a{color:#5fcabf;border-bottom-color:rgba(95,202,191,.3)}
+html[data-theme="dark"] .call.why{border-color:#3a2c18}
+html[data-theme="dark"] .call.note{border-color:#1d3b38}
+html[data-theme="dark"] .call.note .tag{color:#5fcabf}
+html[data-theme="dark"] .call.warn{border-color:#3d2421}
+html[data-theme="dark"] code.ic{background:#1d2530;color:#9fe6dd;border-color:#2b3340}
+html[data-theme="dark"] .legend code{background:#1d2530;color:#9fe6dd}
 </style>
+<script>(function(){try{var t=localStorage.getItem('tut-theme');if(t!=='light'&&t!=='dark'){t=(window.matchMedia&&matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark';}document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','light');}})();</script>
 </head>
 <body>
+<button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle light or dark theme" title="Toggle theme">
+<svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/></svg>
+<svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+</button>
+
 <div id="progress"></div>
 
 <aside id="sidebar">
@@ -1099,5 +1123,6 @@ scrim.addEventListener('click', () => { sidebar.classList.remove('open'); scrim.
 const startHash = parseInt(location.hash.replace('#',''), 10);
 go(Number.isInteger(startHash) && startHash>=1 && startHash<=total ? startHash-1 : 0);
 </script>
+<script>(function(){var b=document.getElementById('theme-toggle');if(!b)return;b.addEventListener('click',function(){var n=document.documentElement.getAttribute('data-theme')==='light'?'dark':'light';document.documentElement.setAttribute('data-theme',n);try{localStorage.setItem('tut-theme',n);}catch(e){}});})();</script>
 </body>
 </html>

@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light dark">
 <title>Backend Engineering Tutorials — Abhinav Yadav</title>
 <meta name="description" content="Reference guides for backend engineers: Go, FastAPI, gRPC & Protocol Buffers, GraphQL, and Kubernetes.">
 <link rel="icon" href="/favicon.svg">
@@ -129,9 +130,24 @@ footer a:hover{color:var(--ink)}
   .arrow{display:none}
   .card{padding-right:24px}
 }
+
+/* ===== theme toggle + light/dark ===== */
+.theme-toggle{position:fixed;top:14px;right:14px;z-index:120;width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;border-radius:10px;cursor:pointer;background:var(--surface);border:1px solid var(--border);color:var(--muted);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);transition:color .15s,border-color .15s,transform .15s}
+.theme-toggle:hover{color:#5b8cff;border-color:#5b8cff;transform:translateY(-1px)}
+.theme-toggle svg{display:block;width:18px;height:18px}
+html[data-theme="dark"] .theme-toggle .i-moon{display:none}
+html[data-theme="light"] .theme-toggle .i-sun{display:none}
+@media print{.theme-toggle{display:none}}
+html[data-theme="light"]{--bg:#f6f8fa;--surface:#ffffff;--surface-hover:#f0f3f7;--border:#dde2e8;--border-soft:#e8ebf0;--ink:#1b222c;--muted:#54606e;--faint:#8893a1}
 </style>
+<script>(function(){try{var t=localStorage.getItem('tut-theme');if(t!=='light'&&t!=='dark'){t=(window.matchMedia&&matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark';}document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();</script>
 </head>
 <body>
+<button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle light or dark theme" title="Toggle theme">
+<svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/></svg>
+<svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+</button>
+
 <div class="wrap">
   <header>
     <p class="eyebrow">Reference Guides</p>
@@ -181,5 +197,6 @@ footer a:hover{color:var(--ink)}
     <a href="/">abhiyadav.in &rarr;</a>
   </footer>
 </div>
+<script>(function(){var b=document.getElementById('theme-toggle');if(!b)return;b.addEventListener('click',function(){var n=document.documentElement.getAttribute('data-theme')==='light'?'dark':'light';document.documentElement.setAttribute('data-theme',n);try{localStorage.setItem('tut-theme',n);}catch(e){}});})();</script>
 </body>
 </html>

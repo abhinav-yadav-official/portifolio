@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" type="image/svg+xml" href="/assets/icons/go.svg">
 <title>The Go Web Engineer — From Syntax to Shipping</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -294,9 +296,28 @@ kbd{font-family:var(--mono);font-size:.8em;background:#0d1620;border:1px solid v
 .closer h3{color:var(--cyan-bright);font-family:var(--display)}
 .closer p{color:var(--text-dim)}
 :focus-visible{outline:2px solid var(--cyan-bright);outline-offset:3px;border-radius:4px}
+
+/* ===== theme toggle + light/dark ===== */
+.theme-toggle{position:fixed;top:14px;right:14px;z-index:120;width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;border-radius:10px;cursor:pointer;background:var(--surface);border:1px solid var(--line);color:var(--text-dim);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);transition:color .15s,border-color .15s,transform .15s}
+.theme-toggle:hover{color:var(--cyan);border-color:var(--cyan);transform:translateY(-1px)}
+.theme-toggle svg{display:block;width:18px;height:18px}
+html[data-theme="dark"] .theme-toggle .i-moon{display:none}
+html[data-theme="light"] .theme-toggle .i-sun{display:none}
+@media print{.theme-toggle{display:none}}
+html[data-theme="light"]{--bg:#f6f8fa;--bg-2:#ffffff;--surface:#ffffff;--surface-2:#eef2f680;--text:#15202b;--text-dim:#4a5a6a;--text-faint:#7d8a99;--line:rgba(15,30,50,.12);--line-strong:rgba(15,30,50,.18)}
+html[data-theme="light"] h3,html[data-theme="light"] strong,html[data-theme="light"] .note-grid .cell h4{color:#15202b}
+html[data-theme="light"] code:not(.hljs){color:var(--cyan-dim)}
+html[data-theme="light"] th{background:#eef2f6;color:var(--text-dim)}
+html[data-theme="light"] kbd{background:#eef2f6;color:var(--text)}
 </style>
+<script>(function(){try{var t=localStorage.getItem('tut-theme');if(t!=='light'&&t!=='dark'){t=(window.matchMedia&&matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark';}document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();</script>
 </head>
 <body>
+<button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle light or dark theme" title="Toggle theme">
+<svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/></svg>
+<svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+</button>
+
 <div id="progress"></div>
 
 <div class="shell">
@@ -3094,5 +3115,6 @@ func TestGetUser(t *testing.T) {
   }
 })();
 </script>
+<script>(function(){var b=document.getElementById('theme-toggle');if(!b)return;b.addEventListener('click',function(){var n=document.documentElement.getAttribute('data-theme')==='light'?'dark':'light';document.documentElement.setAttribute('data-theme',n);try{localStorage.setItem('tut-theme',n);}catch(e){}});})();</script>
 </body>
 </html>
