@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" type="image/svg+xml" href="/assets/icons/redis.svg">
+<title>The Redis Handbook — Structures, Patterns & Internals</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0c0a0c; --bg2:#120e11; --panel:#1a1418; --panel2:#221a1f;
+  --line:#2a2025; --line2:#3a2c33;
+  --ink:#f1e9ec; --soft:#c3b2ba; --faint:#8a7681;
+  --r:#e5484d;    /* redis red — the hero */
+  --s:#e8b04b;    /* structures / amber */
+  --a:#54c39a;    /* access & patterns / green */
+  --o:#9d8cf0;    /* operating / violet */
+  --amber:#e8b04b; --warn:#e5645a; --ok:#5fb878;
+  --code-bg:#0f0b0e;
+  --sidebar-w:266px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:'Inter',system-ui,sans-serif;font-size:15px;line-height:1.62;
+  background-image:radial-gradient(900px 480px at 100% -5%,rgba(229,72,77,.07),transparent 60%),
+    radial-gradient(800px 480px at 0 0,rgba(157,140,240,.045),transparent 55%);}
+a{color:inherit;text-decoration:none}
+
+/* ---------- layout ---------- */
+.app{display:grid;grid-template-columns:var(--sidebar-w) minmax(0,1fr);min-height:100vh}
+aside{border-right:1px solid var(--line);background:rgba(18,14,17,.6);
+  position:sticky;top:0;height:100vh;overflow-y:auto;padding:22px 0 40px}
+.brand{padding:4px 22px 18px;border-bottom:1px solid var(--line);margin-bottom:14px}
+.brand .kick{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.26em;
+  text-transform:uppercase;color:var(--faint)}
+.brand h1{font-family:'Fraunces',serif;font-weight:600;font-size:22px;line-height:1.05;margin:8px 0 0}
+.brand .dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--r);margin-right:7px;
+  box-shadow:0 0 0 3px rgba(229,72,77,.18)}
+.toc-grp{padding:14px 14px 4px}
+.toc-grp .lbl{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;
+  text-transform:uppercase;padding:0 8px 7px;display:flex;align-items:center;gap:7px}
+.toc-grp.f .lbl{color:var(--r)} .toc-grp.s .lbl{color:var(--s)} .toc-grp.a .lbl{color:var(--a)} .toc-grp.o .lbl{color:var(--o)}
+.toc-grp .lbl::before{content:"";width:7px;height:7px;border-radius:2px;background:currentColor}
+.toc a{display:flex;gap:9px;align-items:baseline;padding:6px 10px;border-radius:7px;
+  font-size:13px;color:var(--soft);cursor:pointer;line-height:1.3}
+.toc a:hover{background:var(--panel);color:var(--ink)}
+.toc a.active{background:var(--panel2);color:var(--ink)}
+.toc a.active.f{box-shadow:inset 2px 0 var(--r)} .toc a.active.s{box-shadow:inset 2px 0 var(--s)}
+.toc a.active.a{box-shadow:inset 2px 0 var(--a)} .toc a.active.o{box-shadow:inset 2px 0 var(--o)}
+.toc a .n{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--faint);min-width:20px}
+
+/* ---------- main ---------- */
+main{display:flex;flex-direction:column;min-height:100vh}
+.topbar{position:sticky;top:0;z-index:20;background:rgba(12,10,12,.9);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);padding:11px 32px;display:flex;align-items:center;gap:16px}
+.progress{flex:1;height:4px;background:var(--panel);border-radius:3px;overflow:hidden}
+.progress span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--r),var(--s));transition:width .3s}
+.counter{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--faint);white-space:nowrap}
+.menu-btn{display:none;background:var(--panel);border:1px solid var(--line2);color:var(--ink);
+  border-radius:8px;padding:7px 10px;cursor:pointer}
+
+.content{flex:1;padding:38px 32px 20px;max-width:880px;width:100%;margin:0 auto}
+.page{display:none;animation:fade .35s ease}
+.page.on{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+.eyebrow{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;
+  display:inline-flex;align-items:center;gap:8px;margin-bottom:14px}
+.eyebrow.f{color:var(--r)} .eyebrow.s{color:var(--s)} .eyebrow.a{color:var(--a)} .eyebrow.o{color:var(--o)}
+.eyebrow::before{content:"";width:22px;height:1px;background:currentColor}
+h2.pt{font-family:'Fraunces',serif;font-weight:600;font-size:clamp(26px,3.6vw,38px);line-height:1.05;
+  letter-spacing:-.01em;margin:0 0 6px}
+.dek{color:var(--soft);font-size:16px;margin:0 0 26px;max-width:700px}
+h3{font-family:'Fraunces',serif;font-weight:600;font-size:21px;margin:30px 0 10px;letter-spacing:-.01em}
+h4{font-family:'Inter';font-weight:600;font-size:15.5px;margin:20px 0 8px;color:var(--ink)}
+p{margin:0 0 14px}
+.page strong{color:#fff;font-weight:600}
+em{color:var(--soft);font-style:italic}
+ul,ol{margin:0 0 14px;padding-left:20px}
+li{margin:5px 0}
+code{font-family:'JetBrains Mono',monospace;font-size:.88em;background:var(--code-bg);
+  border:1px solid var(--line);border-radius:5px;padding:1px 6px;color:#f0c9cb}
+pre{background:var(--code-bg);border:1px solid var(--line);border-radius:11px;padding:15px 17px;
+  overflow-x:auto;margin:0 0 16px;font-family:'JetBrains Mono',monospace;font-size:12.8px;line-height:1.6;color:#d8c6cd}
+pre .k{color:#e5484d} pre .s{color:#54c39a} pre .c{color:#8a7681} pre .n{color:#e8b04b} pre .v{color:#9d8cf0}
+
+/* callouts */
+.note{border-left:3px solid var(--r);background:var(--panel);border-radius:0 10px 10px 0;padding:13px 16px;margin:0 0 16px}
+.note.warn{border-left-color:var(--warn)} .note.tip{border-left-color:var(--a)} .note.key{border-left-color:var(--amber)}
+.note b{font-family:'Fraunces',serif;font-size:14px}
+.note p:last-child{margin:0}
+
+/* command card — the signature element */
+.cmd{border:1px solid var(--line2);border-radius:12px;margin:0 0 16px;overflow:hidden;background:var(--bg2)}
+.cmd .cmd-h{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:9px 14px;background:var(--panel2);border-bottom:1px solid var(--line)}
+.cmd .cmd-h .nm{font-family:'JetBrains Mono',monospace;font-weight:600;font-size:13px;color:var(--ink)}
+.cmd .cmd-h .bigo{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--s);
+  background:rgba(232,176,75,.1);border:1px solid rgba(232,176,75,.3);border-radius:20px;padding:2px 10px;white-space:nowrap}
+.cmd .cmd-b{padding:11px 14px;font-size:13.4px;color:var(--soft)}
+.cmd .cmd-b code{font-size:.9em}
+
+/* tables */
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:11px;margin:0 0 18px}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:13.4px}
+th{background:var(--panel2);text-align:left;font-family:'JetBrains Mono',monospace;font-weight:500;
+  font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--soft);padding:11px 14px;border-bottom:1px solid var(--line2)}
+td{padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--soft)}
+td:first-child{color:var(--ink)}
+tr:last-child td{border-bottom:none}
+tbody tr:hover{background:var(--panel)}
+.mono{font-family:'JetBrains Mono',monospace;font-size:.92em}
+
+/* diagram frame */
+.fig{background:var(--bg2);border:1px solid var(--line);border-radius:13px;padding:18px 18px 12px;margin:0 0 18px}
+.fig svg{width:100%;height:auto;display:block}
+.fig .cap{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--faint);text-align:center;margin-top:10px;line-height:1.5}
+
+/* spec grid */
+.spec{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:0 0 20px}
+.spec .cell{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:11px 13px}
+.spec .cell .h{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-bottom:4px}
+.spec .cell .v{font-size:13.5px;color:var(--ink);line-height:1.4}
+
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:0 0 16px}
+@media(max-width:680px){.two{grid-template-columns:1fr}}
+
+/* "ask me" cross-question block */
+.qa{border:1px dashed var(--line2);border-radius:11px;padding:6px 16px 2px;margin:0 0 16px;background:rgba(229,72,77,.03)}
+.qa .qlbl{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--r);margin:10px 0 8px}
+.qa .qitem{margin:0 0 11px}
+.qa .q{color:var(--ink);font-weight:600;font-size:13.6px;margin:0 0 3px}
+.qa .a{color:var(--soft);font-size:13.4px;margin:0}
+
+/* bottom nav */
+.pager{border-top:1px solid var(--line);padding:18px 32px 30px;display:flex;justify-content:space-between;gap:14px;max-width:880px;margin:24px auto 0;width:100%}
+.pbtn{display:flex;flex-direction:column;gap:3px;background:var(--panel);border:1px solid var(--line2);
+  border-radius:11px;padding:11px 16px;cursor:pointer;min-width:160px;transition:.15s;text-align:left}
+.pbtn:hover:not(:disabled){border-color:var(--soft);transform:translateY(-1px)}
+.pbtn:disabled{opacity:.32;cursor:default}
+.pbtn.next{text-align:right;align-items:flex-end}
+.pbtn .dir{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
+.pbtn .ttl{font-size:13.5px;color:var(--ink);font-weight:500}
+
+@media(max-width:920px){
+  .app{grid-template-columns:1fr}
+  aside{position:fixed;left:0;top:0;width:280px;z-index:60;transform:translateX(-100%);transition:.25s}
+  aside.open{transform:none;box-shadow:0 0 0 100vw rgba(0,0,0,.5)}
+  .menu-btn{display:block}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+:focus-visible{outline:2px solid var(--r);outline-offset:2px;border-radius:4px}
+::selection{background:rgba(229,72,77,.3)}
+
+/* ===== theme toggle + light/dark ===== */
+.theme-toggle{position:fixed;top:14px;right:14px;z-index:120;width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;border-radius:10px;cursor:pointer;background:var(--panel);border:1px solid var(--line);color:var(--soft);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);transition:color .15s,border-color .15s,transform .15s}
+.theme-toggle:hover{color:var(--r);border-color:var(--r);transform:translateY(-1px)}
+.theme-toggle svg{display:block;width:18px;height:18px}
+html[data-theme="dark"] .theme-toggle .i-moon{display:none}
+html[data-theme="light"] .theme-toggle .i-sun{display:none}
+@media print{.theme-toggle{display:none}}
+html[data-theme="light"]{--bg:#fbf7f8;--bg2:#ffffff;--panel:#ffffff;--panel2:#f3edef;--line:#e8dadd;--line2:#d8c9ce;--ink:#1f1418;--soft:#5a4b51;--faint:#897680}
+html[data-theme="light"] .page strong{color:#1f1418}
+html[data-theme="light"] aside{background:rgba(255,255,255,.74)}
+html[data-theme="light"] .topbar{background:rgba(251,247,248,.92)}
+html[data-theme="light"] code{background:#f6ecee;color:#b0303c;border-color:#ecd9dd}
+html[data-theme="light"] pre code{background:transparent;border:0;color:inherit}
+html[data-theme="light"] .fig{background:#120e11;border-color:#2a2025}
+</style>
+<script>(function(){try{var t=localStorage.getItem('tut-theme');if(t!=='light'&&t!=='dark'){t=(window.matchMedia&&matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark';}document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();</script>
+</head>
+<body>
+<button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle light or dark theme" title="Toggle theme">
+<svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/></svg>
+<svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+</button>
+<div class="app">
+  <aside id="sidebar">
+    <div class="brand">
+      <div class="kick">System Design</div>
+      <h1><span class="dot"></span>The Redis<br>Handbook</h1>
+    </div>
+    <nav id="toc"></nav>
+  </aside>
+
+  <main>
+    <div class="topbar">
+      <button class="menu-btn" id="menuBtn" aria-label="Menu">☰</button>
+      <div class="progress"><span id="prog"></span></div>
+      <div class="counter" id="counter">01 / 01</div>
+    </div>
+
+    <div class="content" id="content">
+
+<!-- ============ PAGE 1 : COVER / MENTAL MODEL ============ -->
+<section class="page on" data-grp="f" data-title="The mental model">
+  <div class="eyebrow f">Orientation</div>
+  <h2 class="pt">Redis is a data-structure server</h2>
+  <p class="dek">Not "a cache." A single-threaded, in-memory engine that exposes <strong>data structures</strong> — strings, hashes, lists, sets, sorted sets, streams, bitmaps, HyperLogLog, geo — behind atomic commands. Every design decision (speed, atomicity, the pitfalls) falls out of those two words: <strong>in-memory</strong> and <strong>single-threaded</strong>.</p>
+
+  <div class="fig">
+    <svg viewBox="0 0 760 250" xmlns="http://www.w3.org/2000/svg">
+      <defs><marker id="ra" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#e5484d"/></marker></defs>
+      <style>.bx{fill:#1a1418;stroke:#3a2c33}.t{fill:#f1e9ec;font:600 11px 'JetBrains Mono'}.s{fill:#c3b2ba;font:9.5px 'JetBrains Mono'}.ln{stroke:#e5484d;stroke-width:1.5;fill:none;marker-end:url(#ra)}</style>
+      <rect class="bx" x="14" y="104" width="92" height="44" rx="8"/><text class="t" x="60" y="124" text-anchor="middle">client</text><text class="s" x="60" y="140" text-anchor="middle">RESP cmd</text>
+      <rect class="bx" x="150" y="74" width="150" height="104" rx="10" style="stroke:#e5484d"/><text class="t" x="225" y="98" text-anchor="middle">single event loop</text><text class="s" x="225" y="116" text-anchor="middle">one thread runs</text><text class="s" x="225" y="130" text-anchor="middle">commands serially</text><text class="s" x="225" y="150" text-anchor="middle">→ every op is atomic</text><text class="s" x="225" y="164" text-anchor="middle">→ no locks needed</text>
+      <rect class="bx" x="346" y="34" width="118" height="30" rx="6" style="stroke:#e8b04b"/><text class="t" x="405" y="54" text-anchor="middle">string · hash</text>
+      <rect class="bx" x="346" y="72" width="118" height="30" rx="6" style="stroke:#e8b04b"/><text class="t" x="405" y="92" text-anchor="middle">list · set</text>
+      <rect class="bx" x="346" y="110" width="118" height="30" rx="6" style="stroke:#e8b04b"/><text class="t" x="405" y="130" text-anchor="middle">sorted set</text>
+      <rect class="bx" x="346" y="148" width="118" height="30" rx="6" style="stroke:#e8b04b"/><text class="t" x="405" y="168" text-anchor="middle">stream · geo</text>
+      <rect class="bx" x="346" y="186" width="118" height="30" rx="6" style="stroke:#e8b04b"/><text class="t" x="405" y="206" text-anchor="middle">bitmap · HLL</text>
+      <rect class="bx" x="520" y="40" width="110" height="40" rx="8" style="stroke:#9d8cf0"/><text class="t" x="575" y="58" text-anchor="middle">AOF</text><text class="s" x="575" y="72" text-anchor="middle">cmd journal</text>
+      <rect class="bx" x="520" y="96" width="110" height="40" rx="8" style="stroke:#9d8cf0"/><text class="t" x="575" y="114" text-anchor="middle">RDB</text><text class="s" x="575" y="128" text-anchor="middle">snapshot</text>
+      <rect class="bx" x="520" y="152" width="110" height="40" rx="8"/><text class="t" x="575" y="170" text-anchor="middle">replica</text><text class="s" x="575" y="184" text-anchor="middle">async</text>
+      <path class="ln" d="M106,126 L148,126"/>
+      <path class="ln" d="M300,110 L344,60"/><path class="ln" d="M300,124 L344,125"/><path class="ln" d="M300,140 L344,195"/>
+      <path class="ln" d="M464,90 L518,100"/><path class="ln" d="M464,120 L518,116"/><path class="ln" d="M464,150 L518,165"/>
+      <text x="660" y="115" fill="#8a7681" style="font:9px 'JetBrains Mono'">durability</text>
+      <text x="660" y="128" fill="#8a7681" style="font:9px 'JetBrains Mono'">+ HA</text>
+    </svg>
+    <div class="cap">One thread, executing commands one-at-a-time over in-memory structures — atomicity is free. Persistence (AOF/RDB) and replicas are bolted on around that core.</div>
+  </div>
+
+  <h3>Five facts that explain everything else</h3>
+  <ol>
+    <li><strong>In-memory</strong> → sub-millisecond ops, but your dataset must fit in RAM (per shard), and memory is the scaling ceiling, not CPU or disk.</li>
+    <li><strong>Single-threaded command execution</strong> → each command is <em>atomic</em> with no locking, but one slow command (<code>KEYS</code>, a big <code>SMEMBERS</code>, a heavy Lua script) blocks <em>every</em> other client. Latency discipline is the whole game.</li>
+    <li><strong>Data structures, not rows</strong> → you pick the structure that makes your access pattern O(1) or O(log n). Modeling Redis = "which structure answers this read cheapest?"</li>
+    <li><strong>Derived/ephemeral by default</strong> → replication is <em>asynchronous</em>, so a failover can lose the last few writes. Redis is a brilliant cache/index/serving layer, a risky system-of-record for money.</li>
+    <li><strong>Keys are flat & global</strong> → no nesting of keys; structure lives <em>inside</em> a value. Your key naming scheme (<code>user:123:cart</code>) is your schema.</li>
+  </ol>
+
+  <div class="note key"><b>How to read this book</b><p><strong>Foundations</strong> = the model, protocol, and memory. <strong>Data structures</strong> = every type, its internals, Big-O, and what it's for. <strong>Access &amp; patterns</strong> = pagination, filtering, indexing, locks, queues. <strong>Operating at scale</strong> = persistence, eviction, replication, Cluster, pitfalls. Each structure page ends with an <span style="color:var(--r)">ASK-ME</span> block — the cross-questions an interviewer fires, pre-answered, so you don't stutter.</p></div>
+</section>
+
+<!-- ============ PAGE 2 : PROTOCOL & THREADING ============ -->
+<section class="page" data-grp="f" data-title="Threading & protocol">
+  <div class="eyebrow f">Foundations · 01</div>
+  <h2 class="pt">The single thread, RESP &amp; pipelining</h2>
+  <p class="dek">Redis serves enormous throughput from <em>one</em> command thread. Understanding why — and where the other threads are — is the difference between "Redis is fast" hand-waving and an answer that survives probing.</p>
+
+  <h3>Why one thread is fast, not slow</h3>
+  <p>In-memory operations are nanoseconds; the bottleneck is the <strong>network and syscalls</strong>, not CPU. A single thread driving an epoll/kqueue event loop avoids lock contention, context switches, and cache-coherency traffic that would dog a multi-threaded design. The result: a commodity box does <strong>100k–1M+ ops/sec</strong> on simple commands. CPU is rarely the limit; <strong>memory bandwidth and network</strong> are.</p>
+
+  <h4>What actually <em>is</em> multi-threaded</h4>
+  <p>The <em>command execution</em> is single-threaded, but Redis offloads side work to background threads: <strong>I/O threads</strong> (since 6.0) parallelize reading/writing socket buffers (parsing the request, sending the reply) while execution stays serial; <strong>lazy-free / <code>UNLINK</code></strong> reclaims big objects on a background thread so deletion doesn't stall the loop; <strong>RDB/AOF</strong> persistence forks a child process. So "single-threaded" precisely means: <em>the logical command runs serially against the keyspace</em>.</p>
+
+  <div class="note warn"><b>The blocking trap</b><p>Because execution is serial, an O(N) command on a huge key freezes the whole server for its duration. <code>KEYS *</code>, <code>SMEMBERS</code> on a million-element set, <code>HGETALL</code> on a giant hash, <code>FLUSHALL</code> (sync), or a slow Lua script will spike p99 for <em>every</em> client. Prefer the <code>SCAN</code> family, bounded ranges, and <code>UNLINK</code> over <code>DEL</code> for big keys.</p></div>
+
+  <h3>RESP — the wire protocol</h3>
+  <p>Clients speak <strong>RESP</strong> (REdis Serialization Protocol): a simple, line-based, binary-safe format. First byte signals type — <code>+</code> simple string, <code>-</code> error, <code>:</code> integer, <code>$</code> bulk string, <code>*</code> array (RESP3 adds maps, sets, doubles, push). It's human-readable and cheap to parse, which is part of why latency is low.</p>
+
+  <h3>Pipelining vs round-trips</h3>
+  <p>Each command normally costs one network round-trip (RTT). <strong>Pipelining</strong> sends N commands without waiting for replies, then reads N replies — turning N×RTT into ~1×RTT plus server processing. This is the single biggest client-side throughput win and is independent of <code>MULTI</code> (pipelining is about batching the network; <code>MULTI</code> is about atomicity).</p>
+  <pre><span class="c"># 1000 SETs, one round-trip instead of 1000</span>
+<span class="k">SET</span> k:1 v1
+<span class="k">SET</span> k:2 v2
+<span class="c">... (buffered, flushed together) ...</span></pre>
+
+  <div class="cmd"><div class="cmd-h"><span class="nm">SCAN cursor [MATCH p] [COUNT n] [TYPE t]</span><span class="bigo">O(1) per call</span></div>
+    <div class="cmd-b">Cursor-based, <strong>non-blocking</strong> iteration of the keyspace. Returns a slice + next cursor; guarantees every key present for the whole scan is returned at least once (may return duplicates, may miss keys added/removed mid-scan). The <em>only</em> safe way to walk keys in production. Siblings: <code>HSCAN</code>, <code>SSCAN</code>, <code>ZSCAN</code> for fields inside one key. <code>COUNT</code> is a hint, not a page size.</div></div>
+
+  <div class="qa">
+    <div class="qlbl">Ask me</div>
+    <div class="qitem"><p class="q">If it's single-threaded, how does it do a million ops/sec?</p><p class="a">In-memory ops are nanoseconds; the work is network + parsing, which I/O threads parallelize while execution stays serial. No locks, no context switches. CPU isn't the bottleneck — memory bandwidth and NIC are.</p></div>
+    <div class="qitem"><p class="q">So one bad query takes everyone down?</p><p class="a">Latency-wise, yes — a long O(N) command blocks the loop and spikes everyone's p99. That's why <code>KEYS</code> is banned in prod, big deletes use <code>UNLINK</code>, and iteration uses <code>SCAN</code>.</p></div>
+    <div class="qitem"><p class="q">Difference between pipelining and MULTI?</p><p class="a">Pipelining batches the <em>network</em> (fewer round-trips, no atomicity guarantee). <code>MULTI</code>/<code>EXEC</code> batches for <em>atomicity</em> (no other command interleaves). You often pipeline a MULTI block to get both.</p></div>
+  </div>
+</section>
+
+<!-- ============ PAGE 3 : MEMORY & ENCODINGS ============ -->
+<section class="page" data-grp="f" data-title="Memory & encodings">
+  <div class="eyebrow f">Foundations · 02</div>
+  <h2 class="pt">Memory, encodings &amp; key design</h2>
+  <p class="dek">RAM is the budget you spend. Redis quietly switches each structure between a <strong>compact</strong> and a <strong>full</strong> encoding based on size — knowing the thresholds is how you keep a 100M-key dataset affordable.</p>
+
+  <h3>Dual encodings: compact below a threshold, full above</h3>
+  <p>Small collections use cache-friendly contiguous encodings; once they cross a configured limit they convert (one-way) to the full structure. Check with <code>OBJECT ENCODING key</code>.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Type</th><th>Compact encoding</th><th>Full encoding</th><th>Switch config</th></tr></thead>
+    <tbody>
+      <tr><td>String</td><td><span class="mono">int</span> / <span class="mono">embstr</span> (≤44B)</td><td><span class="mono">raw</span></td><td>—</td></tr>
+      <tr><td>Hash</td><td><span class="mono">listpack</span></td><td><span class="mono">hashtable</span></td><td><span class="mono">hash-max-listpack-entries/value</span></td></tr>
+      <tr><td>List</td><td><span class="mono">listpack</span></td><td><span class="mono">quicklist</span> (linked listpacks)</td><td><span class="mono">list-max-listpack-size</span></td></tr>
+      <tr><td>Set (ints)</td><td><span class="mono">intset</span></td><td><span class="mono">hashtable</span></td><td><span class="mono">set-max-intset-entries</span></td></tr>
+      <tr><td>Set (strings)</td><td><span class="mono">listpack</span></td><td><span class="mono">hashtable</span></td><td><span class="mono">set-max-listpack-entries</span></td></tr>
+      <tr><td>Sorted set</td><td><span class="mono">listpack</span></td><td><span class="mono">skiplist</span> + hashtable</td><td><span class="mono">zset-max-listpack-entries/value</span></td></tr>
+    </tbody></table></div>
+  <p>The lesson: <strong>many small structures are cheaper than few huge ones, and huge ones are cheaper kept under the listpack threshold</strong>. A hash of 100 fields in listpack form can be an order of magnitude more memory-efficient than 100 separate keys (each key carries dict + expire + object overhead, ~tens of bytes).</p>
+
+  <div class="note tip"><b>The "hash-bucketing" memory trick</b><p>Instagram's classic optimization: instead of <code>user:1000000 → id</code> as a million top-level keys, bucket them into hashes of ~1000 fields — <code>users:1000 → {000..999: id}</code>. The hashes stay in listpack encoding, slashing per-key overhead. Same lookup, a fraction of the RAM. This is "bucketing" for memory (distinct from time-bucketing for hot keys, covered later).</p></div>
+
+  <h3>Key design = your schema</h3>
+  <ul>
+    <li><strong>Namespacing:</strong> colon-delimited, coarse→fine: <code>app:entity:id:attr</code> e.g. <code>order:9f2:items</code>. Consistent prefixes make <code>SCAN MATCH</code> and eviction reasoning sane.</li>
+    <li><strong>Keep keys short but readable</strong> — every key string lives in RAM, but clarity usually wins over saving 4 bytes.</li>
+    <li><strong>One structure per access pattern</strong> — like Cassandra, you may store the same data twice under two keys if two reads need two shapes.</li>
+    <li><strong>Hash tags <code>{…}</code></strong> force keys onto the same Cluster slot so multi-key ops work (see Cluster page): <code>cart:{user42}:items</code>, <code>cart:{user42}:total</code>.</li>
+  </ul>
+
+  <div class="note warn"><b>Big keys &amp; the 5 % rule</b><p>A single key holding millions of elements (a giant set/zset/hash) is a latency bomb: O(N) commands on it block the loop, it can't be split across the cluster, and deleting it stalls everything. Keep collections bounded (thousands, not millions); shard a logical big collection across many keys by bucket. Watch memory with <code>redis-cli --bigkeys</code> and <code>MEMORY USAGE key</code>.</p></div>
+</section>
+
+<!-- ============ PAGE 4 : DATA TYPE OVERVIEW ============ -->
+<section class="page" data-grp="s" data-title="Type overview map">
+  <div class="eyebrow s">Data structures · Map</div>
+  <h2 class="pt">Every type, at a glance</h2>
+  <p class="dek">The decision table. Pick the structure by the question you need answered cheapest — then the following pages go deep on each.</p>
+
+  <div class="tbl"><table>
+    <thead><tr><th>Type</th><th>Is</th><th>Killer use</th><th>Signature ops (Big-O)</th></tr></thead>
+    <tbody>
+      <tr><td>String</td><td>bytes / int / float</td><td>cache value, counter, flag, lock</td><td><span class="mono">GET/SET O(1)</span>, <span class="mono">INCR O(1)</span></td></tr>
+      <tr><td>Hash</td><td>field→value map</td><td>object/record, partial updates</td><td><span class="mono">HGET/HSET O(1)</span>, <span class="mono">HGETALL O(N)</span></td></tr>
+      <tr><td>List</td><td>ordered linked seq</td><td>queue/stack, recent-N feed</td><td><span class="mono">LPUSH/RPOP O(1)</span>, index O(N)</td></tr>
+      <tr><td>Set</td><td>unordered unique</td><td>membership, tags, dedup, relations</td><td><span class="mono">SADD/SISMEMBER O(1)</span>, ops O(N)</td></tr>
+      <tr><td><strong>Sorted set</strong></td><td>unique + float score, ordered</td><td><strong>leaderboard, ranking, time index, priority queue, pagination</strong></td><td><span class="mono">ZADD O(log N)</span>, <span class="mono">range O(log N+M)</span></td></tr>
+      <tr><td>Stream</td><td>append log + consumer groups</td><td>event log, durable queue, fan-out</td><td><span class="mono">XADD O(1)</span>, read O(N)</td></tr>
+      <tr><td>Bitmap</td><td>bits on a string</td><td>presence/activity, feature flags</td><td><span class="mono">SETBIT/GETBIT O(1)</span>, <span class="mono">BITCOUNT O(N)</span></td></tr>
+      <tr><td>HyperLogLog</td><td>probabilistic cardinality</td><td>unique-count at huge scale (~12 KB)</td><td><span class="mono">PFADD/PFCOUNT O(1)</span></td></tr>
+      <tr><td>Geo</td><td>zset of geohash scores</td><td>radius / nearest queries</td><td><span class="mono">GEOADD O(log N)</span>, search O(N+log)</td></tr>
+      <tr><td>Bitfield</td><td>packed int counters</td><td>many small counters in one key</td><td><span class="mono">BITFIELD O(1)</span> per op</td></tr>
+    </tbody></table></div>
+
+  <div class="note key"><b>The modeling reflex</b><p>"What's the cheapest read?" → <em>need ranking or range-by-score or pagination?</em> sorted set. <em>Membership / set algebra?</em> set. <em>A record I patch field-by-field?</em> hash. <em>FIFO/LIFO or recent-N?</em> list. <em>Durable queue with acks &amp; replay?</em> stream. <em>Counting uniques at billions scale, approx ok?</em> HyperLogLog. <em>Per-user daily activity bit?</em> bitmap.</p></div>
+
+  <div class="note tip"><b>What Redis is NOT good at</b><p>Ad-hoc queries across keys (no <code>SELECT … WHERE</code> over the keyspace — that's <code>SCAN</code> or a manual index), joins, secondary-attribute filtering without a built index, anything bigger than RAM, and being a durable ledger. When you need those, reach for RediSearch (module) or a real database, with Redis as the hot layer in front.</p></div>
+</section>
+
+<!-- ============ PAGE 5 : STRINGS / COUNTERS / BITMAPS / HLL ============ -->
+<section class="page" data-grp="s" data-title="Strings, counters, bitmaps">
+  <div class="eyebrow s">Data structures · 01</div>
+  <h2 class="pt">Strings, counters, bitmaps &amp; HyperLogLog</h2>
+  <p class="dek">The string is the atom — but Redis overloads it into atomic counters, bit-addressable flags, and probabilistic cardinality. These power rate limiting, presence, and "how many uniques" at scale.</p>
+
+  <h3>Strings &amp; atomic counters</h3>
+  <div class="cmd"><div class="cmd-h"><span class="nm">SET key val [EX s|PX ms] [NX|XX] [GET]</span><span class="bigo">O(1)</span></div>
+    <div class="cmd-b">The workhorse. <code>NX</code> = set only if absent (the basis of locks &amp; idempotency keys), <code>XX</code> = only if present, <code>EX/PX</code> = TTL set atomically with the value. <code>GET</code> returns the old value in the same atomic op.</div></div>
+  <div class="cmd"><div class="cmd-h"><span class="nm">INCR / INCRBY / DECR / INCRBYFLOAT key</span><span class="bigo">O(1)</span></div>
+    <div class="cmd-b">Atomic counters with no read-modify-write race — the single thread guarantees it. Page views, stock decrements, ID generation, sliding counters. <code>INCRBYFLOAT</code> for fractional.</div></div>
+
+  <div class="note key"><b>Flash-sale / oversell guard</b><p>Preload stock as an integer, then gate each buy with an atomic decrement that refuses to go negative — a tiny Lua script: <code>if DECR ≥ 0 then ok else INCR (undo) end</code>. Single-threaded execution means no two buyers can both pass the last unit. Reconcile to the durable order store async. This is the canonical hot-key counter pattern.</p></div>
+
+  <h3>Rate limiting</h3>
+  <ul>
+    <li><strong>Fixed window:</strong> <code>INCR rate:user:{id}:{minute}</code> with <code>EXPIRE</code> 60s; reject when &gt; limit. Cheap, but allows 2× burst at window edges.</li>
+    <li><strong>Sliding window / token bucket:</strong> a Lua script over a small sorted set (timestamps) or counters refilled by elapsed time — smooth, accurate, atomic.</li>
+  </ul>
+
+  <h3>Bitmaps — one bit per entity</h3>
+  <p>A bitmap is just a string addressed at the bit level. 1 bit per user × millions of users = a few hundred KB. Perfect for daily-active flags, feature cohorts, attendance.</p>
+  <div class="cmd"><div class="cmd-h"><span class="nm">SETBIT key offset 0|1 · GETBIT · BITCOUNT · BITOP</span><span class="bigo">SET/GET O(1), COUNT O(N)</span></div>
+    <div class="cmd-b"><code>SETBIT active:2026-06-20 {userId} 1</code> marks a user active today. <code>BITCOUNT</code> = today's DAU. <code>BITOP AND dst day1 day2</code> = users active both days (retention). <code>BITOP OR</code> over 7 daily keys = weekly actives.</div></div>
+
+  <h3>HyperLogLog — count uniques in ~12 KB</h3>
+  <p>When you need "how many <em>distinct</em> X" at billions scale and can tolerate ~0.81 % error, HLL stores a probabilistic sketch in a fixed <strong>~12 KB</strong> regardless of cardinality — versus a set that would need gigabytes.</p>
+  <div class="cmd"><div class="cmd-h"><span class="nm">PFADD key elem… · PFCOUNT key… · PFMERGE dst src…</span><span class="bigo">O(1) add, O(1) count</span></div>
+    <div class="cmd-b">Unique visitors per page/day, distinct search terms, dedup-counting at scale. <code>PFMERGE</code> unions sketches (weekly uniques from 7 daily HLLs). You get the <em>count</em>, never the members — that's the trade for the tiny footprint.</div></div>
+
+  <div class="qa">
+    <div class="qlbl">Ask me</div>
+    <div class="qitem"><p class="q">Counter is one hot key — doesn't that bottleneck?</p><p class="a">On one node, atomic <code>INCR</code> handles ~100k+/s — usually fine. If truly extreme, shard the counter into N sub-keys (<code>cnt:{id}:0..N</code>), increment a random one, sum on read — trading read cost for write spread.</p></div>
+    <div class="qitem"><p class="q">Why HLL over a set for unique counts?</p><p class="a">A set is exact but grows with cardinality (GBs for billions). HLL is fixed ~12 KB with ~0.81 % error and O(1) ops. Use a set only when you must enumerate members or need exactness.</p></div>
+    <div class="qitem"><p class="q">Fixed vs sliding window rate limiting?</p><p class="a">Fixed window is one <code>INCR</code>+TTL — cheap but allows edge bursts (2× at the boundary). Sliding window (zset of timestamps or token bucket in Lua) is accurate and smooth at slightly more cost.</p></div>
+  </div>
+</section>
+
+<!-- ============ PAGE 6 : HASHES / LISTS / SETS ============ -->
+<section class="page" data-grp="s" data-title="Hashes, lists, sets">
+  <div class="eyebrow s">Data structures · 02</div>
+  <h2 class="pt">Hashes, lists &amp; sets</h2>
+  <p class="dek">The everyday three: a hash is a record, a list is a sequence/queue, a set is membership and algebra. Each has one or two "don't do that" edges worth knowing.</p>
+
+  <h3>Hash — the record type</h3>
+  <p>A field→value map under one key. Use it for an object you update field-by-field (a user profile, a cart line, a config blob) instead of serializing JSON into a string and rewriting the whole thing on every change.</p>
+  <div class="cmd"><div class="cmd-h"><span class="nm">HSET · HGET · HMGET · HINCRBY · HDEL · HGETALL</span><span class="bigo">field ops O(1) · HGETALL O(N)</span></div>
+    <div class="cmd-b"><code>HSET user:42 name Abhi tier gold</code>; <code>HINCRBY user:42 visits 1</code> patches one counter atomically. <strong>Avoid <code>HGETALL</code> on large hashes</strong> (O(N) blocks); use <code>HMGET</code> for known fields or <code>HSCAN</code> to iterate. Per-field TTL exists in Redis 7.4+ (<code>HEXPIRE</code>).</div></div>
+
+  <h3>List — ordered sequence &amp; queues</h3>
+  <p>A linked list (quicklist of listpacks). Pushes/pops at <em>either end</em> are O(1); indexing into the middle is O(N). It's a FIFO/LIFO, a capped "recent N" buffer, or a simple job queue.</p>
+  <div class="cmd"><div class="cmd-h"><span class="nm">LPUSH/RPUSH · LPOP/RPOP · LRANGE · LTRIM · BLPOP/BRPOP · LMOVE</span><span class="bigo">end ops O(1) · LRANGE/LINDEX O(N)</span></div>
+    <div class="cmd-b"><strong>Queue:</strong> producers <code>LPUSH</code>, workers <code>BRPOP</code> (blocking pop — no busy-poll). <strong>Recent-N:</strong> <code>LPUSH</code> then <code>LTRIM list 0 99</code> keeps only the latest 100. <strong>Reliable queue:</strong> <code>LMOVE src dst</code> (atomic move to a processing list so a crashed worker's item isn't lost). For real durability/acks, prefer Streams.</div></div>
+
+  <h3>Set — membership &amp; relationships</h3>
+  <p>Unordered collection of unique members. O(1) add and membership test; set algebra (union/intersect/diff) is its superpower — think tags, unique visitors, "users who did X", common-friends.</p>
+  <div class="cmd"><div class="cmd-h"><span class="nm">SADD · SISMEMBER · SMISMEMBER · SCARD · SINTER · SUNION · SDIFF · SRANDMEMBER · SPOP</span><span class="bigo">SADD/SISMEMBER O(1) · set ops O(N)</span></div>
+    <div class="cmd-b"><code>SADD post:9:likes {userId}</code>; <code>SCARD</code> = like count; <code>SISMEMBER</code> = "did I like it?". <strong>Common friends:</strong> <code>SINTER friends:A friends:B</code>. <strong>Dedup:</strong> <code>SADD</code> returns 1 only if new. Use <code>SMISMEMBER</code> (batch) and <strong>avoid <code>SMEMBERS</code> on big sets</strong> — use <code>SSCAN</code>.</div></div>
+
+  <div class="note warn"><b>The O(N) edges to never cross</b><p><code>HGETALL</code> / <code>SMEMBERS</code> / <code>LRANGE 0 -1</code> on a large key all return everything and block the loop. The fixes are uniform: bound the request (known fields, a range, a limit) or iterate with the <code>SCAN</code> family. "Is it O(N) on a key the user controls the size of?" is the question to ask of every command.</p></div>
+
+  <div class="qa">
+    <div class="qlbl">Ask me</div>
+    <div class="qitem"><p class="q">Hash vs storing JSON in a string?</p><p class="a">Hash lets you read/patch single fields O(1) without rewriting the whole blob, and small hashes are memory-efficient in listpack form. JSON-in-string is fine when you always read/write the whole object and don't need field-level ops (or use RedisJSON for nested querying).</p></div>
+    <div class="qitem"><p class="q">List vs Stream for a queue?</p><p class="a">List is simplest (<code>LPUSH</code>/<code>BRPOP</code>) but has no acks, no consumer groups, no replay — a crashed worker loses its in-flight item unless you use <code>LMOVE</code>. Streams add durability, consumer groups, acknowledgements, and replay. Pick Stream when at-least-once delivery matters.</p></div>
+  </div>
+</section>
+
+<!-- ============ PAGE 7 : SORTED SETS DEEP DIVE ============ -->
+<section class="page" data-grp="s" data-title="Sorted sets (ZSET) ★">
+  <div class="eyebrow s">Data structures · 03 · the important one</div>
+  <h2 class="pt">Sorted sets — the ranking engine</h2>
+  <p class="dek">The structure interviews circle back to. A sorted set holds <strong>unique members each with a float score</strong>, kept in score order. It is simultaneously a leaderboard, a time-ordered index, a priority queue, a rate limiter, and a pagination cursor — because all of those are "ordered by a number."</p>
+
+  <h3>Internals: skiplist + hashtable</h3>
+  <p>A full zset is <em>two</em> structures kept in sync: a <strong>hashtable</strong> (member → score, for O(1) score lookup and dedup) and a <strong>skiplist</strong> (a probabilistic multi-level linked list giving O(log N) ordered insert, delete, and rank/range queries). Small zsets collapse to a single <code>listpack</code> until they cross the threshold. This dual structure is why <code>ZSCORE</code> is O(1) but <code>ZRANGE</code> is O(log N + M).</p>
+
+  <div class="fig">
+    <svg viewBox="0 0 760 200" xmlns="http://www.w3.org/2000/svg">
+      <style>.zt{fill:#f1e9ec;font:600 11px 'JetBrains Mono'}.zs{fill:#c3b2ba;font:9.5px 'JetBrains Mono'}.zn{fill:#221a1f;stroke:#3a2c33}.zh{fill:#221a1f;stroke:#e8b04b}</style>
+      <text x="60" y="24" class="zs">skiplist (order)</text>
+      <!-- level 2 -->
+      <line x1="60" y1="56" x2="690" y2="56" stroke="#3a2c33"/>
+      <rect class="zn" x="40" y="44" width="44" height="24" rx="5"/><text class="zt" x="62" y="60" text-anchor="middle">L2</text>
+      <rect class="zn" x="360" y="44" width="44" height="24" rx="5" style="stroke:#e5484d"/><text class="zt" x="382" y="60" text-anchor="middle">·</text>
+      <rect class="zn" x="666" y="44" width="44" height="24" rx="5"/><text class="zt" x="688" y="60" text-anchor="middle">·</text>
+      <!-- level 1 -->
+      <line x1="60" y1="100" x2="690" y2="100" stroke="#3a2c33"/>
+      <rect class="zn" x="40" y="88" width="44" height="24" rx="5"/><rect class="zn" x="200" y="88" width="44" height="24" rx="5"/><rect class="zn" x="360" y="88" width="44" height="24" rx="5" style="stroke:#e5484d"/><rect class="zn" x="520" y="88" width="44" height="24" rx="5"/><rect class="zn" x="666" y="88" width="44" height="24" rx="5"/>
+      <!-- level 0 (all) -->
+      <line x1="60" y1="144" x2="690" y2="144" stroke="#3a2c33"/>
+      <rect class="zn" x="40" y="132" width="44" height="24" rx="5"/><text class="zs" x="62" y="148" text-anchor="middle">10</text>
+      <rect class="zn" x="120" y="132" width="44" height="24" rx="5"/><text class="zs" x="142" y="148" text-anchor="middle">25</text>
+      <rect class="zn" x="200" y="132" width="44" height="24" rx="5"/><text class="zs" x="222" y="148" text-anchor="middle">40</text>
+      <rect class="zn" x="280" y="132" width="44" height="24" rx="5"/><text class="zs" x="302" y="148" text-anchor="middle">55</text>
+      <rect class="zn" x="360" y="132" width="44" height="24" rx="5" style="stroke:#e5484d"/><text class="zs" x="382" y="148" text-anchor="middle">70</text>
+      <rect class="zn" x="440" y="132" width="44" height="24" rx="5"/><text class="zs" x="462" y="148" text-anchor="middle">85</text>
+      <rect class="zn" x="520" y="132" width="44" height="24" rx="5"/><text class="zs" x="542" y="148" text-anchor="middle">90</text>
+      <rect class="zn" x="600" y="132" width="44" height="24" rx="5"/><text class="zs" x="622" y="148" text-anchor="middle">95</text>
+      <rect class="zn" x="666" y="132" width="44" height="24" rx="5"/><text class="zs" x="688" y="148" text-anchor="middle">99</text>
+      <text x="380" y="186" fill="#8a7681" text-anchor="middle" style="font:9.5px 'JetBrains Mono'">higher levels skip ahead → O(log N) to find a score, then walk level-0 for the range</text>
+    </svg>
+    <div class="cap">Express lanes (upper levels) let a search skip most nodes — O(log N) to locate, then a linear walk of M results. A parallel hashtable gives O(1) member→score and rank lookups.</div>
+  </div>
+
+  <h3>The command surface (this is the page to memorize)</h3>
+  <div class="cmd"><div class="cmd-h"><span class="nm">ZADD key [GT|LT|NX|XX] score member …</span><span class="bigo">O(log N) per member</span></div>
+    <div class="cmd-b">Insert/update. <code>GT</code> only raises the score (perfect for "max score wins" leaderboards), <code>LT</code> only lowers, <code>NX</code> only adds new, <code>XX</code> only updates existing. <code>ZADD GT board 5000 player7</code>.</div></div>
+  <div class="cmd"><div class="cmd-h"><span class="nm">ZRANGE key start stop [BYSCORE|BYLEX] [REV] [LIMIT off cnt] [WITHSCORES]</span><span class="bigo">O(log N + M)</span></div>
+    <div class="cmd-b">The unified range command (7.0+ folded in <code>ZREVRANGE</code>, <code>ZRANGEBYSCORE</code>, <code>ZRANGEBYLEX</code>). By rank: <code>ZRANGE board 0 9 REV</code> = top 10. By score: <code>ZRANGE board (1000 5000 BYSCORE</code>. <code>LIMIT</code> = offset/count for pagination.</div></div>
+  <div class="cmd"><div class="cmd-h"><span class="nm">ZRANK / ZREVRANK key member [WITHSCORE]</span><span class="bigo">O(log N)</span></div>
+    <div class="cmd-b">A player's <strong>own rank</strong> — the thing a relational <code>ORDER BY</code> can't do cheaply. <code>ZREVRANK board player7</code> → "you're #42". This is the killer feature: rank is maintained, not computed by counting.</div></div>
+  <div class="cmd"><div class="cmd-h"><span class="nm">ZSCORE · ZINCRBY · ZCARD · ZCOUNT · ZREM · ZPOPMIN/MAX · BZPOPMIN/MAX</span><span class="bigo">mostly O(1)–O(log N)</span></div>
+    <div class="cmd-b"><code>ZINCRBY board 10 p7</code> adds to a score atomically. <code>ZPOPMIN</code> = pop lowest (priority queue). <code>BZPOPMIN</code> = blocking variant (priority job queue). <code>ZCOUNT board 1000 2000</code> = members in a score band.</div></div>
+  <div class="cmd"><div class="cmd-h"><span class="nm">ZRANGEBYLEX / ZLEXCOUNT (all scores equal)</span><span class="bigo">O(log N + M)</span></div>
+    <div class="cmd-b">When every member shares one score, the set sorts <em>lexicographically</em> — turning a zset into an ordered string index for autocomplete/prefix search: <code>ZRANGEBYLEX names [ab [ac</code> finds members between two prefixes.</div></div>
+
+  <h3>What you build with it</h3>
+  <ul>
+    <li><strong>Leaderboard:</strong> <code>ZADD GT</code> on score; <code>ZRANGE … REV LIMIT</code> for top-N; <code>ZREVRANK</code> for a user's rank; <code>ZINCRBY</code> for deltas. O(log N) everywhere — the textbook fit.</li>
+    <li><strong>Time-ordered index / feed:</strong> score = timestamp (or a Snowflake-style id). Range by score = "items between t1 and t2"; this is also your <strong>cursor pagination</strong> (next page).</li>
+    <li><strong>Priority queue:</strong> score = priority/deadline; <code>BZPOPMIN</code> pulls the most urgent.</li>
+    <li><strong>Sliding-window rate limit:</strong> <code>ZADD</code> a timestamp per request, <code>ZREMRANGEBYSCORE</code> to drop the old window, <code>ZCARD</code> to count — all in one Lua block.</li>
+    <li><strong>Delayed/scheduled jobs:</strong> score = run-at epoch; a poller does <code>ZRANGEBYSCORE … 0 now</code> to claim due jobs.</li>
+  </ul>
+
+  <div class="qa">
+    <div class="qlbl">Ask me</div>
+    <div class="qitem"><p class="q">Why a zset for a leaderboard instead of SQL <code>ORDER BY</code>?</p><p class="a">Top-N is fine in SQL, but a specific player's <em>rank</em> means counting everyone above them — O(N) without extra structure. A zset maintains rank inside the skiplist, so <code>ZREVRANK</code> is O(log N). And updates are O(log N), in-memory, sub-ms.</p></div>
+    <div class="qitem"><p class="q">How do you paginate a zset?</p><p class="a">Keyset/cursor pagination by score: fetch <code>ZRANGE (lastScore +inf BYSCORE LIMIT 0 N</code>, carry the last score+member as the cursor. Stable under inserts, unlike offset pagination. (Full page on this next.)</p></div>
+    <div class="qitem"><p class="q">Two players tie on score — ordering?</p><p class="a">Ties break by member lexicographic order. If you need a stable tiebreak (e.g. who reached the score first), encode it into the score: <code>score = points * 1e7 + (1e7 - timestamp_bucket)</code>, so earlier achievers rank higher within the same points.</p></div>
+    <div class="qitem"><p class="q">Millions of players in one zset — problem?</p><p class="a">Memory and big-key risk. Ops stay O(log N), but one giant key can't shard across the cluster and blocks on O(N) ops. Bucket by league/region into many zsets, or cap to top-K and recompute the long tail offline.</p></div>
+  </div>
+</section>
+
+<!-- ============ PAGE 8 : STREAMS ============ -->
+<section class="page" data-grp="s" data-title="Streams & pub/sub">
+  <div class="eyebrow s">Data structures · 04</div>
+  <h2 class="pt">Streams, Pub/Sub &amp; messaging</h2>
+  <p class="dek">Redis has three messaging primitives at different durability tiers: fire-and-forget <strong>Pub/Sub</strong>, simple list queues, and the durable, replayable <strong>Stream</strong> with consumer groups — a mini-Kafka inside Redis.</p>
+
+  <h3>Streams — append-only log with consumer groups</h3>
+  <p>A Stream is an append-only log of entries, each with an auto monotonic ID (<code>&lt;ms&gt;-&lt;seq&gt;</code>) and a set of field/value pairs. Unlike Pub/Sub, entries <strong>persist</strong> and can be re-read; unlike a list, multiple consumers can cooperate via <strong>consumer groups</strong> with per-message acknowledgement and redelivery.</p>
+  <div class="cmd"><div class="cmd-h"><span class="nm">XADD key [MAXLEN ~ N] * field val …</span><span class="bigo">O(1) (+O(log) trim)</span></div>
+    <div class="cmd-b">Append an event; <code>*</code> auto-assigns the time-ordered ID. <code>MAXLEN ~ 100000</code> caps the log (approximate trim is cheaper). The ID is your cursor and is globally ordered.</div></div>
+  <div class="cmd"><div class="cmd-h"><span class="nm">XREADGROUP GROUP g consumer … COUNT n BLOCK ms STREAMS key &gt;</span><span class="bigo">O(N) read</span></div>
+    <div class="cmd-b"><code>&gt;</code> = "new messages never delivered to this group". Each message goes to exactly one consumer in the group (work sharing). Delivered-but-unacked entries sit in that consumer's <strong>PEL</strong> (Pending Entries List).</div></div>
+  <div class="cmd"><div class="cmd-h"><span class="nm">XACK · XPENDING · XCLAIM / XAUTOCLAIM</span><span class="bigo">O(1)–O(N)</span></div>
+    <div class="cmd-b"><code>XACK</code> marks done (removes from PEL). <code>XPENDING</code> inspects stuck messages; <code>XAUTOCLAIM</code> lets a healthy consumer steal messages a crashed one never acked — that's your <strong>at-least-once</strong> redelivery and crash recovery.</div></div>
+
+  <div class="fig">
+    <svg viewBox="0 0 760 170" xmlns="http://www.w3.org/2000/svg">
+      <defs><marker id="rsa" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#e8b04b"/></marker></defs>
+      <style>.st{fill:#f1e9ec;font:600 10.5px 'JetBrains Mono'}.ss{fill:#c3b2ba;font:9px 'JetBrains Mono'}.sb{fill:#1a1418;stroke:#3a2c33}</style>
+      <rect class="sb" x="20" y="60" width="50" height="50" rx="6"/><rect class="sb" x="74" y="60" width="50" height="50" rx="6"/><rect class="sb" x="128" y="60" width="50" height="50" rx="6" style="stroke:#e8b04b"/><rect class="sb" x="182" y="60" width="50" height="50" rx="6" style="stroke:#e8b04b"/>
+      <text class="ss" x="126" y="50" text-anchor="middle">append-only log (entries with time-ordered IDs)</text>
+      <text class="st" x="45" y="90" text-anchor="middle">e1</text><text class="st" x="99" y="90" text-anchor="middle">e2</text><text class="st" x="153" y="90" text-anchor="middle">e3</text><text class="st" x="207" y="90" text-anchor="middle">e4</text>
+      <rect x="320" y="30" width="420" height="110" rx="10" fill="#120e11" stroke="#3a2c33"/>
+      <text class="ss" x="530" y="48" text-anchor="middle">consumer group "workers"</text>
+      <rect class="sb" x="345" y="62" width="110" height="32" rx="6" style="stroke:#54c39a"/><text class="st" x="400" y="82" text-anchor="middle">consumer A</text>
+      <rect class="sb" x="475" y="62" width="110" height="32" rx="6" style="stroke:#54c39a"/><text class="st" x="530" y="82" text-anchor="middle">consumer B</text>
+      <rect class="sb" x="605" y="62" width="110" height="32" rx="6" style="stroke:#54c39a"/><text class="st" x="660" y="82" text-anchor="middle">consumer C</text>
+      <text class="ss" x="530" y="120" text-anchor="middle">each entry → exactly one consumer · unacked stays in PEL · XAUTOCLAIM on crash</text>
+      <path d="M232,85 L318,85" stroke="#e8b04b" stroke-width="1.6" fill="none" marker-end="url(#rsa)"/>
+    </svg>
+    <div class="cap">A Stream fans work across a consumer group with acks and redelivery — durable, replayable, ordered. For a single broadcast with no persistence, Pub/Sub is lighter.</div>
+  </div>
+
+  <h3>Pub/Sub — fire-and-forget broadcast</h3>
+  <p><code>PUBLISH channel msg</code> → all current <code>SUBSCRIBE</code>rs receive it. <strong>No persistence, no replay, no acks</strong>: a subscriber that's offline or slow simply misses messages. Great for live notifications, cache-invalidation fan-out, presence — bad for anything that must not be lost. <code>PSUBSCRIBE</code> matches channel patterns; <strong>keyspace notifications</strong> publish events when keys change/expire.</p>
+
+  <div class="tbl"><table>
+    <thead><tr><th>Need</th><th>Pub/Sub</th><th>List queue</th><th>Stream</th></tr></thead>
+    <tbody>
+      <tr><td>Persistence / replay</td><td style="color:var(--warn)">no</td><td>partial</td><td style="color:var(--ok)">yes</td></tr>
+      <tr><td>Acks &amp; redelivery</td><td style="color:var(--warn)">no</td><td style="color:var(--warn)">no</td><td style="color:var(--ok)">yes (PEL)</td></tr>
+      <tr><td>Consumer groups</td><td>fan-out only</td><td>competing pop</td><td style="color:var(--ok)">yes</td></tr>
+      <tr><td>Ordering</td><td>per-channel</td><td>FIFO</td><td style="color:var(--ok)">global by ID</td></tr>
+    </tbody></table></div>
+
+  <div class="note warn"><b>Streams are not Kafka</b><p>Streams give you durable, grouped, replayable messaging — but the whole stream lives in one node's RAM (one key, not partitioned across the cluster), retention is memory-bound, and durability inherits Redis's async-replication tail-loss. For high-throughput, long-retention, partitioned event backbones, Kafka still wins. Redis Streams shine for in-process, low-latency work queues and moderate event fan-out.</p></div>
+</section>
+
+<!-- ============ PAGE 9 : PAGINATION ============ -->
+<section class="page" data-grp="a" data-title="Pagination patterns">
+  <div class="eyebrow a">Access &amp; patterns · 01</div>
+  <h2 class="pt">Pagination, the right way</h2>
+  <p class="dek">Redis has no <code>OFFSET/LIMIT</code> over the keyspace, and offset pagination is a trap even where it exists. The correct primitive is <strong>cursor (keyset) pagination</strong> — and the sorted set was built for it.</p>
+
+  <h3>Two cursors: keyspace vs within-a-key</h3>
+  <p><strong>Across keys</strong> → <code>SCAN</code> (and <code>HSCAN</code>/<code>SSCAN</code>/<code>ZSCAN</code> within a key). These return an opaque cursor; you keep calling until it returns <code>0</code>. They're non-blocking and bounded — the <em>only</em> safe iteration. They guarantee every element present throughout the scan is returned at least once (duplicates possible, so dedupe client-side if needed).</p>
+  <p><strong>Ordered data</strong> → keyset pagination on a sorted set by score, which is what you want for feeds, leaderboards, and time-ranges.</p>
+
+  <h3>Keyset pagination on a sorted set</h3>
+  <p>Score-ordered data paginates by carrying the <strong>last score seen</strong> as the cursor, not a numeric offset. Each page is an O(log N + page) range starting just past the cursor.</p>
+  <pre><span class="c"># page 1 — newest first (score = timestamp)</span>
+<span class="k">ZRANGE</span> feed:42 +inf -inf <span class="v">BYSCORE REV LIMIT</span> 0 20 <span class="v">WITHSCORES</span>
+<span class="c"># cursor = score of the 20th item, say 1718900000</span>
+<span class="c"># page 2 — strictly older than the cursor</span>
+<span class="k">ZRANGE</span> feed:42 (1718900000 -inf <span class="v">BYSCORE REV LIMIT</span> 0 20</pre>
+  <p>The <code>(</code> makes the bound <em>exclusive</em>, so you never re-show the boundary item. If scores can tie (two items same timestamp), make the cursor a <strong>(score, member)</strong> pair and filter the equal-score boundary in the app, or bake a tiebreaker into the score so it's unique.</p>
+
+  <div class="note key"><b>Why keyset beats offset</b><p>Offset pagination (<code>LIMIT 1000, 20</code>) must walk and discard 1000 elements — O(offset), and it <em>skips or repeats</em> items when the set changes between pages (someone posts, everything shifts by one). Keyset pagination is O(log N + page) regardless of depth and is <strong>stable under concurrent inserts</strong> because the cursor is anchored to a value, not a position. This is exactly the "Twitter timeline deep-scroll" pattern: the score/ID <em>is</em> the cursor.</p></div>
+
+  <h3>The connection to durable stores</h3>
+  <p>Same idea extends past Redis: when deep-scroll falls through the bounded Redis timeline to the durable store, you paginate there by a <strong>time-ordered ID</strong> (<code>WHERE id &lt; cursor ORDER BY id DESC LIMIT N</code>). Cursor pagination isn't a Redis feature — it's a property of having an <strong>ordered key</strong>. Redis's zset just makes the ordered key in-memory and O(log N).</p>
+
+  <div class="qa">
+    <div class="qlbl">Ask me</div>
+    <div class="qitem"><p class="q">Why not <code>KEYS pattern</code> to list keys for a page?</p><p class="a"><code>KEYS</code> is O(N) over the entire keyspace and blocks the single thread — it can freeze a busy server for seconds. <code>SCAN</code> is the non-blocking, cursor-based, production-safe replacement.</p></div>
+    <div class="qitem"><p class="q">User posts mid-scroll — does the cursor break?</p><p class="a">No. Keyset pagination anchors to a score/value, so new inserts above the cursor don't shift the page boundary. You might miss the brand-new item until a refresh, but you never duplicate or skip existing ones — the correct trade.</p></div>
+    <div class="qitem"><p class="q">How do you do "jump to page 50"?</p><p class="a">You generally can't cheaply with keyset — that's offset's one advantage. If random-page access is a hard requirement, store an offset index or accept O(offset). Most feeds only need next/prev, so keyset wins.</p></div>
+  </div>
+</section>
+
+<!-- ============ PAGE 10 : FILTERING & INDEXING ============ -->
+<section class="page" data-grp="a" data-title="Filtering & indexing">
+  <div class="eyebrow a">Access &amp; patterns · 02</div>
+  <h2 class="pt">Filtering &amp; secondary indexes</h2>
+  <p class="dek">Redis can't <code>WHERE attr = x</code> across keys — there's no query planner over the keyspace. You either <strong>build the index by hand</strong> with sets/zsets, or bring in <strong>RediSearch</strong> for real inverted-index queries.</p>
+
+  <h3>Hand-rolled indexes (the idiomatic way)</h3>
+  <p>An "index" in plain Redis is just <em>another key whose members are the IDs matching a property</em>. You maintain it on write; you intersect it on read.</p>
+  <ul>
+    <li><strong>Equality / tag index → set:</strong> <code>SADD idx:status:active 42 99</code>. Query "active users": <code>SMEMBERS idx:status:active</code> (or <code>SSCAN</code>).</li>
+    <li><strong>Range / numeric index → sorted set:</strong> <code>ZADD idx:price 19.99 sku123</code>. Query "price 10–50": <code>ZRANGEBYSCORE idx:price 10 50</code>.</li>
+    <li><strong>Compound filter → set algebra:</strong> "active AND tier=gold AND price&lt;50" = <code>ZINTERSTORE</code>/<code>SINTER</code> across the per-property indexes (zsets and sets can be combined, weighting scores).</li>
+    <li><strong>Sorted result → keep the sort key as the zset score</strong> so the intersection comes back already ordered.</li>
+  </ul>
+  <pre><span class="c"># maintained on every write:</span>
+<span class="k">SADD</span> idx:tag:gold user:42
+<span class="k">ZADD</span> idx:lastSeen 1718900000 user:42
+<span class="c"># query: gold users, most-recent first, page 1</span>
+<span class="k">ZINTERSTORE</span> tmp 2 idx:lastSeen idx:tag:gold <span class="v">WEIGHTS</span> 1 0
+<span class="k">ZRANGE</span> tmp +inf -inf <span class="v">BYSCORE REV LIMIT</span> 0 20</pre>
+  <div class="note warn"><b>You own consistency now</b><p>Hand-built indexes must be updated <em>atomically with the data</em> (a <code>MULTI</code> or Lua block writing both the record and every index it belongs to), or they drift. Every new filterable attribute is another index to maintain on create/update/delete. This is the cost that pushes teams toward RediSearch or a real database once filters multiply.</p></div>
+
+  <h3>RediSearch — actual queries</h3>
+  <p>The RediSearch module adds a true <strong>inverted index</strong> over hash/JSON fields: full-text (tokenization, stemming, fuzzy), numeric &amp; geo filters, tags, sorting, and <strong>aggregations</strong> — without you hand-maintaining sets. You <code>FT.CREATE</code> an index schema, write normal hashes, and <code>FT.SEARCH</code>/<code>FT.AGGREGATE</code>.</p>
+  <pre><span class="k">FT.CREATE</span> idx:products <span class="v">ON HASH PREFIX</span> 1 product: <span class="v">SCHEMA</span>
+  name <span class="v">TEXT</span> price <span class="v">NUMERIC SORTABLE</span> tags <span class="v">TAG</span>
+<span class="k">FT.SEARCH</span> idx:products <span class="s">"@tags:{gold} @price:[10 50] running"</span> <span class="v">SORTBY</span> price <span class="v">LIMIT</span> 0 20</pre>
+  <p>This is the bridge between "Redis as cache" and "Redis as a queryable store" — but it's a module (Redis Stack / Redis Enterprise), it builds and holds the index in memory, and it's still not a replacement for a full-text engine at search-engine scale. For tweet-style keyword search at billions of docs, Elasticsearch is the right tool; RediSearch fits moderate, latency-critical filtered lookups on hot data.</p>
+
+  <div class="qa">
+    <div class="qlbl">Ask me</div>
+    <div class="qitem"><p class="q">How do you query "users where city=NYC and age&gt;30" in plain Redis?</p><p class="a">Maintain a set <code>idx:city:NYC</code> and a zset <code>idx:age</code>; intersect <code>SINTER</code>/<code>ZRANGEBYSCORE</code> results. Each filterable attribute is a pre-built index updated on write. If filters get rich, switch to RediSearch.</p></div>
+    <div class="qitem"><p class="q">RediSearch vs Elasticsearch?</p><p class="a">RediSearch is in-memory, sub-ms, great for filtered lookups on hot data and tight latency budgets. ES is disk-based, scales to billions of docs, richer relevance/analyzers. Use ES for large-corpus keyword search; RediSearch for fast filters on a working set.</p></div>
+  </div>
+</section>
+
+<!-- ============ PAGE 11 : LOCKS, TXN, SCRIPTING ============ -->
+<section class="page" data-grp="a" data-title="Locks, transactions, Lua">
+  <div class="eyebrow a">Access &amp; patterns · 03</div>
+  <h2 class="pt">Atomicity: transactions, Lua &amp; locks</h2>
+  <p class="dek">Single-command atomicity is free. For multi-step atomicity you have three tools — <code>MULTI/EXEC</code>, <code>WATCH</code> (optimistic concurrency), and Lua scripts — plus the much-debated distributed lock.</p>
+
+  <h3>MULTI / EXEC — queued, not isolated-by-default</h3>
+  <p><code>MULTI</code> queues commands; <code>EXEC</code> runs them <strong>atomically and in order</strong> with nothing interleaving. But there's no rollback — if a command errors at runtime, the others still run (it's not SQL transactions). It's "all run together," not "all-or-nothing."</p>
+
+  <h3>WATCH — optimistic locking (CAS)</h3>
+  <p><code>WATCH key</code> before <code>MULTI</code>; if that key changes before <code>EXEC</code>, the whole transaction aborts and you retry. This is compare-and-swap for "read, compute, conditionally write" without holding a lock — e.g. decrement stock only if still positive.</p>
+  <pre><span class="k">WATCH</span> stock:sku9
+val = <span class="k">GET</span> stock:sku9
+<span class="k">if</span> val &gt; 0:
+  <span class="k">MULTI</span>; <span class="k">DECR</span> stock:sku9; <span class="k">EXEC</span>   <span class="c"># aborts &amp; retries if stock changed</span></pre>
+
+  <h3>Lua scripts &amp; Functions — atomic compound logic</h3>
+  <p>A script runs <strong>atomically</strong> on the single thread — nothing else executes mid-script. This is the cleanest way to do read-modify-write logic server-side in one round-trip: rate limiters, conditional decrements, dequeue-and-mark, multi-key invariants. <code>EVAL</code>/<code>EVALSHA</code> for scripts; <strong>Functions</strong> (7.0+) register reusable libraries.</p>
+  <div class="note warn"><b>Scripts block the loop</b><p>Because a script runs to completion atomically, a slow or looping script freezes the entire server. Keep scripts short and O(small); never do unbounded loops or O(N) work over huge keys inside one. Atomicity and blocking are the same coin.</p></div>
+
+  <h3>Distributed locks — handle with care</h3>
+  <p><code>SET lock:resource token NX PX 30000</code> = acquire a lock only if absent, auto-expiring so a dead holder doesn't deadlock. Release with a Lua script that deletes <em>only if the token matches</em> (so you don't release someone else's re-acquired lock).</p>
+  <pre><span class="c"># acquire</span>
+<span class="k">SET</span> lock:job123 <span class="n">$uuid</span> <span class="v">NX PX</span> 30000
+<span class="c"># release (atomic check-and-del)</span>
+<span class="k">EVAL</span> <span class="s">"if redis.call('GET',KEYS[1])==ARGV[1] then return redis.call('DEL',KEYS[1]) else return 0 end"</span> 1 lock:job123 <span class="n">$uuid</span></pre>
+  <div class="note key"><b>The Redlock caveat to cite</b><p>Single-node lock = simple but not fault-tolerant (lose the node mid-lock, lose mutual exclusion). <strong>Redlock</strong> spreads the lock across N independent masters for safety, but Martin Kleppmann's well-known critique argues it's unsafe under GC pauses / clock skew for correctness-critical mutual exclusion. The honest take: Redis locks are great for <em>efficiency</em> (avoid duplicate work) and <em>best-effort</em> coordination; for <em>correctness</em> mutual exclusion (money, exactly-once), use a fencing token or a strongly-consistent coordinator (ZooKeeper/etcd) or push the invariant into your ACID store.</p></div>
+
+  <div class="qa">
+    <div class="qlbl">Ask me</div>
+    <div class="qitem"><p class="q">MULTI vs Lua?</p><p class="a">Both atomic. <code>MULTI</code> is a static queued batch; Lua can branch/compute between reads and writes in one atomic pass (true conditional logic). Lua is usually cleaner for read-modify-write; <code>WATCH</code>+<code>MULTI</code> is optimistic CAS without server-side scripting.</p></div>
+    <div class="qitem"><p class="q">Is a Redis lock safe for exactly-once payment processing?</p><p class="a">No — async replication + GC/clock issues mean a lock can be held by two clients across a failover. For correctness, use a fencing token or put the idempotency key as a unique constraint in the ACID store holding the payment. Redis locks are for efficiency, not correctness-critical mutual exclusion.</p></div>
+  </div>
+</section>
+
+<!-- ============ PAGE 12 : BUCKETING & HOT KEYS ============ -->
+<section class="page" data-grp="a" data-title="Bucketing & hot keys">
+  <div class="eyebrow a">Access &amp; patterns · 04</div>
+  <h2 class="pt">Bucketing, hot keys &amp; sharding patterns</h2>
+  <p class="dek">"Bucketing" means two different things in Redis, both essential: <strong>time-bucketing</strong> to bound key size and spread load, and <strong>hash-bucketing</strong> to cut memory. Plus the hot-key problem that bucketing exists to solve.</p>
+
+  <h3>The hot-key problem</h3>
+  <p>A single key that everything reads or writes — a global counter, a celebrity's follower set, "today's trending" — concentrates load on the one node owning that key's slot. The cluster can't help: a key lives on exactly one shard. Symptoms: one node CPU-pinned while others idle, p99 spikes on that key's slot.</p>
+
+  <h3>Time-bucketing — bound size &amp; spread writes</h3>
+  <p>Instead of one ever-growing key, key by a time window: <code>views:page9:2026-06-20-14</code> (hourly), <code>stream:orders:2026-06-20</code> (daily). Benefits: each key stays small (no big-key blocking), old buckets <strong>expire</strong> cleanly via TTL, and writes spread across many keys/slots over time. Reads that span windows union a handful of buckets.</p>
+  <pre><span class="c"># per-minute counter, auto-expiring, naturally sharded by time</span>
+<span class="k">INCR</span> rate:user42:202606201432
+<span class="k">EXPIRE</span> rate:user42:202606201432 120
+<span class="c"># DAU bitmap per day, OR 7 of them for weekly actives</span>
+<span class="k">SETBIT</span> active:2026-06-20 42 1</pre>
+
+  <h3>Write-sharding a hot counter</h3>
+  <p>If one counter is genuinely too hot, split it into N sub-counters and pick one at random per write; sum on read. You trade an O(N) read for an N× write spread.</p>
+  <pre><span class="c"># write: pick a random shard 0..9</span>
+<span class="k">INCR</span> likes:post9:{rand(0,9)}
+<span class="c"># read: sum the shards</span>
+<span class="k">MGET</span> likes:post9:0 ... likes:post9:9   <span class="c"># → add up</span></pre>
+
+  <h3>Hash-bucketing — memory (recap with intent)</h3>
+  <p>Group many tiny top-level keys into hashes of ~100–1000 fields kept under the listpack threshold (<code>users:{id/1000} → {id%1000: value}</code>). Same O(1) lookup, far less per-key overhead. This is the memory lever; time-bucketing is the load/size lever.</p>
+
+  <h3>Hash tags — co-locating related keys</h3>
+  <p>In Cluster, only the substring inside <code>{…}</code> is hashed to a slot. Wrap the shared entity so its keys land together and multi-key ops (<code>MGET</code>, <code>MULTI</code>, <code>SINTER</code>) work: <code>cart:{u42}:items</code>, <code>cart:{u42}:total</code> → same slot. <strong>But</strong> over-tagging recreates hot keys — don't force unrelated load onto one slot.</p>
+
+  <div class="qa">
+    <div class="qlbl">Ask me</div>
+    <div class="qitem"><p class="q">A celebrity's follower set is one huge hot key — fix?</p><p class="a">Don't store one giant set. Bucket followers across many keys (by id range or shard), and for the fan-out use the hybrid approach — don't materialize the celebrity into every follower's timeline. Hot read keys also get a local/replica read cache in front.</p></div>
+    <div class="qitem"><p class="q">Time-bucket vs one big sorted set for a feed?</p><p class="a">A bounded zset (capped to recent N) is usually right for a feed. Time-bucketing suits append-heavy counters/logs where you also want TTL-based expiry of old windows and write spread. Choose by whether you need ranked access (zset) or windowed counts/logs (buckets).</p></div>
+  </div>
+</section>
+
+<!-- ============ PAGE 13 : CACHING PATTERNS ============ -->
+<section class="page" data-grp="a" data-title="Caching patterns">
+  <div class="eyebrow a">Access &amp; patterns · 05</div>
+  <h2 class="pt">Caching patterns &amp; their failure modes</h2>
+  <p class="dek">Redis's most common job. The patterns are simple; the value is knowing the <em>failure modes</em> — stampede, penetration, avalanche — and the one-line fix for each.</p>
+
+  <h3>The strategies</h3>
+  <ul>
+    <li><strong>Cache-aside (lazy):</strong> app checks Redis; on miss, reads DB, writes back to Redis with TTL. Simplest, most common. Cache holds only what's been requested.</li>
+    <li><strong>Read-through / write-through:</strong> the cache layer itself loads/persists (synchronous). Write-through keeps cache fresh but adds write latency.</li>
+    <li><strong>Write-behind (write-back):</strong> write to cache, flush to DB async. Fast writes, risk of loss on crash — only for tolerant data.</li>
+  </ul>
+
+  <h3>The three failure modes (name them in the interview)</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Problem</th><th>What happens</th><th>Fix</th></tr></thead>
+    <tbody>
+      <tr><td>Stampede / dogpile</td><td>A hot key expires; thousands of concurrent misses all hit the DB at once</td><td>Lock/single-flight on rebuild (one loader, others wait); or probabilistic early refresh; or never-expire + async refresh</td></tr>
+      <tr><td>Penetration</td><td>Queries for keys that don't exist (often malicious) skip the cache and pound the DB every time</td><td>Cache the negative result (short TTL) or a Bloom filter of valid keys to reject misses cheaply</td></tr>
+      <tr><td>Avalanche</td><td>Many keys share an expiry instant; all expire together → mass DB load spike</td><td>Jitter the TTLs (add random spread); stagger warming</td></tr>
+    </tbody></table></div>
+
+  <h3>Invalidation</h3>
+  <p>The hard problem. Options: <strong>TTL</strong> (simple, accepts staleness window), <strong>write-through</strong> (update cache on write), <strong>explicit delete on write</strong> (delete the key so next read re-loads — beware races between the DB write and the delete), and <strong>CDC-driven</strong> (a change stream from the DB invalidates Redis — keeps the cache a true derived view). Pub/Sub or keyspace notifications can fan invalidation across app nodes.</p>
+
+  <div class="note key"><b>Consistency framing</b><p>A cache is <em>eventually consistent derived data</em>. Accept a staleness window and design for it, or use write-through/CDC if you can't. The dangerous pattern is "delete cache then write DB" (or vice-versa) without ordering care — a concurrent reader can repopulate a stale value. Delete-after-commit + short TTL as a safety net is the pragmatic default.</p></div>
+
+  <div class="qa">
+    <div class="qlbl">Ask me</div>
+    <div class="qitem"><p class="q">A viral key expires and the DB melts — what happened, how prevent?</p><p class="a">Cache stampede: simultaneous misses dogpile the DB. Fix with single-flight (one rebuild, others wait on a lock), probabilistic early expiration, or serve-stale-while-revalidate.</p></div>
+    <div class="qitem"><p class="q">How do you keep cache and DB consistent?</p><p class="a">You don't get strong consistency cheaply — pick a staleness budget. TTL for simple cases; delete-on-write (after commit) + short TTL; CDC-driven invalidation when the cache must track the DB closely. Order the DB write and cache delete carefully to avoid repopulating stale data.</p></div>
+  </div>
+</section>
+
+<!-- ============ PAGE 14 : PERSISTENCE ============ -->
+<section class="page" data-grp="o" data-title="Persistence: RDB & AOF">
+  <div class="eyebrow o">Operating at scale · 01</div>
+  <h2 class="pt">Persistence — RDB, AOF &amp; what you can lose</h2>
+  <p class="dek">"In-memory" doesn't mean "non-durable." Redis offers two persistence mechanisms with different recovery/loss profiles — and the precise durability guarantee is the cross-question that separates depth from buzzwords.</p>
+
+  <h3>RDB — point-in-time snapshots</h3>
+  <p>Periodically <code>fork()</code>s a child that writes the whole dataset to a compact binary <code>.rdb</code> file (copy-on-write means the parent keeps serving). Pros: tiny files, <strong>fast restart</strong>, great for backups. Con: you lose every write since the <em>last</em> snapshot if you crash between them. Triggered by <code>save</code> rules (e.g. "after 60s if ≥1000 keys changed") or <code>BGSAVE</code>.</p>
+
+  <h3>AOF — append-only command journal</h3>
+  <p>Logs every write command to a file, replayed on restart. Durability depends on the <strong>fsync policy</strong>:</p>
+  <div class="tbl"><table>
+    <thead><tr><th>appendfsync</th><th>Durability</th><th>Cost</th></tr></thead>
+    <tbody>
+      <tr><td><span class="mono">always</span></td><td>fsync every write — lose ~nothing</td><td>Slowest (disk per op)</td></tr>
+      <tr><td><span class="mono">everysec</span> (default)</td><td>fsync once/sec — lose ≤1s of writes</td><td>Good balance</td></tr>
+      <tr><td><span class="mono">no</span></td><td>OS decides — can lose a lot</td><td>Fastest</td></tr>
+    </tbody></table></div>
+  <p>AOF grows, so Redis <strong>rewrites</strong> it (compacts to the minimal command set) in a background fork. Modern Redis supports a <strong>hybrid</strong>: AOF rewrite emits an RDB preamble + recent AOF tail — fast load <em>and</em> small loss window.</p>
+
+  <div class="note key"><b>The durability sentence to say out loud</b><p>"Default Redis (<code>everysec</code> AOF + async replication) guarantees <strong>at most ~1 second of write loss on a single-node crash</strong>, and can lose recently-acknowledged writes on a <strong>failover</strong> because replication is asynchronous — so it's excellent as a cache/index/derived store, and unsafe as the sole system of record for money. <code>WAIT</code> can block until N replicas ack, raising durability at a latency cost, but it's not full synchronous replication."</p></div>
+
+  <div class="note warn"><b>Persistence ≠ the data is safe</b><p>A snapshot/AOF on the same box doesn't survive disk loss; ship backups off-box. And persistence interacts with memory: the <code>fork()</code> for BGSAVE/AOF-rewrite can briefly double memory under heavy writes (copy-on-write page divergence) — size headroom accordingly.</p></div>
+
+  <div class="qa">
+    <div class="qlbl">Ask me</div>
+    <div class="qitem"><p class="q">If Redis is in-memory, what happens on crash?</p><p class="a">Depends on config. RDB: lose everything since the last snapshot. AOF <code>everysec</code>: lose ≤1s. AOF <code>always</code>: lose ~nothing but slow. On a replica failover, async replication can drop the last writes regardless. State the exact knob, don't hand-wave "it's durable."</p></div>
+    <div class="qitem"><p class="q">RDB or AOF — which?</p><p class="a">Run both: RDB for fast restart + backups, AOF for the small-loss window. Hybrid persistence gives RDB-speed loads with an AOF tail. Pure RDB only if you can tolerate snapshot-interval loss.</p></div>
+  </div>
+</section>
+
+<!-- ============ PAGE 15 : EXPIRY & EVICTION ============ -->
+<section class="page" data-grp="o" data-title="Expiry & eviction">
+  <div class="eyebrow o">Operating at scale · 02</div>
+  <h2 class="pt">Expiry, eviction &amp; the memory ceiling</h2>
+  <p class="dek">When RAM fills, Redis's behavior is entirely determined by two things: how TTLs are reclaimed, and which <code>maxmemory-policy</code> you chose. Getting this wrong turns a cache into an outage.</p>
+
+  <h3>How TTLs actually expire</h3>
+  <p>Two mechanisms together: <strong>lazy</strong> (a key is checked for expiry when accessed, and dropped if dead) and <strong>active</strong> (a background cycle samples random keys with TTLs and evicts expired ones). The implication: an expired key still occupies memory until it's sampled or touched — so you can't assume memory frees the instant a TTL passes.</p>
+
+  <h3>Eviction policies — what dies when full</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>maxmemory-policy</th><th>Behavior</th><th>Use when</th></tr></thead>
+    <tbody>
+      <tr><td><span class="mono">noeviction</span></td><td>Writes error once full; reads ok</td><td>Redis is a store, not a cache — never silently drop data</td></tr>
+      <tr><td><span class="mono">allkeys-lru</span></td><td>Evict least-recently-used across all keys</td><td>Pure cache; hot set should survive</td></tr>
+      <tr><td><span class="mono">allkeys-lfu</span></td><td>Evict least-<em>frequently</em>-used</td><td>Cache with stable hot keys (better than LRU for skewed access)</td></tr>
+      <tr><td><span class="mono">volatile-lru/lfu/ttl</span></td><td>Evict only keys that have a TTL</td><td>Mixed: persistent keys (no TTL) protected, cache keys (with TTL) evictable</td></tr>
+      <tr><td><span class="mono">allkeys-random / volatile-random</span></td><td>Evict at random</td><td>Rarely — when access is uniform</td></tr>
+    </tbody></table></div>
+  <p>Redis's LRU/LFU are <strong>approximate</strong> (sampled, not a global ordering) — cheaper and good enough. LFU adds a decaying counter so a once-popular-now-cold key eventually loses out.</p>
+
+  <div class="note key"><b>Cache vs store, decided here</b><p>The single most consequential choice: <strong><code>noeviction</code></strong> says "this data matters, error rather than lose it" (Redis-as-store); <strong><code>allkeys-lfu/lru</code></strong> says "this is a cache, shed the cold tail under pressure." The <code>volatile-*</code> family lets one instance be both — TTL'd cache entries are evictable, permanent keys are safe. Pick deliberately; the default behavior under memory pressure is what bites teams.</p></div>
+
+  <div class="qa">
+    <div class="qlbl">Ask me</div>
+    <div class="qitem"><p class="q">TTL passed but memory didn't drop — why?</p><p class="a">Expiry is lazy + sampled-active, not instantaneous. A dead key holds memory until it's accessed or the active cycle samples it. Under heavy churn this lag is normal; eviction policy handles true pressure.</p></div>
+    <div class="qitem"><p class="q">Redis as primary store — which eviction policy?</p><p class="a"><code>noeviction</code> — so a full instance errors on write rather than silently dropping your data. Then alert on memory and scale out. <code>allkeys-lru/lfu</code> is for caches where losing cold keys is fine.</p></div>
+  </div>
+</section>
+
+<!-- ============ PAGE 16 : REPLICATION & HA ============ -->
+<section class="page" data-grp="o" data-title="Replication & Sentinel">
+  <div class="eyebrow o">Operating at scale · 03</div>
+  <h2 class="pt">Replication, Sentinel &amp; failover</h2>
+  <p class="dek">One node is a single point of failure. Replication + Sentinel gives high availability — but the async nature of replication is exactly why Redis can lose acknowledged writes, the caveat you must surface.</p>
+
+  <h3>Primary → replica (asynchronous)</h3>
+  <p>A replica connects, gets an initial snapshot, then streams the primary's write commands. Replication is <strong>asynchronous</strong>: the primary acks the client <em>before</em> the replica confirms. So a primary that crashes after acking but before the replica caught up <strong>loses those writes</strong> on failover. Replicas scale <em>reads</em> (route read-only traffic to them) at the cost of replica-lag staleness.</p>
+
+  <h3>Sentinel — automatic failover</h3>
+  <p>Sentinel is a separate monitoring process (run ≥3 for quorum). Sentinels watch the primary, agree via quorum that it's down, <strong>elect</strong> a replica, promote it, and reconfigure clients (via pub/sub). It provides HA for a non-sharded setup. Clients ask Sentinel "who's the primary?" rather than hardcoding an address.</p>
+
+  <div class="fig">
+    <svg viewBox="0 0 760 180" xmlns="http://www.w3.org/2000/svg">
+      <defs><marker id="rha" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#9d8cf0"/></marker></defs>
+      <style>.ht{fill:#f1e9ec;font:600 10.5px 'JetBrains Mono'}.hs{fill:#c3b2ba;font:9px 'JetBrains Mono'}.hb{fill:#1a1418;stroke:#3a2c33}.hl{stroke:#9d8cf0;stroke-width:1.4;fill:none;marker-end:url(#rha)}</style>
+      <rect class="hb" x="330" y="24" width="110" height="34" rx="7" style="stroke:#54c39a"/><text class="ht" x="385" y="45" text-anchor="middle">primary</text>
+      <rect class="hb" x="200" y="100" width="100" height="32" rx="6"/><text class="hs" x="250" y="120" text-anchor="middle">replica (read)</text>
+      <rect class="hb" x="470" y="100" width="100" height="32" rx="6"/><text class="hs" x="520" y="120" text-anchor="middle">replica (read)</text>
+      <path class="hl" d="M360,58 L260,98"/><path class="hl" d="M410,58 L510,98"/>
+      <text class="hs" x="385" y="84" text-anchor="middle">async stream (lag)</text>
+      <rect class="hb" x="40" y="40" width="120" height="60" rx="9" style="stroke:#e8b04b"/><text class="ht" x="100" y="64" text-anchor="middle">Sentinels ×3</text><text class="hs" x="100" y="82" text-anchor="middle">quorum → failover</text>
+      <text class="hs" x="640" y="150" text-anchor="middle">async ack ⇒ failover can drop tail writes</text>
+    </svg>
+    <div class="cap">Sentinels reach quorum on failure and promote a replica. Because replication is async, writes acked by the old primary but not yet replicated are lost on promotion — the durability caveat.</div>
+  </div>
+
+  <div class="qa">
+    <div class="qlbl">Ask me</div>
+    <div class="qitem"><p class="q">Can Redis lose data even with replicas?</p><p class="a">Yes. Replication is asynchronous — the primary acks before replicas confirm, so a crash-then-failover can drop the last writes. <code>WAIT n ms</code> blocks until n replicas ack (stronger, slower) but it's not full sync replication. This is why Redis isn't a money-grade SoR.</p></div>
+    <div class="qitem"><p class="q">Sentinel vs Cluster?</p><p class="a">Sentinel = HA/failover for a single (non-sharded) dataset. Cluster = sharding the keyspace across many primaries for horizontal scale (and each shard has its own replicas/failover). You pick Sentinel when data fits one node but you need failover; Cluster when you must shard.</p></div>
+  </div>
+</section>
+
+<!-- ============ PAGE 17 : CLUSTER ============ -->
+<section class="page" data-grp="o" data-title="Cluster & sharding">
+  <div class="eyebrow o">Operating at scale · 04</div>
+  <h2 class="pt">Redis Cluster — sharding the keyspace</h2>
+  <p class="dek">When the dataset outgrows one node's RAM (or one node's throughput), Cluster shards keys across many primaries using <strong>16384 hash slots</strong>. The mechanics — slot mapping, hash tags, redirects, resharding — and the multi-key constraint are core interview ground.</p>
+
+  <h3>16384 slots, CRC16, no central router</h3>
+  <p>Every key maps to a slot: <strong>slot = CRC16(key) mod 16384</strong>. Slots are divided among primaries (e.g. 3 shards ≈ 5461 slots each). There's no proxy in the data path — clients learn the slot→node map and talk to the right node directly. Add a node → move some slots to it (online resharding); the <strong>~1/N</strong> data movement keeps rebalancing cheap.</p>
+
+  <div class="fig">
+    <svg viewBox="0 0 760 150" xmlns="http://www.w3.org/2000/svg">
+      <style>.ct{fill:#f1e9ec;font:600 10.5px 'JetBrains Mono'}.cs{fill:#c3b2ba;font:9px 'JetBrains Mono'}.cb{fill:#1a1418;stroke:#9d8cf0}</style>
+      <text x="380" y="22" fill="#9d8cf0" text-anchor="middle" style="font:600 11px 'JetBrains Mono'">CRC16(key) mod 16384 → slot → owning shard</text>
+      <rect class="cb" x="40" y="44" width="210" height="54" rx="9"/><text class="ct" x="145" y="66" text-anchor="middle">shard A</text><text class="cs" x="145" y="84" text-anchor="middle">slots 0–5460 (+replicas)</text>
+      <rect class="cb" x="275" y="44" width="210" height="54" rx="9"/><text class="ct" x="380" y="66" text-anchor="middle">shard B</text><text class="cs" x="380" y="84" text-anchor="middle">slots 5461–10922</text>
+      <rect class="cb" x="510" y="44" width="210" height="54" rx="9"/><text class="ct" x="615" y="66" text-anchor="middle">shard C</text><text class="cs" x="615" y="84" text-anchor="middle">slots 10923–16383</text>
+      <text x="380" y="128" fill="#8a7681" text-anchor="middle" style="font:9.5px 'JetBrains Mono'">each shard = primary + replica(s); client caches the slot map, follows MOVED/ASK on change</text>
+    </svg>
+    <div class="cap">Keys are deterministically placed by slot; clients route directly and self-correct on <code>MOVED</code> (slot permanently moved) / <code>ASK</code> (slot migrating right now).</div>
+  </div>
+
+  <h3>The multi-key constraint &amp; hash tags</h3>
+  <p>A command touching multiple keys (<code>MGET</code>, <code>SINTER</code>, <code>MULTI</code>, Lua with multiple keys) requires <strong>all keys on the same slot</strong> — otherwise <code>CROSSSLOT</code> error. <strong>Hash tags</strong> force co-location: only the part inside <code>{…}</code> is hashed, so <code>{user42}:cart</code> and <code>{user42}:wishlist</code> share a slot and can be operated on together. Design related keys with a common tag from the start.</p>
+
+  <div class="note warn"><b>Cluster trade-offs to state</b><p>No cross-slot transactions/Lua without hash tags; multi-key ops are constrained; a hot key still pins one shard (sharding spreads keys, not load on a single key); and async replication means clustered Redis can still lose acked writes on failover. Cluster buys capacity and parallelism, not stronger consistency.</p></div>
+
+  <div class="qa">
+    <div class="qlbl">Ask me</div>
+    <div class="qitem"><p class="q">Why 16384 slots, not more?</p><p class="a">It's a fixed bitmap each node gossips about cluster state; 16384 bits ≈ 2 KB per heartbeat — small enough to exchange cheaply while giving fine-enough granularity for clusters up to ~1000 nodes. A pragmatic constant, not a deep law.</p></div>
+    <div class="qitem"><p class="q">How do you keep a user's keys operable together in a cluster?</p><p class="a">Hash tags: wrap the shared entity in braces — <code>cart:{u42}:items</code>, <code>cart:{u42}:total</code> — so they hash to one slot and multi-key ops work. Don't over-tag, or you recreate hot slots.</p></div>
+    <div class="qitem"><p class="q">Does Cluster fix hot keys?</p><p class="a">No — it shards <em>keys</em> across nodes, but any single key still lives on one shard. A hot key needs write-sharding (sub-keys), a read cache/replica, or a redesign (e.g. hybrid fan-out), not cluster.</p></div>
+  </div>
+</section>
+
+<!-- ============ PAGE 18 : PITFALLS & WHEN NOT TO ============ -->
+<section class="page" data-grp="o" data-title="Pitfalls & when not to use">
+  <div class="eyebrow o">Operating at scale · 05</div>
+  <h2 class="pt">Pitfalls, latency sources &amp; when not to use Redis</h2>
+  <p class="dek">The senior move is knowing where Redis hurts. Most production Redis pain is one of a handful of issues — and the honest "don't use Redis here" answer scores more than forcing it everywhere.</p>
+
+  <h3>The usual suspects</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Symptom</th><th>Cause</th><th>Fix</th></tr></thead>
+    <tbody>
+      <tr><td>p99 latency spikes for all clients</td><td>O(N) command on a big key (<code>KEYS</code>, <code>SMEMBERS</code>, <code>HGETALL</code>, slow Lua) blocking the loop</td><td>Bound requests, <code>SCAN</code> family, split big keys, short scripts</td></tr>
+      <tr><td>One node hot, others idle</td><td>Hot key / hot slot</td><td>Write-shard counter, read cache, time-bucket, redesign access</td></tr>
+      <tr><td>Memory blows past estimate</td><td>Big collections, wrong encoding, fork COW during BGSAVE</td><td>Bucket to keep listpack encoding, cap collections, headroom for fork</td></tr>
+      <tr><td>Mass DB load when cache expires</td><td>Stampede / avalanche</td><td>Single-flight rebuild, TTL jitter, serve-stale</td></tr>
+      <tr><td>Lost writes after failover</td><td>Async replication tail-loss</td><td>Accept it (cache), or use ACID store as SoR; <code>WAIT</code> for partial mitigation</td></tr>
+      <tr><td>Latency from deleting a huge key</td><td>Synchronous <code>DEL</code> frees O(N) on the loop</td><td><code>UNLINK</code> (background lazy-free)</td></tr>
+    </tbody></table></div>
+
+  <h3>When Redis is the wrong tool</h3>
+  <ul>
+    <li><strong>Sole system of record for money / anything that can't lose a write</strong> — async replication + memory-first means use an ACID store as the source of truth.</li>
+    <li><strong>Dataset much larger than RAM (× shards)</strong> — RAM is the ceiling and it's expensive; a disk-based store (or Redis-on-flash tiers) fits cold data better.</li>
+    <li><strong>Ad-hoc analytical queries / joins / arbitrary GROUP BY</strong> — that's a relational/columnar engine; Redis answers known access patterns, not exploration.</li>
+    <li><strong>Large-corpus full-text search</strong> — Elasticsearch; RediSearch only for hot, moderate-size filtered lookups.</li>
+    <li><strong>Durable, partitioned, long-retention event log at high throughput</strong> — Kafka; Streams for in-process queues and moderate fan-out.</li>
+  </ul>
+
+  <div class="note key"><b>The one-paragraph summary to land</b><p>"Redis is an in-memory, single-threaded data-structure server. Use it as the <strong>hot, derived layer</strong> — cache, ranked index, counter, queue, session, geo, dedup — chosen by picking the structure that makes your access pattern O(1)/O(log N). Respect the single thread (no O(N) on big keys), keep keys bounded and named as a schema, and treat it as eventually-consistent derived state behind an authoritative store. Its limits — RAM ceiling, async-replication loss, no ad-hoc queries — are exactly where you reach for a real database, search engine, or Kafka instead."</p></div>
+</section>
+
+    </div>
+
+    <div class="pager">
+      <button class="pbtn prev" id="prevBtn"><span class="dir">← Prev</span><span class="ttl" id="prevTtl"></span></button>
+      <button class="pbtn next" id="nextBtn"><span class="dir">Next →</span><span class="ttl" id="nextTtl"></span></button>
+    </div>
+  </main>
+</div>
+
+<script>
+const groups=[
+  {key:'f',label:'I · Foundations'},
+  {key:'s',label:'II · Data structures'},
+  {key:'a',label:'III · Access & patterns'},
+  {key:'o',label:'IV · Operating at scale'},
+];
+let pages=[], cur=0;
+function build(){
+  pages=[...document.querySelectorAll('.page')];
+  const toc=document.getElementById('toc');
+  let html='';
+  groups.forEach(g=>{
+    const inGrp=pages.map((p,i)=>({p,i})).filter(x=>x.p.dataset.grp===g.key);
+    if(!inGrp.length) return;
+    html+=`<div class="toc-grp ${g.key}"><div class="lbl">${g.label}</div><div class="toc">`;
+    inGrp.forEach(x=>{
+      html+=`<a class="${g.key}" data-i="${x.i}"><span class="n">${String(x.i+1).padStart(2,'0')}</span><span>${x.p.dataset.title}</span></a>`;
+    });
+    html+='</div></div>';
+  });
+  toc.innerHTML=html;
+  toc.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{go(+a.dataset.i);closeNav();}));
+  const h=location.hash.match(/p(\d+)/); go(h?Math.min(+h[1]-1,pages.length-1):0,true);
+}
+function go(i,silent){
+  if(i<0||i>=pages.length)return;
+  pages[cur].classList.remove('on'); cur=i; pages[cur].classList.add('on');
+  document.getElementById('counter').textContent=String(i+1).padStart(2,'0')+' / '+String(pages.length).padStart(2,'0');
+  document.getElementById('prog').style.width=((i+1)/pages.length*100)+'%';
+  document.querySelectorAll('#toc a').forEach(a=>a.classList.toggle('active',+a.dataset.i===i));
+  const prev=document.getElementById('prevBtn'),next=document.getElementById('nextBtn');
+  prev.disabled=i===0; next.disabled=i===pages.length-1;
+  document.getElementById('prevTtl').textContent=i>0?pages[i-1].dataset.title:'';
+  document.getElementById('nextTtl').textContent=i<pages.length-1?pages[i+1].dataset.title:'';
+  const active=document.querySelector('#toc a.active'); if(active)active.scrollIntoView({block:'nearest'});
+  if(!silent){history.replaceState(null,'','#p'+(i+1)); window.scrollTo({top:0,behavior:'smooth'});}
+}
+document.getElementById('prevBtn').addEventListener('click',()=>go(cur-1));
+document.getElementById('nextBtn').addEventListener('click',()=>go(cur+1));
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT')return;
+  if(e.key==='ArrowRight')go(cur+1); if(e.key==='ArrowLeft')go(cur-1);
+});
+const sb=document.getElementById('sidebar');
+document.getElementById('menuBtn').addEventListener('click',()=>sb.classList.toggle('open'));
+function closeNav(){sb.classList.remove('open')}
+document.addEventListener('DOMContentLoaded',build);
+</script>
+<script>(function(){var b=document.getElementById('theme-toggle');if(!b)return;b.addEventListener('click',function(){var n=document.documentElement.getAttribute('data-theme')==='light'?'dark':'light';document.documentElement.setAttribute('data-theme',n);try{localStorage.setItem('tut-theme',n);}catch(e){}});})();</script>
+</body>
+</html>

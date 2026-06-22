@@ -165,7 +165,6 @@ html[data-theme="light"] .fig{background:#0f141b;border-color:#222d3a}
 <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/></svg>
 <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
 </button>
-
 <div class="app">
   <aside id="sidebar">
     <div class="brand">
@@ -720,19 +719,22 @@ db.orders.aggregate([
 </section>
 
 <!-- ================= PAGE 16 : CASSANDRA ================= -->
-<section class="page" data-grp="d" data-title="Cassandra">
+<section class="page" data-grp="d" data-title="Cassandra — engine">
   <div class="eyebrow d">Databases · Wide-column</div>
-  <h2 class="pt">Apache Cassandra</h2>
-  <p class="dek">A masterless, linearly-scalable wide-column store built for relentless write throughput and zero downtime. Every node is equal; there is no single point of failure.</p>
+  <h2 class="pt">Apache Cassandra — the engine</h2>
+  <p class="dek">A masterless, linearly-scalable wide-column store built for relentless write throughput and zero downtime. Every node is equal; there is no single point of failure. Its whole personality comes from the LSM write path and leaderless replication.</p>
   <div class="spec">
-    <div class="cell"><div class="h">Model</div><div class="v">Wide-column (partition → rows)</div></div>
-    <div class="cell"><div class="h">Query lang</div><div class="v">CQL (SQL-like, no joins)</div></div>
-    <div class="cell"><div class="h">Schema</div><div class="v">Defined, query-first design</div></div>
-    <div class="cell"><div class="h">Storage engine</div><div class="v">LSM-tree (memtable → SSTables)</div></div>
-    <div class="cell"><div class="h">Consistency</div><div class="v">Tunable per query (ONE…QUORUM…ALL)</div></div>
+    <div class="cell"><div class="h">Model</div><div class="v">Wide-column (partition → rows → cells)</div></div>
+    <div class="cell"><div class="h">Query lang</div><div class="v">CQL — SQL-like, schema-enforced, <strong>no joins</strong></div></div>
+    <div class="cell"><div class="h">Schema</div><div class="v">Defined &amp; typed; query-first modeling</div></div>
+    <div class="cell"><div class="h">Storage engine</div><div class="v">LSM-tree (memtable → SSTables → compaction)</div></div>
+    <div class="cell"><div class="h">Consistency</div><div class="v">Tunable per query (ONE…QUORUM…ALL); AP / PA·EL</div></div>
     <div class="cell"><div class="h">Topology</div><div class="v">Masterless ring, consistent hashing, gossip</div></div>
+    <div class="cell"><div class="h">Scale signal</div><div class="v">Linear: 100s of nodes, PB-scale, M+ writes/sec</div></div>
+    <div class="cell"><div class="h">Write/read</div><div class="v">Write-optimized; reads cost more (SSTable merge)</div></div>
   </div>
-  <h3>The write path (why it's so fast)</h3>
+
+  <h3>The write path (why writes are so cheap)</h3>
   <div class="fig">
     <svg viewBox="0 0 760 150" xmlns="http://www.w3.org/2000/svg">
       <defs><marker id="ar16" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5ad3a8"/></marker></defs>
@@ -745,11 +747,68 @@ db.orders.aggregate([
       <path class="cwl" d="M110,70 L158,70"/><path class="cwl" d="M280,70 L328,70"/><path class="cwl" d="M450,70 L498,70"/><path class="cwl" d="M620,70 L658,70"/>
       <text x="380" y="128" fill="#a6b5c6" text-anchor="middle" style="font:9.5px 'JetBrains Mono'">writes never seek — append to log + in-memory; reads merge memtable + SSTables (Bloom filters skip misses)</text>
     </svg>
-    <div class="cap">Append-only writes = no read-before-write, no locks. Deletes are <strong>tombstones</strong>; data converges via compaction.</div>
+    <div class="cap">A write is: append to commit log (durable) + insert into the sorted in-memory memtable — <strong>no read, no seek, no lock</strong>. The memtable flushes to an immutable SSTable; background compaction merges SSTables and drops tombstones.</div>
   </div>
-  <h3>Availability machinery</h3>
-  <p>Data is placed by <strong>consistent hashing</strong> with a replication factor; <strong>gossip</strong> spreads membership; <strong>hinted handoff</strong> covers brief outages; <strong>read repair</strong> and <strong>Merkle-tree anti-entropy</strong> (<code>nodetool repair</code>) heal divergence. Consistency is per-query: <code>R + W &gt; RF</code> gives strong reads on demand. Lightweight transactions (LWT) use Paxos for the rare compare-and-set.</p>
-  <div class="note warn"><b>Design query-first</b><p>No joins, no ad-hoc filtering. You model one table per access pattern, choosing a <strong>partition key</strong> (locates data, must avoid hotspots) and <strong>clustering columns</strong> (sort within partition). Denormalization is expected.</p></div>
+  <p>The asymmetry to internalize: a <strong>write</strong> is a sequential append (O(1)-ish, no read-before-write), so Cassandra ingests writes at enormous rates. A <strong>read</strong> may have to merge the memtable with several SSTables and check tombstones — Bloom filters and partition indexes keep it fast, but reads are inherently more work than writes. That's why Cassandra is called "write-optimized," and why your data model exists to make reads single-partition.</p>
+
+  <h3>Availability machinery (leaderless)</h3>
+  <p>Data is placed by <strong>consistent hashing</strong> on the partition key with a <strong>replication factor</strong> (e.g. RF=3); <strong>gossip</strong> spreads membership; <strong>hinted handoff</strong> buffers writes for briefly-down replicas; <strong>read repair</strong> and <strong>Merkle-tree anti-entropy</strong> (<code>nodetool repair</code>) heal divergence. Consistency is chosen <em>per query</em>: with <code>R + W &gt; RF</code> (e.g. QUORUM reads + QUORUM writes at RF=3) you get strong consistency on demand; <code>ONE</code> trades it for latency. There is no leader to fail — any node coordinates any request.</p>
+  <div class="note key"><b>When writes are OK — read this twice</b><p>Cassandra is the right call when writes dominate and reads follow a <em>known, partition-keyed</em> shape: time-series/telemetry, event logs, message/chat history, user-activity feeds, write-heavy ingestion. It's the <em>wrong</em> call when you need ad-hoc queries, joins, multi-row transactions, strong global invariants, or read patterns you can't predict at schema time — there, the read cost and modeling rigidity bite. "Write-optimized + queries known up front" is the green light.</p></div>
+  <div class="usedby"><span class="tag">scale peers</span><span class="db hl">ScyllaDB (C++ rewrite)</span><span class="db">HBase</span><span class="db">Bigtable</span><span class="db">DynamoDB</span></div>
+</section>
+
+<!-- ================= PAGE 16b : CASSANDRA DATA MODELING ================= -->
+<section class="page" data-grp="d" data-title="Cassandra — CQL & modeling">
+  <div class="eyebrow d">Databases · Wide-column · modeling</div>
+  <h2 class="pt">Cassandra data modeling &amp; CQL</h2>
+  <p class="dek">CQL <em>looks</em> like SQL and lies about it. There are no joins, no ad-hoc <code>WHERE</code>, and the primary key does two jobs at once. Master the partition/clustering split, the type system, and the access-pattern-first discipline, and the cross-questions stop landing.</p>
+
+  <h3>The primary key does two jobs</h3>
+  <p>A Cassandra <code>PRIMARY KEY</code> is <code>(partition key, clustering columns…)</code>. The <strong>partition key</strong> decides <em>which node</em> holds the row (hash → consistent-hashing ring) and groups rows into one physical partition. The <strong>clustering columns</strong> decide the <em>sort order of rows within</em> that partition. This is the single most important concept — get it wrong and you get hot partitions or impossible queries.</p>
+  <pre><span class="c">-- chat history: partition by conversation, sort by time desc</span>
+<span class="k">CREATE TABLE</span> messages (
+  conversation_id <span class="k">uuid</span>,
+  bucket          <span class="k">int</span>,          <span class="c">-- time-bucket to bound partition size</span>
+  msg_id          <span class="k">timeuuid</span>,
+  sender_id       <span class="k">uuid</span>,
+  body            <span class="k">text</span>,
+  attachments     <span class="k">list&lt;frozen&lt;attachment&gt;&gt;</span>,
+  <span class="k">PRIMARY KEY</span> ((conversation_id, bucket), msg_id)
+) <span class="k">WITH CLUSTERING ORDER BY</span> (msg_id <span class="n">DESC</span>);</pre>
+  <p>Here the partition key is the <em>composite</em> <code>(conversation_id, bucket)</code> — both needed to locate the partition. <code>msg_id</code> is the clustering column; <code>CLUSTERING ORDER BY (msg_id DESC)</code> physically stores newest-first, so "last 50 messages" is a cheap sequential read off the front — no sort at query time. The <code>bucket</code> exists to stop one busy conversation growing an unbounded partition.</p>
+
+  <div class="note warn"><b>What you can and can't query</b><p>You can only filter efficiently by: the <strong>full partition key</strong> (equality), then the <strong>clustering columns in order</strong> (equality on a prefix, range on the last one used). You <em>cannot</em> query by a non-key column, skip a clustering column, or range on the partition key. Try, and CQL refuses unless you add <code>ALLOW FILTERING</code> — which scans partitions and is a production foot-gun. Rule: <strong>one table per access pattern</strong>; if you need the same data by two keys, you write it twice.</p></div>
+
+  <h3>The type system — including list, set, map &amp; UDT</h3>
+  <p>Cassandra <strong>enforces schema</strong> (typed, declared columns — the "schemaless" label is a myth from the old Thrift era). Beyond scalars (<code>text, int, bigint, uuid, timeuuid, timestamp, boolean, decimal, blob, inet</code>) it has native <strong>collections</strong> and user-defined types:</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Type</th><th>Is</th><th>Notes / gotchas</th></tr></thead>
+    <tbody>
+      <tr><td><span class="mono">list&lt;T&gt;</span></td><td>ordered, allows duplicates</td><td>Some element ops need read-before-write → idempotency traps; prefer <code>set</code> unless order matters</td></tr>
+      <tr><td><span class="mono">set&lt;T&gt;</span></td><td>unordered, unique, sorted on disk</td><td>Safest collection; clean add/remove</td></tr>
+      <tr><td><span class="mono">map&lt;K,V&gt;</span></td><td>key→value pairs (dict)</td><td>Good for sparse/dynamic attributes</td></tr>
+      <tr><td><span class="mono">UDT</span></td><td>user-defined struct of typed fields</td><td>Compose with collections: <code>list&lt;frozen&lt;addr&gt;&gt;</code></td></tr>
+      <tr><td><span class="mono">frozen&lt;…&gt;</span></td><td>collection/UDT stored as one opaque value</td><td>Immutable as a unit, written/read atomically; required for nesting &amp; for use in keys</td></tr>
+      <tr><td><span class="mono">counter</span></td><td>distributed increment-only column</td><td>Special table; no mixing with non-counter cols; not idempotent on retry</td></tr>
+    </tbody></table></div>
+  <p>Collections are <strong>sparse</strong> (a null column costs nothing — the root of the "schemaless" myth) and <strong>cheaply alterable</strong> (<code>ALTER TABLE ADD col</code> is metadata-only). Keep them <strong>small &amp; bounded</strong> (tens of elements) — a fat collection bloats the partition and is read all-at-once. For an entity's attachments you embed them on the row (<code>list&lt;frozen&lt;attachment&gt;&gt;</code>, ≤ a handful) so one partition read returns the row <em>and</em> its media metadata — no join. The blob bytes go to object storage; only the metadata + key live in Cassandra.</p>
+
+  <h3>Why there are no joins</h3>
+  <p>Joins require gathering rows that may live on different nodes — a distributed join is a scatter-gather that destroys the latency guarantees Cassandra exists to provide. So the model inverts: you <strong>denormalize</strong> and <strong>duplicate</strong>, writing the data pre-joined into one partition shaped for each read. Storage is cheap; writes are cheap; reads must be single-partition. "Model the query, not the entity."</p>
+
+  <h3>The escape hatches (and their cost)</h3>
+  <ul>
+    <li><strong>Secondary index (2i):</strong> indexes a non-key column, but it's <em>local</em> (per-node) — a query by it scatters across all nodes. Fine for low-cardinality, high-selectivity-within-partition; bad as a general index.</li>
+    <li><strong>SASI / SAI:</strong> richer attached indexes (ranges, prefixes) — more capable but still not a relational index; use sparingly.</li>
+    <li><strong>Materialized views:</strong> Cassandra maintains a second table keyed differently for you — convenient but historically buggy under failure; many teams hand-roll the duplicate table instead.</li>
+    <li><strong>Lightweight transactions (LWT):</strong> <code>INSERT … IF NOT EXISTS</code> / <code>UPDATE … IF col = x</code> give compare-and-set via <strong>Paxos</strong> — true linearizable conditional writes, but ~4× the round-trips. Use for the rare uniqueness/CAS need (claim a username), never on the hot path.</li>
+  </ul>
+
+  <h3>Deletes, tombstones &amp; TTL</h3>
+  <p>You can't delete-in-place in an LSM/immutable-SSTable world. A delete writes a <strong>tombstone</strong> (a marker that shadows older data) which is only reclaimed after <code>gc_grace_seconds</code> (default 10 days, so a down replica can't resurrect deleted data). <strong>TTL</strong> on rows/columns auto-expires them into tombstones. The danger: <strong>tombstone build-up</strong> on a partition you delete/overwrite heavily makes reads scan piles of dead markers and can time out — model to avoid queue-like delete-heavy partitions.</p>
+
+  <div class="note key"><b>The modeling checklist to recite</b><p><strong>1.</strong> List every read query first. <strong>2.</strong> One table per query. <strong>3.</strong> Partition key = the equality filter that scopes the read (must be high-cardinality, must bound partition size — add a bucket if needed). <strong>4.</strong> Clustering columns = the sort + range you need, set <code>CLUSTERING ORDER BY</code>. <strong>5.</strong> Denormalize / duplicate across tables for other access paths. <strong>6.</strong> Reach for LWT only for CAS, 2i only for narrow cases, and never <code>ALLOW FILTERING</code> in prod.</p></div>
+  <div class="usedby"><span class="tag">no-join siblings</span><span class="db">DynamoDB</span><span class="db">HBase</span><span class="db">Bigtable</span><span class="db">MongoDB (denormalize)</span></div>
 </section>
 
 <!-- ================= PAGE 17 : DYNAMODB ================= -->
