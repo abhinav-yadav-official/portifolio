@@ -2,7 +2,7 @@
 
 ## Project Purpose
 
-This is the static personal website for `abhiyadav.in`, hosted from the canonical GitHub repo `abhinav-yadav-official/portifolio` (the misspelling is intentional). The site is a single-page portfolio with SEO/social metadata, a Three.js galaxy backdrop, project and experience sections, custom error pages, and a linked resume PDF.
+This is the static personal website for `abhiyadav.in`, hosted from the canonical GitHub repo `almostturingcomplete/portifolio` (the misspelling is intentional). The site is a single-page portfolio with SEO/social metadata, a Three.js galaxy backdrop, project and experience sections, custom error pages, and a linked resume PDF.
 
 There is no application build step. Files ship largely as authored.
 

@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-HOST="${1:-${HOST:-abhiyadav.in}}"
+HOST="${1:-${HOST:-kronos}}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-DOMAIN="${DOMAIN:-$HOST}"
+DOMAIN="${DOMAIN:-abhiyadav.in}"
 DOMAIN_ALIASES="${DOMAIN_ALIASES:-www.$DOMAIN}"
 WEB_ROOT="${WEB_ROOT:-/var/www/html}"
 LEETDRILL_BASE_PATH="${LEETDRILL_BASE_PATH:-/leetdrill}"
@@ -77,19 +77,61 @@ sudo chown -R "$REMOTE_USER:$REMOTE_GROUP" "$WEB_ROOT"
 REMOTE_BOOTSTRAP
 
 tmp_home="/tmp/portifolio-homepage"
-ssh "$HOST" "rm -rf $(quote "$tmp_home") && mkdir -p $(quote "$tmp_home")"
+tmp_extra="/tmp/portifolio-extra"
+ssh "$HOST" "rm -rf $(quote "$tmp_home") $(quote "$tmp_extra") && mkdir -p $(quote "$tmp_home") $(quote "$tmp_extra")"
 rsync -az --delete \
   --exclude='.git/' \
   --exclude='scripts/' \
   --exclude='Taskfile.yml' \
   --exclude='README.md' \
+  --exclude='.local-html/' \
   "$ROOT"/ "$HOST:$tmp_home"/
+
+# Extra HTML hosted at the web root but kept out of the repo lives in the gitignored
+# .local-html/ dir. Push it from the local working tree only; CI checkouts lack the dir,
+# so a server-side manifest tells those deploys to preserve what is already live.
+if [ -d "$ROOT/.local-html" ] && [ -n "$(ls -A "$ROOT/.local-html" 2>/dev/null)" ]; then
+  rsync -az "$ROOT/.local-html"/ "$HOST:$tmp_extra"/
+fi
+
 ssh "$HOST" \
-  "WEB_ROOT=$(quote "$WEB_ROOT") TMP_HOME=$(quote "$tmp_home") bash -s" <<'REMOTE_SYNC'
+  "WEB_ROOT=$(quote "$WEB_ROOT") TMP_HOME=$(quote "$tmp_home") TMP_EXTRA=$(quote "$tmp_extra") bash -s" <<'REMOTE_SYNC'
 set -euo pipefail
-sudo rsync -a --delete --exclude=shared/ --exclude=github-profile/ "$TMP_HOME"/ "$WEB_ROOT"/
+manifest="$WEB_ROOT/.local-html.manifest"
+
+# Names to keep across deploys: union of the server manifest (written by past local
+# deploys) and whatever this run is pushing from .local-html/.
+declare -A protect=()
+if sudo test -f "$manifest"; then
+  while IFS= read -r name; do
+    [ -n "$name" ] && protect["$name"]=1
+  done < <(sudo cat "$manifest")
+fi
+if [ -d "$TMP_EXTRA" ]; then
+  for f in "$TMP_EXTRA"/*; do
+    [ -e "$f" ] && protect["$(basename "$f")"]=1
+  done
+fi
+
+# tutorials/ now lives on the web root via the separate almostturingcomplete/tutorials
+# deploy, not this repo — --delete must not remove it just because it's gone from git.
+excludes=(--exclude=shared/ --exclude=github-profile/ --exclude=tutorials/)
+for name in "${!protect[@]}"; do
+  excludes+=("--exclude=/$name" "--exclude=/$name.gz")
+done
+
+sudo rsync -a --delete "${excludes[@]}" "$TMP_HOME"/ "$WEB_ROOT"/
+
+# Local deploys ship fresh copies of the extra files and refresh the manifest.
+if [ -d "$TMP_EXTRA" ] && [ -n "$(ls -A "$TMP_EXTRA" 2>/dev/null)" ]; then
+  sudo rsync -a "$TMP_EXTRA"/ "$WEB_ROOT"/
+fi
+if [ "${#protect[@]}" -gt 0 ]; then
+  printf '%s\n' "${!protect[@]}" | sort -u | sudo tee "$manifest" >/dev/null
+fi
+
 sudo find "$WEB_ROOT" -maxdepth 1 -type f \( -name '*.html' -o -name '*.txt' -o -name '*.xml' -o -name '*.svg' \) -exec gzip -9 -kf {} \;
-rm -rf "$TMP_HOME"
+rm -rf "$TMP_HOME" "$TMP_EXTRA"
 REMOTE_SYNC
 
 if [ "$SETUP_NGINX" = true ]; then
@@ -127,14 +169,24 @@ server {
     listen 80;
     listen [::]:80;
     server_name $server_names;
-    root $WEB_ROOT;
-    error_page 403 /403.html;
-    error_page 404 /404.html;
-    error_page 500 502 503 504 /50x.html;
 
     location /.well-known/acme-challenge/ {
         root /var/www/letsencrypt;
     }
+
+    location / {
+        return 301 https://\$host\$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name $server_names;
+    root $WEB_ROOT;
+    error_page 403 /403.html;
+    error_page 404 /404.html;
+    error_page 500 502 503 504 /50x.html;
 
     location = /403.html {
         internal;
@@ -179,7 +231,7 @@ server {
     }
 
     location = /github {
-        return 302 https://github.com/abhinav-yadav-official;
+        return 302 https://github.com/almostturingcomplete;
     }
 
     location = $LEETDRILL_BASE_PATH {

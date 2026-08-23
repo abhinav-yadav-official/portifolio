@@ -184,10 +184,10 @@ def main():
     require('href="/linkedin"' in body, "homepage must link LinkedIn via /linkedin")
     require('href="/github"' in body, "homepage must link GitHub profile via /github")
     require(
-        "https://leetcode.com/u/abhinav-yadav-official/" in body,
+        "https://leetcode.com/u/almostturingcomplete/" in body,
         "homepage must link LeetCode profile",
     )
-    require("https://github.com/abhinav-yadav-official/LeetDrill" in body, "homepage must link GitHub repo")
+    require("https://github.com/almostturingcomplete/LeetDrill" in body, "homepage must link GitHub repo")
     require("https://abhiyadav.in/leetdrill" in body, "homepage must link hosted LeetDrill")
     require("LeetDrill" in body, "homepage must mention LeetDrill")
     require("Ichnos" in body, "homepage must mention Ichnos")
@@ -201,7 +201,7 @@ def main():
     require("BIGINT" in body, "homepage must mention BIGINT migration")
     require("Painless" in body, "homepage must mention Painless scoring")
     require("Python 2 to Python 3" in body, "homepage must mention Python migration")
-    for metric in ["2M+ users", "50M+ monthly requests", "2B+ row tables", "4.8s", "85ms", "200+ weekly deploys"]:
+    for metric in ["5M+ users", "100M+ monthly requests", "2B+ row tables", "4.8s", "85ms", "200+ weekly deploys"]:
         require(metric in body, f"homepage must include resume metric: {metric}")
     require("prefers-reduced-motion: reduce" in body, "homepage typing must respect reduced motion")
     require("typing-line" in body, "homepage must mark hero typing lines")
@@ -284,7 +284,7 @@ def main():
         "react-clock-app",
     ]:
         require(
-            f"https://github.com/abhinav-yadav-official/{repo}" in body,
+            f"https://github.com/almostturingcomplete/{repo}" in body,
             f"homepage must link GitHub repo {repo}",
         )
     for repo in [
@@ -302,7 +302,7 @@ def main():
     ]:
         require_after(
             body,
-            f"https://github.com/abhinav-yadav-official/{repo}",
+            f"https://github.com/almostturingcomplete/{repo}",
             "Project archive",
             f"{repo} must appear in archive section",
         )
@@ -311,6 +311,7 @@ def main():
         "--exclude=shared/" in deploy,
         "homepage deploy must preserve /var/www/html/shared extension downloads",
     )
+    require("return 301 https://" in deploy, "nginx deploy must redirect HTTP to HTTPS")
     require("try_files /resume.pdf =404;" in deploy, "nginx deploy must serve renamed resume.pdf")
     require("Abhinav_Resume.pdf" not in deploy, "nginx deploy must not reference old resume filename")
     for header in [
